@@ -287,7 +287,7 @@
   </div>
   <div class="header-right">
     Agent Client Protocol (ACP)<br>
-    Buyer Agent &harr; Seller Agent :8002<br>
+    Buyer Agent &harr; Nike Store Agent<br>
     Phase 1 of 4 &mdash; Handshake &amp; Intent
   </div>
 </div>
@@ -319,10 +319,10 @@
       <div class="panel-icon">S</div>
       <div class="panel-meta">
         <div class="panel-name">Nike Seller Agent</div>
-        <div class="panel-sub">vendor · :8002</div>
+        <div class="panel-sub">vendor · nike.com</div>
       </div>
       <div class="dot" id="dot-seller"></div>
-      <div class="port-tag">:8002</div>
+      <div class="port-tag">nike.com</div>
     </div>
     <div class="feed" id="feed-seller">
       <div class="bwrap mid show"><div class="bubble sys">waiting for connection</div></div>
@@ -468,7 +468,7 @@ async function nextStep() {
     await delay(800);
     addBubble('feed-buyer', 'mid', '', 'buyer agent ready');
     await delay(600);
-    addBubble('feed-seller', 'mid', '', 'seller agent :8002');
+    addBubble('feed-seller', 'mid', '', 'nike store agent online');
     await delay(800);
     setPip(0, 'done');
     setDot('dot-buyer', 'on');
