@@ -293,6 +293,77 @@
     margin-bottom: 16px;
     flex-shrink: 0;
   }
+
+  /* ── MOBILE ── */
+  @media (max-width: 680px) {
+
+    /* Header stacks vertically */
+    .header {
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 16px 20px;
+      gap: 14px;
+    }
+    .header-sub { font-size: 15px; }
+
+    /* Phase dots shrink */
+    .phases { gap: 0; }
+    .phase-connector { width: 14px; }
+    .phase-label { font-size: 8px; }
+
+    /* Stage becomes single column: buyer → arrows → seller */
+    .stage {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto auto;
+      padding: 16px 20px;
+      min-height: auto;
+      gap: 0;
+    }
+
+    /* Panels take full width */
+    .panel { border-radius: 10px; }
+    .feed  { min-height: 180px; }
+
+    /* Center arrow strip becomes a horizontal band */
+    .center {
+      flex-direction: row;
+      padding: 10px 0;
+      height: auto;
+      min-height: 0;
+      justify-content: center;
+      align-items: center;
+    }
+    .wire { display: none; }
+
+    .arrows {
+      flex-direction: row;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      padding: 0 8px;
+    }
+
+    /* Arrows: right-going left-aligned, left-going right-aligned */
+    .arrow-row { flex-direction: row; align-items: center; gap: 4px; }
+    .arrow-row.to-right { justify-content: flex-start; }
+    .arrow-row.to-left  { justify-content: flex-end; }
+    .arrow-label { display: none; }
+    .arrow-chip  { font-size: 9px; padding: 3px 9px; }
+
+    /* Bottom bar wraps */
+    .bottom {
+      padding: 14px 20px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .status-txt { width: 100%; order: 3; font-size: 10px; }
+    .pips { order: 2; }
+
+    /* Bubbles slightly smaller */
+    .bubble { font-size: 10px; padding: 7px 10px; }
+    .blabel { font-size: 8px; }
+  }
 </style>
 </head>
 <body>
