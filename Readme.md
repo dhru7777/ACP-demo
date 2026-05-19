@@ -1,5 +1,5 @@
 # ACP Demo — Phase 1
-## Two Agents Communicating Locally
+## Simulating Agentic Payments with ACP (Agent Client Protocol)
 
 Based on thesis: "Capturing Intent Over Attention in Agentic Payments" by Dheeraj Maske
 
@@ -15,56 +15,100 @@ Buyer Agent (buyer_agent.py)        Seller Agent (seller_agent.py)
         │  ◄────── capabilities + agentInfo ─────│
         │                                        │
         │  Step 2: commerce/request              │
-        │  "I want market_data_report, max $2"   │
+        │  "I want air_max_270, max $200"        │
         │ ──────────────────────────────────────►│
-        │  ◄────── offer: $1.00, payment needed ─│
+        │  ◄────── offer: $150.00, payment needed│
         │                                        │
         │  Step 3: [payment — Phase 2]           │
 ```
 
 ---
 
-## Setup
+## Live Demo
 
-```bash
-pip install fastapi uvicorn requests
-```
+- **Frontend (Netlify):** demo.html served on Netlify
+- **Backend (Railway):** seller_agent.py running at `https://acp-demo-production.up.railway.app`
 
 ---
 
-## Run
+## Local Setup
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install fastapi uvicorn requests
+```
 
 **Terminal 1 — Start the Seller Agent:**
 ```bash
-python seller_agent.py
+uvicorn seller_agent:app --port 8002
 ```
 
 **Terminal 2 — Run the Buyer Agent:**
 ```bash
-python buyer_agent.py
+python3 buyer_agent.py
 ```
 
 ---
 
-## Phases
+## Phase Roadmap
 
-| Phase | What gets added       | File to modify         |
-|-------|-----------------------|------------------------|
-| 1     | ACP handshake + intent | seller_agent.py, buyer_agent.py |
-| 2     | Stripe fiat payment    | Add stripe to seller, pay() in buyer |
-| 3     | x402 crypto (USDC)     | Add x402 to seller_agent.py |
-| 4     | Trust + audit layer   | New trust_layer.py service |
+| Phase | Status | What it does | File(s) |
+|-------|--------|--------------|---------|
+| 1 | ✅ Done | ACP handshake + commerce intent + offer | `seller_agent.py`, `buyer_agent.py`, `demo.html` |
+| 2 | 🔜 Tomorrow | Stripe fiat payment execution | `seller_agent.py`, `buyer_agent.py` |
+| 3 | ⏳ Pending | x402 crypto payment (USDC) | `seller_agent.py` |
+| 4 | ⏳ Pending | Trust + audit layer | New `trust_layer.py` |
 
 ---
 
-## How this maps to your thesis diagram
+## Phase 1 — What's Done vs What's Missing
 
-| Thesis Diagram         | This code              |
-|------------------------|------------------------|
-| Human/User             | You (running buyer_agent.py) |
-| Personal Agent         | buyer_agent.py         |
-| Vendor Agent           | seller_agent.py        |
-| Intent Request (arrow d) | commerce/request method |
-| Verified Offer (arrow e) | offer in response      |
-| Intent + Trust Layer   | Phase 4                |
-| Payments               | Phase 2 (Stripe) / Phase 3 (x402) |
+### Done ✅
+
+| ACP Component | Implementation |
+|---|---|
+| JSON-RPC 2.0 message envelope | `jsonrpc: "2.0"`, `id`, `method`, `params` on every message |
+| `initialize` handshake | Both agents send/receive and store capabilities |
+| `clientInfo` / `agentInfo` exchange | Name + version sent both ways |
+| `clientCapabilities` / `agentCapabilities` | `commerce`, `payment`, `mcpCapabilities` fields |
+| `authMethods` field | Returned as `[]` |
+| Custom commerce method | `commerce/request` — intent + offer pattern |
+| CORS | `allow_origins=["*"]` on seller for browser access |
+| Live UI wired to backend | `demo.html` makes real fetch() calls to Railway |
+
+### Missing / Phase 2+ 🔜
+
+| Gap | What's needed | Phase |
+|---|---|---|
+| Payment never executes | Stripe API integration in `seller_agent.py` + `pay()` in buyer | 2 |
+| No session layer | `session/new`, `session/prompt`, `session/cancel` methods | 2 |
+| Version negotiation not enforced | Seller must reject unsupported `protocolVersion` | 2 |
+| No authentication | Validate bearer token or API key in seller | 2 |
+| Buyer not deployed | Buyer is a local script — needs to be a running service | 3 |
+| Crypto payment | x402 / USDC integration | 3 |
+| Trust + audit | Log all agent transactions with signatures | 4 |
+
+---
+
+## Where to Start Tomorrow (Phase 2)
+
+1. **Stripe payment** — add `stripe` to `requirements.txt`, create a payment intent in `handle_commerce_pay()` in `seller_agent.py`
+2. **`commerce/pay` method** — add a new handler in `seller_agent.py` that calls Stripe and returns a receipt
+3. **`pay()` function in buyer** — send a real `commerce/pay` JSON-RPC call instead of the placeholder
+4. **Version check** — add `if protocol_version != SUPPORTED_VERSION: return error(...)` in `handle_initialize()`
+5. **Session ID** — generate a UUID in `initialize` response and require it on all subsequent calls
+
+---
+
+## How this maps to the thesis diagram
+
+| Thesis Diagram | This code |
+|---|---|
+| Human / User | You (triggering buyer_agent.py) |
+| Personal Agent | `buyer_agent.py` |
+| Vendor Agent | `seller_agent.py` |
+| Intent Request (arrow d) | `commerce/request` method |
+| Verified Offer (arrow e) | `offer` in response |
+| Payment | Phase 2 (Stripe) / Phase 3 (x402) |
+| Intent + Trust Layer | Phase 4 (`trust_layer.py`) |
