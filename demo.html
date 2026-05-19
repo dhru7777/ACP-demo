@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agentic Commerce Protocol — Phase 1 Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #f5f5f5;
+    --surface:   #ffffff;
+    --card:      #f0f0f0;
+    --border:    rgba(0,0,0,0.08);
+    --border-hi: rgba(0,0,0,0.18);
+    --text:      #000000;
+    --muted:     #888888;
+    --dim:       #cccccc;
+    --mono:      'DM Mono', monospace;
+  }
+
+  html, body { background: var(--bg); color: var(--text); font-family: var(--mono); font-size: 13px; line-height: 1.6; min-height: 100vh; }
+
+  /* HEADER */
+  .header {
+    border-bottom: 1px solid var(--border);
+    padding: 24px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .header-title { font-size: 11px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+  .header-sub   { font-size: 18px; font-weight: 300; color: var(--text); margin-top: 4px; letter-spacing: -0.01em; }
+  .header-right { font-size: 10px; color: var(--dim); text-align: right; line-height: 2; }
+
+  /* STAGE */
+  .stage {
+    display: grid;
+    grid-template-columns: 1fr 120px 1fr;
+    padding: 28px 40px;
+    min-height: 520px;
+    gap: 0;
+  }
+
+  /* PANELS */
+  .panel {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .panel-head {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .panel-icon {
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    border: 1px solid var(--border-hi);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+  .panel-name  { font-size: 13px; font-weight: 500; color: var(--text); }
+  .panel-sub   { font-size: 10px; color: var(--muted); margin-top: 1px; }
+  .panel-meta  { flex: 1; }
+  .port-tag {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    border: 1px solid var(--border-hi);
+    color: var(--muted);
+  }
+  .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--dim);
+    transition: background 0.4s, box-shadow 0.4s;
+  }
+  .dot.on      { background: #000; box-shadow: 0 0 5px rgba(0,0,0,0.25); }
+  .dot.working { background: #000; animation: blink 0.9s infinite; }
+  @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.2; } }
+
+  .feed {
+    flex: 1;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    min-height: 360px;
+  }
+
+  /* BUBBLES */
+  .bwrap { display: flex; flex-direction: column; gap: 2px; opacity: 0; transform: translateY(6px); transition: opacity 0.35s, transform 0.35s; }
+  .bwrap.show  { opacity: 1; transform: translateY(0); }
+  .bwrap.sent  { align-items: flex-end; }
+  .bwrap.recv  { align-items: flex-start; }
+  .bwrap.mid   { align-items: center; }
+  .blabel { font-size: 9px; color: #aaaaaa; padding: 0 4px; letter-spacing: 0.02em; }
+  .bubble {
+    max-width: 90%;
+    padding: 8px 12px;
+    border-radius: 10px;
+    font-size: 11px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .bubble.out {
+    background: #000;
+    border: 1px solid #000;
+    color: #ffffff;
+    border-bottom-right-radius: 2px;
+  }
+  .bubble.inc {
+    background: var(--card);
+    border: 1px solid var(--border-hi);
+    color: #222222;
+    border-bottom-left-radius: 2px;
+  }
+  .bubble.sys {
+    background: transparent;
+    border: 1px solid var(--border-hi);
+    color: #555555;
+    font-size: 10px;
+    text-align: center;
+    border-radius: 6px;
+    padding: 6px 14px;
+  }
+  .bubble.err {
+    background: transparent;
+    border: 1px solid rgba(0,0,0,0.2);
+    color: #666666;
+    font-size: 10px;
+    text-align: center;
+    border-radius: 6px;
+    padding: 6px 14px;
+  }
+
+  /* OFFER CARD */
+  .offer-card {
+    border: 1px solid var(--border-hi);
+    border-radius: 10px;
+    background: var(--card);
+    padding: 14px 16px;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.4s, transform 0.4s;
+  }
+  .offer-card.show { opacity: 1; transform: translateY(0); }
+  .offer-item  { font-size: 10px; color: var(--muted); margin-bottom: 4px; }
+  .offer-name  { font-size: 13px; font-weight: 400; color: var(--text); }
+  .offer-price { font-size: 28px; font-weight: 300; color: var(--text); letter-spacing: -0.02em; margin: 6px 0 4px; }
+  .offer-meta  { font-size: 10px; color: var(--muted); line-height: 1.8; }
+  .offer-badge {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 9px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border-hi);
+    color: var(--muted);
+  }
+
+  /* CENTER */
+  .center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 60px;
+    position: relative;
+  }
+  .wire {
+    position: absolute;
+    top: 60px; left: 50%;
+    transform: translateX(-50%);
+    width: 1px;
+    background: var(--border);
+    bottom: 0;
+    z-index: 0;
+  }
+  .arrows { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: stretch; gap: 10px; width: 100%; padding: 0 8px; }
+  .arrow-row {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    opacity: 0;
+  }
+  .arrow-row.to-right { animation: slideRight 0.45s ease forwards; align-items: flex-end; }
+  .arrow-row.to-left  { animation: slideLeft  0.45s ease forwards; align-items: flex-start; }
+  @keyframes slideRight {
+    from { opacity: 0; transform: translateX(-16px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes slideLeft {
+    from { opacity: 0; transform: translateX(16px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  .arrow-label {
+    font-size: 9px;
+    color: #aaaaaa;
+    letter-spacing: 0.04em;
+  }
+  .arrow-chip {
+    background: #000;
+    color: #fff;
+    border-radius: 20px;
+    padding: 4px 11px;
+    font-size: 10px;
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+  }
+  .arrow-row.to-right .arrow-chip { border-bottom-right-radius: 3px; }
+  .arrow-row.to-left  .arrow-chip { border-bottom-left-radius: 3px; }
+
+  /* BOTTOM */
+  .bottom {
+    border-top: 1px solid var(--border);
+    padding: 18px 40px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 9px 22px;
+    border-radius: 7px;
+    border: 1px solid var(--border-hi);
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    transition: background 0.15s;
+  }
+  .btn:hover   { background: var(--card); }
+  .btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .btn.primary { background: #000; border-color: #000; color: #fff; font-weight: 500; }
+  .btn.primary:hover { background: #222; }
+  .btn.primary:disabled { background: rgba(0,0,0,0.1); border-color: transparent; color: rgba(0,0,0,0.3); }
+  .status-txt { font-size: 10px; color: var(--muted); flex: 1; }
+  .pips { display: flex; gap: 5px; align-items: center; }
+  .pip {
+    width: 18px; height: 2px; border-radius: 2px;
+    background: var(--dim);
+    transition: background 0.3s;
+  }
+  .pip.active { background: rgba(0,0,0,0.35); }
+  .pip.done   { background: #000; }
+
+  /* STEPS */
+  .steps {
+    padding: 0 40px 36px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  .step-card {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    background: var(--surface);
+    opacity: 0.25;
+    transition: opacity 0.4s, border-color 0.4s;
+  }
+  .step-card.lit { opacity: 1; border-color: var(--border-hi); }
+  .step-num   { font-size: 9px; color: var(--dim); margin-bottom: 6px; }
+  .step-title { font-size: 12px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+  .step-desc  { font-size: 11px; color: var(--muted); line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-title">Dheeraj Maske &middot; Thesis Demo &middot; 2025</div>
+    <div class="header-sub">Capturing Intent Over Attention &mdash; Agentic Payments</div>
+  </div>
+  <div class="header-right">
+    Agent Client Protocol (ACP)<br>
+    Buyer Agent &harr; Seller Agent :8002<br>
+    Phase 1 of 4 &mdash; Handshake &amp; Intent
+  </div>
+</div>
+
+<div class="stage">
+
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-icon">B</div>
+      <div class="panel-meta">
+        <div class="panel-name">Buyer Agent</div>
+        <div class="panel-sub">acts on your behalf</div>
+      </div>
+      <div class="dot" id="dot-buyer"></div>
+      <div class="port-tag">client</div>
+    </div>
+    <div class="feed" id="feed-buyer">
+      <div class="bwrap mid show"><div class="bubble sys">waiting to start</div></div>
+    </div>
+  </div>
+
+  <div class="center">
+    <div class="wire"></div>
+    <div class="arrows" id="arrows"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-icon">S</div>
+      <div class="panel-meta">
+        <div class="panel-name">Nike Seller Agent</div>
+        <div class="panel-sub">vendor · :8002</div>
+      </div>
+      <div class="dot" id="dot-seller"></div>
+      <div class="port-tag">:8002</div>
+    </div>
+    <div class="feed" id="feed-seller">
+      <div class="bwrap mid show"><div class="bubble sys">waiting for connection</div></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="bottom">
+  <button class="btn primary" id="next-btn" onclick="nextStep()">Start</button>
+  <button class="btn" id="reset-btn" onclick="resetDemo()" style="display:none">Reset</button>
+  <div class="status-txt" id="status-txt">Click Start to begin the ACP demo step by step</div>
+  <div class="pips">
+    <div class="pip" id="pip0"></div>
+    <div class="pip" id="pip1"></div>
+    <div class="pip" id="pip2"></div>
+    <div class="pip" id="pip3"></div>
+    <div class="pip" id="pip4"></div>
+  </div>
+</div>
+
+<div class="steps">
+  <div class="step-card" id="exp0">
+    <div class="step-num">01</div>
+    <div class="step-title">Handshake</div>
+    <div class="step-desc">Agents introduce themselves and agree on protocol version and capabilities.</div>
+  </div>
+  <div class="step-card" id="exp1">
+    <div class="step-num">02</div>
+    <div class="step-title">Intent</div>
+    <div class="step-desc">Buyer sends what it wants and its max price. No human types anything.</div>
+  </div>
+  <div class="step-card" id="exp2">
+    <div class="step-num">03</div>
+    <div class="step-title">Offer</div>
+    <div class="step-desc">Seller checks catalog, returns a verified offer. Buyer accepts if within budget.</div>
+  </div>
+  <div class="step-card" id="exp3">
+    <div class="step-num">04</div>
+    <div class="step-title">Payment</div>
+    <div class="step-desc">Payment executes agent to agent. No checkout page. No form. Phase 2.</div>
+  </div>
+</div>
+
+<script>
+const delay = ms => new Promise(r => setTimeout(r, ms));
+const SELLER = 'http://localhost:8002';
+let step = 0, busy = false, sellerCaps = null, pendingOffer = null;
+
+function addBubble(feedId, side, label, text) {
+  const feed = document.getElementById(feedId);
+  const wrap = document.createElement('div');
+  wrap.className = 'bwrap ' + side;
+  if (label) {
+    const lb = document.createElement('div');
+    lb.className = 'blabel';
+    lb.textContent = label;
+    wrap.appendChild(lb);
+  }
+  const b = document.createElement('div');
+  b.className = 'bubble ' + (side === 'sent' ? 'out' : side === 'recv' ? 'inc' : 'sys');
+  b.textContent = text;
+  wrap.appendChild(b);
+  feed.appendChild(wrap);
+  requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.add('show')));
+  feed.scrollTop = feed.scrollHeight;
+}
+
+function addErrBubble(feedId, text) {
+  const feed = document.getElementById(feedId);
+  const wrap = document.createElement('div');
+  wrap.className = 'bwrap mid';
+  const b = document.createElement('div');
+  b.className = 'bubble err';
+  b.textContent = text;
+  wrap.appendChild(b);
+  feed.appendChild(wrap);
+  requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.add('show')));
+  feed.scrollTop = feed.scrollHeight;
+}
+
+function addOfferCard(feedId, offer) {
+  const feed = document.getElementById(feedId);
+  const card = document.createElement('div');
+  card.className = 'offer-card';
+  card.innerHTML = `
+    <div class="offer-item">${offer.item}</div>
+    <div class="offer-name">${offer.description}</div>
+    <div class="offer-price">$${offer.price.toFixed(2)}</div>
+    <div class="offer-meta">${offer.currency} &middot; fiat &middot; ${offer.seller_agent}</div>
+    <div class="offer-badge">offer_ready &middot; payment required</div>
+  `;
+  feed.appendChild(card);
+  requestAnimationFrame(() => requestAnimationFrame(() => card.classList.add('show')));
+  feed.scrollTop = feed.scrollHeight;
+}
+
+function addArrow(direction, label, sublabel) {
+  const c = document.getElementById('arrows');
+  const row = document.createElement('div');
+  row.className = 'arrow-row ' + (direction === 'right' ? 'to-right' : 'to-left');
+  const chip = document.createElement('div');
+  chip.className = 'arrow-chip';
+  chip.textContent = (direction === 'right' ? label + ' →' : '← ' + label);
+  row.appendChild(chip);
+  if (sublabel) {
+    const lbl = document.createElement('div');
+    lbl.className = 'arrow-label';
+    lbl.textContent = sublabel;
+    row.appendChild(lbl);
+  }
+  c.appendChild(row);
+}
+
+function setDot(id, state) {
+  document.getElementById(id).className = 'dot' + (state ? ' ' + state : '');
+}
+function setPip(i, state) {
+  document.getElementById('pip' + i).className = 'pip ' + state;
+}
+function setStatus(t) { document.getElementById('status-txt').textContent = t; }
+function litStep(i)   { document.getElementById('exp' + i).classList.add('lit'); }
+function clearFeed(id){ document.getElementById(id).innerHTML = ''; }
+function setBtn(text) {
+  const b = document.getElementById('next-btn');
+  b.textContent = text;
+  b.disabled = false;
+}
+
+async function nextStep() {
+  if (busy) return;
+  busy = true;
+  document.getElementById('next-btn').disabled = true;
+
+  // STEP 0 — Boot
+  if (step === 0) {
+    clearFeed('feed-buyer');
+    clearFeed('feed-seller');
+    setPip(0, 'active');
+    setStatus('Booting agents...');
+    setDot('dot-buyer', 'working');
+    setDot('dot-seller', 'working');
+    await delay(800);
+    addBubble('feed-buyer', 'mid', '', 'buyer agent ready');
+    await delay(600);
+    addBubble('feed-seller', 'mid', '', 'seller agent :8002');
+    await delay(800);
+    setPip(0, 'done');
+    setDot('dot-buyer', 'on');
+    setDot('dot-seller', 'on');
+    setStatus('Agents online — click Next to begin handshake');
+    setBtn('Next: Handshake');
+  }
+
+  // STEP 1 — Initialize / Handshake (real fetch)
+  else if (step === 1) {
+    setPip(1, 'active');
+    litStep(0);
+    setStatus('Sending initialize to seller agent...');
+    setDot('dot-buyer', 'working');
+
+    addBubble('feed-buyer', 'sent', 'buyer  →  seller   |   initialize',
+`protocolVersion: 1
+canBuy: true
+preferredCurrencies: USD`);
+    await delay(1000);
+    addArrow('right', 'initialize', 'buyer → seller');
+    await delay(1400);
+
+    let result;
+    try {
+      const r = await fetch(SELLER + '/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0', id: 0, method: 'initialize',
+          params: {
+            protocolVersion: 1,
+            clientInfo: { name: 'buyer-agent', version: '1.0.0' },
+            clientCapabilities: {
+              payment: { stripe: false, x402: false },
+              commerce: { canBuy: true, preferredCurrencies: ['USD'] }
+            }
+          }
+        })
+      });
+      result = await r.json();
+    } catch (e) {
+      addErrBubble('feed-buyer', 'Cannot reach seller agent.\nMake sure seller is running:\nuvicorn seller-agent:app --port 8002');
+      setStatus('Connection failed — seller not running on :8002');
+      setDot('dot-buyer', '');
+      busy = false;
+      setBtn('Retry');
+      return;
+    }
+
+    if (result.error) {
+      addErrBubble('feed-seller', 'Error: ' + result.error.message);
+      busy = false;
+      setBtn('Retry');
+      return;
+    }
+
+    sellerCaps = result.result.agentCapabilities;
+    const info  = result.result.agentInfo;
+    const items = sellerCaps.commerce.items;
+
+    addBubble('feed-seller', 'recv', 'seller received  |  initialize',
+`buyer-agent connected
+protocolVersion: ${result.result.protocolVersion} agreed`);
+    await delay(1200);
+
+    const catalogLines = items.map(i => '  ' + i).join('\n');
+    addBubble('feed-seller', 'sent', 'seller  →  buyer   |   capabilities',
+`${info.name} v${info.version}
+canSell: true
+
+catalog (${items.length} items):
+${catalogLines}`);
+    await delay(1000);
+    addArrow('left', 'capabilities', 'seller → buyer');
+    await delay(1400);
+
+    addBubble('feed-buyer', 'recv', 'buyer received  |  capabilities',
+`${info.name} v${info.version}
+canSell: true
+
+catalog (${items.length} items):
+${catalogLines}`);
+    await delay(1000);
+
+    addBubble('feed-buyer', 'mid', '', 'handshake complete');
+    await delay(500);
+    addBubble('feed-seller', 'mid', '', 'buyer verified');
+    setDot('dot-buyer', 'on');
+    setPip(1, 'done');
+    setStatus('Handshake complete — click Next to send buying intent');
+    setBtn('Next: Send Intent');
+  }
+
+  // STEP 2 — Commerce Request (real fetch)
+  else if (step === 2) {
+    if (!sellerCaps) { busy = false; setBtn('Next: Send Intent'); return; }
+    setPip(2, 'active');
+    litStep(1);
+    setStatus('Sending buying intent to seller...');
+    setDot('dot-buyer', 'working');
+
+    const item     = sellerCaps.commerce.items[0];
+    const maxPrice = 200.00;
+
+    addBubble('feed-buyer', 'sent', 'buyer  →  seller   |   commerce/request',
+`item: ${item}
+max_price: $${maxPrice.toFixed(2)}`);
+    await delay(1000);
+    addArrow('right', 'intent', 'buyer → seller');
+    await delay(1400);
+
+    addBubble('feed-seller', 'recv', 'seller received  |  intent', 'checking catalog...');
+    await delay(1000);
+
+    let result;
+    try {
+      const r = await fetch(SELLER + '/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0', id: 1, method: 'commerce/request',
+          params: { item, max_price: maxPrice, buyer_id: 'buyer-agent-001' }
+        })
+      });
+      result = await r.json();
+    } catch (e) {
+      addErrBubble('feed-buyer', 'Lost connection to seller agent');
+      busy = false;
+      setBtn('Retry');
+      return;
+    }
+
+    if (result.error) {
+      addErrBubble('feed-seller', 'Error: ' + result.error.message);
+      busy = false;
+      setBtn('Retry');
+      return;
+    }
+
+    pendingOffer = result.result.offer;
+    litStep(2);
+
+    addBubble('feed-seller', 'sent', 'seller  →  buyer   |   offer',
+`${pendingOffer.description}
+price: $${pendingOffer.price.toFixed(2)} ${pendingOffer.currency}
+status: ${pendingOffer.status}`);
+    await delay(1000);
+    addArrow('left', 'offer', 'seller → buyer');
+    await delay(1400);
+
+    addOfferCard('feed-buyer', pendingOffer);
+    await delay(600);
+    addBubble('feed-buyer', 'mid', 'agent decision', 'within budget — offer accepted');
+    setDot('dot-buyer', 'on');
+    setPip(2, 'done');
+    setPip(3, 'done');
+    setStatus('Offer received — click Next to proceed to payment');
+    setBtn('Next: Payment');
+  }
+
+  // STEP 3 — Payment placeholder
+  else if (step === 3) {
+    if (!pendingOffer) { busy = false; setBtn('Next: Payment'); return; }
+    setPip(4, 'active');
+    litStep(3);
+    setStatus('Initiating payment between agents...');
+
+    addBubble('feed-buyer', 'sent', 'buyer  →  seller   |   commerce/pay',
+`amount: $${pendingOffer.price.toFixed(2)} ${pendingOffer.currency}
+method: stripe  [phase 2]`);
+    await delay(1000);
+    addArrow('right', 'pay', 'buyer → seller');
+    await delay(1400);
+
+    addBubble('feed-seller', 'mid', '', 'stripe integration — phase 2');
+    await delay(600);
+    addBubble('feed-buyer', 'mid', '', 'payment execution — phase 2');
+    setPip(4, 'done');
+    setStatus('Phase 1 complete — two real agents communicated end to end. Payment in Phase 2.');
+    document.getElementById('next-btn').style.display = 'none';
+    document.getElementById('reset-btn').style.display = '';
+    busy = false;
+    return;
+  }
+
+  step++;
+  busy = false;
+}
+
+function resetDemo() {
+  clearFeed('feed-buyer');
+  clearFeed('feed-seller');
+  document.getElementById('arrows').innerHTML = '';
+  addBubble('feed-buyer', 'mid', '', 'waiting to start');
+  addBubble('feed-seller', 'mid', '', 'waiting for connection');
+  for (let i = 0; i < 5; i++) setPip(i, '');
+  document.querySelectorAll('.step-card').forEach(c => c.classList.remove('lit'));
+  setDot('dot-buyer', '');
+  setDot('dot-seller', '');
+  setStatus('Click Start to begin the ACP demo step by step');
+  step = 0; sellerCaps = null; pendingOffer = null;
+  const btn = document.getElementById('next-btn');
+  btn.textContent = 'Start';
+  btn.style.display = '';
+  btn.disabled = false;
+  document.getElementById('reset-btn').style.display = 'none';
+}
+</script>
+</body>
+</html>
