@@ -376,17 +376,22 @@
     <div class="phase-connector"></div>
     <div class="phase-step" id="ph1">
       <div class="phase-dot"></div>
-      <div class="phase-label">02 &middot; Intent</div>
+      <div class="phase-label">02 &middot; Session</div>
     </div>
     <div class="phase-connector"></div>
     <div class="phase-step" id="ph2">
       <div class="phase-dot"></div>
-      <div class="phase-label">03 &middot; Offer</div>
+      <div class="phase-label">03 &middot; Intent</div>
     </div>
     <div class="phase-connector"></div>
     <div class="phase-step" id="ph3">
       <div class="phase-dot"></div>
-      <div class="phase-label">04 &middot; Payment</div>
+      <div class="phase-label">04 &middot; Offer</div>
+    </div>
+    <div class="phase-connector"></div>
+    <div class="phase-step" id="ph4">
+      <div class="phase-dot"></div>
+      <div class="phase-label">05 &middot; Payment</div>
     </div>
   </div>
 </div>
@@ -440,6 +445,7 @@
     <div class="pip" id="pip2"></div>
     <div class="pip" id="pip3"></div>
     <div class="pip" id="pip4"></div>
+    <div class="pip" id="pip5"></div>
   </div>
 </div>
 
@@ -447,7 +453,10 @@
 <script>
 const delay = ms => new Promise(r => setTimeout(r, ms));
 const SELLER = 'https://acp-demo-production.up.railway.app';
-let step = 0, busy = false, sellerCaps = null, pendingOffer = null;
+
+let step = 0, busy = false, sellerCaps = null, activeSession = null, pendingOffer = null;
+
+// ── DOM helpers ──────────────────────────────────────────────────────────────
 
 function addBubble(feedId, side, label, text) {
   const feed = document.getElementById(feedId);
@@ -529,12 +538,14 @@ function setBtn(text) {
   b.disabled = false;
 }
 
+// ── Steps ────────────────────────────────────────────────────────────────────
+
 async function nextStep() {
   if (busy) return;
   busy = true;
   document.getElementById('next-btn').disabled = true;
 
-  // STEP 0 — Boot
+  // ── STEP 0 — Boot ──────────────────────────────────────────────────────────
   if (step === 0) {
     clearFeed('feed-buyer');
     clearFeed('feed-seller');
@@ -554,7 +565,7 @@ async function nextStep() {
     setBtn('Next: Handshake');
   }
 
-  // STEP 1 — Initialize / Handshake (real fetch)
+  // ── STEP 1 — Initialize / Handshake ───────────────────────────────────────
   else if (step === 1) {
     setPip(1, 'active');
     litStep(0);
@@ -575,21 +586,21 @@ preferredCurrencies: USD`);
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          jsonrpc: '2.0', id: 0, method: 'initialize',
+          jsonrpc: '2.0', id: 1, method: 'initialize',
           params: {
             protocolVersion: 1,
-            clientInfo: { name: 'buyer-agent', version: '1.0.0' },
+            clientInfo: { name: 'buyer-agent', title: 'Nike Buyer Agent', version: '2.0.0' },
             clientCapabilities: {
-              payment: { stripe: false, x402: false },
-              commerce: { canBuy: true, preferredCurrencies: ['USD'] }
+              fs: { readTextFile: true, writeTextFile: false },
+              terminal: false
             }
           }
         })
       });
       result = await r.json();
     } catch (e) {
-      addErrBubble('feed-buyer', 'Cannot reach seller agent.\nMake sure seller is running:\nuvicorn seller-agent:app --port 8002');
-      setStatus('Connection failed — seller not running on :8002');
+      addErrBubble('feed-buyer', 'Cannot reach seller agent. Is Railway deployed?');
+      setStatus('Connection failed — seller unreachable');
       setDot('dot-buyer', '');
       busy = false;
       setBtn('Retry');
@@ -604,8 +615,10 @@ preferredCurrencies: USD`);
     }
 
     sellerCaps = result.result.agentCapabilities;
-    const info  = result.result.agentInfo;
-    const items = sellerCaps.commerce.items;
+    const info    = result.result.agentInfo;
+    const items   = sellerCaps.commerce?.items || [];
+    const canLoad = sellerCaps.loadSession === true;
+    const sessCaps = Object.keys(sellerCaps.sessionCapabilities || {});
 
     addBubble('feed-seller', 'recv', 'seller received  |  initialize',
 `buyer-agent connected
@@ -616,6 +629,8 @@ protocolVersion: ${result.result.protocolVersion} agreed`);
     addBubble('feed-seller', 'sent', 'seller  →  buyer   |   capabilities',
 `${info.name} v${info.version}
 canSell: true
+canCreateSession: ${canLoad}
+sessionMethods: ${sessCaps.join(', ')}
 
 catalog (${items.length} items):
 ${catalogLines}`);
@@ -626,39 +641,40 @@ ${catalogLines}`);
     addBubble('feed-buyer', 'recv', 'buyer received  |  capabilities',
 `${info.name} v${info.version}
 canSell: true
+canCreateSession: ${canLoad}
+sessionMethods: ${sessCaps.join(', ')}
 
 catalog (${items.length} items):
 ${catalogLines}`);
     await delay(1000);
 
-    addBubble('feed-buyer', 'mid', '', 'handshake complete');
+    addBubble('feed-buyer', 'mid', '', 'handshake complete — session allowed');
     await delay(500);
     addBubble('feed-seller', 'mid', '', 'buyer verified');
     setDot('dot-buyer', 'on');
     setPip(1, 'done');
-    setStatus('Handshake complete — click Next to send buying intent');
-    setBtn('Next: Send Intent');
+    setStatus('Handshake done — seller supports sessions. Click Next to create one.');
+    setBtn('Next: Create Session');
   }
 
-  // STEP 2 — Commerce Request (real fetch)
+  // ── STEP 2 — Session / New ─────────────────────────────────────────────────
   else if (step === 2) {
-    if (!sellerCaps) { busy = false; setBtn('Next: Send Intent'); return; }
+    if (!sellerCaps) { busy = false; setBtn('Next: Create Session'); return; }
     setPip(2, 'active');
     litStep(1);
-    setStatus('Sending buying intent to seller...');
+    setStatus('Creating session context with seller...');
     setDot('dot-buyer', 'working');
 
-    const item     = sellerCaps.commerce.items[0];
-    const maxPrice = 200.00;
-
-    addBubble('feed-buyer', 'sent', 'buyer  →  seller   |   commerce/request',
-`item: ${item}
-max_price: $${maxPrice.toFixed(2)}`);
+    addBubble('feed-buyer', 'sent', 'buyer  →  seller   |   session/new',
+`buyerId: buyer-agent-v2.0.0
+cwd: /demo`);
     await delay(1000);
-    addArrow('right', 'intent', 'buyer → seller');
+    addArrow('right', 'session/new', 'buyer → seller');
     await delay(1400);
 
-    addBubble('feed-seller', 'recv', 'seller received  |  intent', 'checking catalog...');
+    addBubble('feed-seller', 'recv', 'seller received  |  session/new',
+`creating session context...
+allocating state storage`);
     await delay(1000);
 
     let result;
@@ -667,8 +683,80 @@ max_price: $${maxPrice.toFixed(2)}`);
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          jsonrpc: '2.0', id: 1, method: 'commerce/request',
-          params: { item, max_price: maxPrice, buyer_id: 'buyer-agent-001' }
+          jsonrpc: '2.0', id: 2, method: 'session/new',
+          params: { buyerId: 'buyer-agent-v2.0.0', cwd: '/demo' }
+        })
+      });
+      result = await r.json();
+    } catch (e) {
+      addErrBubble('feed-buyer', 'Lost connection during session/new');
+      busy = false;
+      setBtn('Retry');
+      return;
+    }
+
+    if (result.error) {
+      addErrBubble('feed-seller', 'session/new failed: ' + result.error.message);
+      busy = false;
+      setBtn('Retry');
+      return;
+    }
+
+    activeSession = result.result.sessionId;
+
+    addBubble('feed-seller', 'sent', 'seller  →  buyer   |   session created',
+`sessionId: ${activeSession}
+status: active`);
+    await delay(1000);
+    addArrow('left', 'session ready', 'seller → buyer');
+    await delay(1400);
+
+    addBubble('feed-buyer', 'recv', 'buyer received  |  session/new',
+`sessionId: ${activeSession}
+stored — will be sent with all requests`);
+    await delay(800);
+
+    addBubble('feed-buyer', 'mid', '', 'session established');
+    await delay(400);
+    addBubble('feed-seller', 'mid', '', 'session context active');
+    setDot('dot-buyer', 'on');
+    setPip(2, 'done');
+    setStatus('Session ready — all messages now tracked. Click Next to send buying intent.');
+    setBtn('Next: Send Intent');
+  }
+
+  // ── STEP 3 — Commerce Request ──────────────────────────────────────────────
+  else if (step === 3) {
+    if (!activeSession) { busy = false; setBtn('Next: Send Intent'); return; }
+    setPip(3, 'active');
+    litStep(2);
+    setStatus('Sending buying intent to seller...');
+    setDot('dot-buyer', 'working');
+
+    const item     = sellerCaps.commerce?.items[0] || 'air_max_270';
+    const maxPrice = 200.00;
+
+    addBubble('feed-buyer', 'sent', 'buyer  →  seller   |   commerce/request',
+`sessionId: ${activeSession}
+item: ${item}
+max_price: $${maxPrice.toFixed(2)}`);
+    await delay(1000);
+    addArrow('right', 'intent', 'buyer → seller');
+    await delay(1400);
+
+    addBubble('feed-seller', 'recv', 'seller received  |  intent',
+`session verified: ${activeSession}
+checking catalog...`);
+    await delay(1000);
+
+    let result;
+    try {
+      const r = await fetch(SELLER + '/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0', id: 3, method: 'commerce/request',
+          params: { sessionId: activeSession, item, max_price: maxPrice, buyer_id: 'buyer-agent-v2.0.0' }
         })
       });
       result = await r.json();
@@ -687,12 +775,13 @@ max_price: $${maxPrice.toFixed(2)}`);
     }
 
     pendingOffer = result.result.offer;
-    litStep(2);
+    litStep(3);
 
     addBubble('feed-seller', 'sent', 'seller  →  buyer   |   offer',
 `${pendingOffer.description}
 price: $${pendingOffer.price.toFixed(2)} ${pendingOffer.currency}
-status: ${pendingOffer.status}`);
+status: ${pendingOffer.status}
+logged to session history`);
     await delay(1000);
     addArrow('left', 'offer', 'seller → buyer');
     await delay(1400);
@@ -701,21 +790,21 @@ status: ${pendingOffer.status}`);
     await delay(600);
     addBubble('feed-buyer', 'mid', 'agent decision', 'within budget — offer accepted');
     setDot('dot-buyer', 'on');
-    setPip(2, 'done');
     setPip(3, 'done');
-    setStatus('Offer received — click Next to proceed to payment');
+    setStatus('Offer accepted — click Next to proceed to payment.');
     setBtn('Next: Payment');
   }
 
-  // STEP 3 — Payment placeholder
-  else if (step === 3) {
+  // ── STEP 4 — Payment placeholder ──────────────────────────────────────────
+  else if (step === 4) {
     if (!pendingOffer) { busy = false; setBtn('Next: Payment'); return; }
     setPip(4, 'active');
-    litStep(3);
+    litStep(4);
     setStatus('Initiating payment between agents...');
 
     addBubble('feed-buyer', 'sent', 'buyer  →  seller   |   commerce/pay',
-`amount: $${pendingOffer.price.toFixed(2)} ${pendingOffer.currency}
+`sessionId: ${activeSession}
+amount: $${pendingOffer.price.toFixed(2)} ${pendingOffer.currency}
 method: stripe  [phase 2]`);
     await delay(1000);
     addArrow('right', 'pay', 'buyer → seller');
@@ -725,7 +814,8 @@ method: stripe  [phase 2]`);
     await delay(600);
     addBubble('feed-buyer', 'mid', '', 'payment execution — phase 2');
     setPip(4, 'done');
-    setStatus('Phase 1 complete — two real agents communicated end to end. Payment in Phase 2.');
+    setPip(5, 'done');
+    setStatus('Phase 1 complete — two real agents communicated end to end with sessions. Payment in Phase 2.');
     document.getElementById('next-btn').style.display = 'none';
     document.getElementById('reset-btn').style.display = '';
     busy = false;
@@ -736,18 +826,20 @@ method: stripe  [phase 2]`);
   busy = false;
 }
 
+// ── Reset ─────────────────────────────────────────────────────────────────────
+
 function resetDemo() {
   clearFeed('feed-buyer');
   clearFeed('feed-seller');
   document.getElementById('arrows').innerHTML = '';
   addBubble('feed-buyer', 'mid', '', 'waiting to start');
   addBubble('feed-seller', 'mid', '', 'waiting for connection');
-  for (let i = 0; i < 5; i++) setPip(i, '');
+  for (let i = 0; i < 6; i++) setPip(i, '');
   document.querySelectorAll('.phase-step').forEach(c => c.classList.remove('lit'));
   setDot('dot-buyer', '');
   setDot('dot-seller', '');
   setStatus('Click Start to begin the ACP demo step by step');
-  step = 0; sellerCaps = null; pendingOffer = null;
+  step = 0; sellerCaps = null; activeSession = null; pendingOffer = null;
   const btn = document.getElementById('next-btn');
   btn.textContent = 'Start';
   btn.style.display = '';
