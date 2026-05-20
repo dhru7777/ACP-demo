@@ -1,178 +1,301 @@
 """
-BUYER AGENT — runs as a script
-================================
-This is the Buyer side of your thesis diagram.
-Think: Personal Agent acting on behalf of a human user.
+BUYER AGENT
+===========
+Client side of the ACP demo. Simulates a buyer purchasing a Nike shoe
+from the seller agent using the Agent Client Protocol (ACP).
 
-ACP Flow this agent follows:
-  Step 1 → initialize     : handshake with seller, learn capabilities
-  Step 2 → commerce/request: send intent (what I want + max price)
-  Step 3 → (Phase 2)      : pay → receive goods
+Full ACP flow:
+  1. initialize        — handshake, get seller capabilities
+  2. session/new       — create (or reload) a session
+     └─ session/load   — if a saved sessionId exists and seller supports it
+  3. commerce/request  — send item + max_price, receive offer
+  4. session/close     — end the session, free seller resources
+
+Session persistence:
+  sessionId is saved in session_state.json so the buyer can reload the
+  same session across multiple runs (simulating a real persistent client).
 """
 
 import requests
 import json
+import os
+import sys
 
-SELLER_URL = "http://localhost:8002"
+SELLER_URL       = "http://localhost:8002"
+SESSION_FILE     = "session_state.json"
+REQUEST_ID       = 0   # incrementing counter for JSON-RPC ids
 
-# --------------------------------------------------------------------------
-# Core JSON-RPC sender
-# Every message we send follows this exact ACP format
-# --------------------------------------------------------------------------
-def send_jsonrpc(method: str, params: dict, request_id: int = 1):
+
+def next_id() -> int:
+    global REQUEST_ID
+    REQUEST_ID += 1
+    return REQUEST_ID
+
+
+def post(method: str, params: dict) -> dict:
+    """Send one JSON-RPC message to the seller and return the parsed response."""
     payload = {
-        "jsonrpc": "2.0",       # Always this version
-        "id":      request_id,  # So we can match requests to responses
-        "method":  method,      # What we want the agent to do
-        "params":  params       # The data for that method
+        "jsonrpc": "2.0",
+        "id":      next_id(),
+        "method":  method,
+        "params":  params
     }
-
-    print(f"\n📤 Sending → method: '{method}'")
-    print(f"   Payload: {json.dumps(params, indent=6)}")
-
-    response = requests.post(SELLER_URL + "/", json=payload)
-    result   = response.json()
-
-    print(f"📥 Response received:")
-    print(f"   {json.dumps(result, indent=6)}")
-
-    return result
+    resp = requests.post(SELLER_URL, json=payload, timeout=10)
+    resp.raise_for_status()
+    return resp.json()
 
 
 # --------------------------------------------------------------------------
-# STEP 1: Initialize
-# Before ANY commerce, we must shake hands.
-# We tell the seller: who we are + what we support.
-# Seller tells us: who they are + what THEY support.
+# SESSION FILE HELPERS
 # --------------------------------------------------------------------------
-def initialize():
-    print("\n" + "="*60)
-    print("STEP 1: INITIALIZATION (ACP Handshake)")
-    print("="*60)
+def load_saved_session_id() -> str | None:
+    """Read the last sessionId we saved to disk."""
+    if os.path.exists(SESSION_FILE):
+        try:
+            with open(SESSION_FILE) as f:
+                data = json.load(f)
+                return data.get("sessionId")
+        except Exception:
+            return None
+    return None
 
-    response = send_jsonrpc(
-        method     = "initialize",
-        params     = {
-            "protocolVersion": 2,       # The ACP version we speak
-            "clientInfo": {
-                "name":    "buyer-agent",
-                "title":   "Buyer Agent (Personal Side)",
-                "version": "2.0.0"
-            },
-            "clientCapabilities": {
-                "payment": {
-                    "stripe": False,    # Phase 2 will enable
-                    "x402":   False,    # Phase 3 will enable
-                },
-                "commerce": {
-                    "canBuy":             True,
-                    "preferredCurrencies": ["USD"]
-                }
-            }
+
+def save_session_id(session_id: str):
+    """Persist sessionId to disk so we can resume it next run."""
+    with open(SESSION_FILE, "w") as f:
+        json.dump({"sessionId": session_id}, f, indent=2)
+    print(f"  Session saved to {SESSION_FILE}")
+
+
+def clear_saved_session():
+    """Remove persisted session after a clean close."""
+    if os.path.exists(SESSION_FILE):
+        os.remove(SESSION_FILE)
+        print(f"  Session file removed — next run starts fresh")
+
+
+# --------------------------------------------------------------------------
+# STEP 1: INITIALIZE
+# --------------------------------------------------------------------------
+def initialize() -> dict:
+    """
+    Handshake — buyer announces itself and its capabilities.
+    Seller responds with its own capabilities (including session support).
+    We do NOT reveal budget here; only what's needed for protocol agreement.
+    """
+    print("\n[ STEP 1 ] INITIALIZE — Handshake")
+    print("  Sending: initialize")
+
+    resp = post("initialize", {
+        "protocolVersion": 1,
+        "clientInfo": {
+            "name":    "buyer-agent",
+            "title":   "Nike Buyer Agent",
+            "version": "2.0.0"
         },
-        request_id = 0
-    )
+        "clientCapabilities": {
+            "fs":       {"readTextFile": True, "writeTextFile": False},
+            "terminal": False
+        }
+    })
 
-    if "error" in response:
-        print(f"\n❌ Initialization failed: {response['error']['message']}")
-        return None
+    if "error" in resp:
+        print(f"  ERROR: {resp['error']['message']}")
+        sys.exit(1)
 
-    result     = response["result"]
-    agent_info = result["agentInfo"]
-    caps       = result["agentCapabilities"]
+    result = resp["result"]
+    seller_caps = result.get("agentCapabilities", {})
 
-    print(f"\n✅ Handshake complete!")
-    print(f"   Connected to : {agent_info['title']} v{agent_info['version']}")
-    print(f"   Can sell     : {caps['commerce']['items']}")
-    print(f"   Currencies   : {caps['commerce']['acceptedCurrencies']}")
-    print(f"   Stripe ready : {caps['payment']['stripe']}")
-    print(f"   x402 ready   : {caps['payment']['x402']}")
+    seller_info = result.get("agentInfo", {})
+    agreed_version = result.get("protocolVersion")
 
-    return caps  # Return seller capabilities so we can use them next
+    print(f"  Agreed protocol version: {agreed_version}")
+    print(f"  Seller: {seller_info.get('title', '?')} v{seller_info.get('version', '?')}")
+    print(f"  Seller loadSession support: {seller_caps.get('loadSession', False)}")
+    print(f"  Seller session capabilities: {list(seller_caps.get('sessionCapabilities', {}).keys())}")
+
+    catalog = seller_caps.get("commerce", {}).get("items", [])
+    print(f"  Catalog: {', '.join(catalog)}")
+    print(f"  HANDSHAKE COMPLETE")
+    return seller_caps
 
 
 # --------------------------------------------------------------------------
-# STEP 2: Request an item
-# Now that we've initialized, we send our buying intent.
-# "I want X, and I'll pay up to Y"
+# STEP 2: SESSION SETUP
 # --------------------------------------------------------------------------
-def request_item(item: str, max_price: float, seller_capabilities: dict):
-    print("\n" + "="*60)
-    print("STEP 2: COMMERCE REQUEST (Sending Intent)")
-    print("="*60)
+def setup_session(seller_caps: dict) -> str:
+    """
+    After a successful handshake, establish a session.
 
-    # Check if seller even has this item before requesting
-    available = seller_capabilities["commerce"]["items"]
-    if item not in available:
-        print(f"\n❌ Item '{item}' not available. Seller has: {available}")
+    Logic (follows ACP spec):
+      - If we have a saved sessionId AND seller supports loadSession
+        → try session/load (replay history) or session/resume (silent)
+      - Otherwise → session/new (fresh start)
+
+    Returns the active sessionId (used in all subsequent calls).
+    """
+    print("\n[ STEP 2 ] SESSION SETUP")
+
+    saved_id           = load_saved_session_id()
+    supports_load      = seller_caps.get("loadSession", False)
+    session_caps       = seller_caps.get("sessionCapabilities", {})
+    supports_resume    = "resume" in session_caps
+
+    if saved_id and supports_load:
+        print(f"  Found saved session: {saved_id}")
+        print(f"  Attempting session/load (seller supports loadSession)...")
+
+        resp = post("session/load", {
+            "sessionId":  saved_id,
+            "cwd":        os.getcwd(),
+            "mcpServers": []
+        })
+
+        if "result" in resp:
+            history = resp["result"].get("history", [])
+            print(f"  Session reloaded! {len(history)} history entries replayed")
+            if history:
+                print(f"  Last entry: [{history[-1]['role']}] {history[-1]['method']}")
+            return saved_id
+
+        # session/load failed — session may have expired
+        print(f"  Load failed ({resp.get('error', {}).get('message', '?')})")
+        print(f"  Clearing stale session, creating new one...")
+        clear_saved_session()
+
+    elif saved_id and supports_resume:
+        print(f"  Found saved session: {saved_id}")
+        print(f"  Attempting session/resume (silent reconnect, no replay)...")
+
+        resp = post("session/resume", {
+            "sessionId":  saved_id,
+            "cwd":        os.getcwd(),
+            "mcpServers": []
+        })
+
+        if "result" in resp:
+            print(f"  Session resumed silently (no history replay)")
+            return saved_id
+
+        print(f"  Resume failed — creating new session...")
+        clear_saved_session()
+
+    # Create fresh session
+    print(f"  Creating new session via session/new...")
+    resp = post("session/new", {
+        "buyerId": "buyer-agent-v2.0.0",
+        "cwd":     os.getcwd()
+    })
+
+    if "error" in resp:
+        print(f"  ERROR: {resp['error']['message']}")
+        sys.exit(1)
+
+    session_id = resp["result"]["sessionId"]
+    save_session_id(session_id)
+
+    print(f"  Session created: {session_id}")
+    print(f"  SESSION READY")
+    return session_id
+
+
+# --------------------------------------------------------------------------
+# STEP 3: COMMERCE REQUEST
+# --------------------------------------------------------------------------
+def request_item(session_id: str, item: str, max_price: float) -> dict | None:
+    """
+    Send purchase intent to the seller.
+    sessionId is now included — seller will reject requests without one.
+    """
+    print(f"\n[ STEP 3 ] COMMERCE REQUEST")
+    print(f"  Requesting: '{item}' | Budget: ${max_price} | Session: {session_id}")
+
+    resp = post("commerce/request", {
+        "sessionId": session_id,
+        "buyer_id":  "buyer-agent-v2.0.0",
+        "item":      item,
+        "max_price": max_price
+    })
+
+    if "error" in resp:
+        print(f"  ERROR: {resp['error']['message']}")
         return None
 
-    response = send_jsonrpc(
-        method     = "commerce/request",
-        params     = {
-            "item":      item,
-            "max_price": max_price,
-            "buyer_id":  "buyer-agent-001"
-        },
-        request_id = 1
-    )
-
-    if "error" in response:
-        print(f"\n❌ Request failed: {response['error']['message']}")
-        return None
-
-    offer = response["result"]["offer"]
-    print(f"\n✅ Offer received!")
-    print(f"   Item        : {offer['item']}")
-    print(f"   Description : {offer['description']}")
-    print(f"   Price       : ${offer['price']} {offer['currency']}")
-    print(f"   Status      : {offer['status']}")
-
+    offer = resp["result"]["offer"]
+    print(f"  Offer received!")
+    print(f"    Item:        {offer['item']}")
+    print(f"    Description: {offer['description']}")
+    print(f"    Price:       ${offer['price']} {offer['currency']}")
+    print(f"    Status:      {offer['status']}")
     return offer
 
 
 # --------------------------------------------------------------------------
-# STEP 3: Payment placeholder
-# Phase 1 ends here. Phase 2 will replace this with real Stripe.
+# STEP 4: CLOSE SESSION
 # --------------------------------------------------------------------------
-def pay(offer: dict):
-    print("\n" + "="*60)
-    print("STEP 3: PAYMENT (Phase 2 — not yet implemented)")
-    print("="*60)
-    print(f"\n Would pay ${offer['price']} {offer['currency']} for '{offer['item']}'")
-    print(f"   → Stripe integration comes in Phase 2")
-    print(f"   → x402 crypto payment comes in Phase 3")
+def close_session(session_id: str):
+    """
+    Politely end the session.
+    Spec: seller MUST cancel any ongoing work and free resources.
+    We also clean up our local session_state.json.
+    """
+    print(f"\n[ STEP 4 ] SESSION CLOSE")
+    print(f"  Sending: session/close for {session_id}")
+
+    resp = post("session/close", {"sessionId": session_id})
+
+    if "error" in resp:
+        print(f"  ERROR: {resp['error']['message']}")
+    else:
+        print(f"  Session closed cleanly on seller side")
+
+    clear_saved_session()
+    print(f"  SESSION CLOSED")
 
 
 # --------------------------------------------------------------------------
-# Main flow — runs all steps in sequence
+# ACCEPT / REJECT OFFER
+# --------------------------------------------------------------------------
+def evaluate_offer(offer: dict, our_max: float):
+    print(f"\n[ DECISION ] Evaluating offer...")
+    if offer["price"] <= our_max:
+        print(f"  ACCEPTED — ${offer['price']} is within our budget of ${our_max}")
+        print(f"  (Phase 2 will execute payment here)")
+    else:
+        print(f"  REJECTED — ${offer['price']} exceeds our budget of ${our_max}")
+
+
+# --------------------------------------------------------------------------
+# MAIN
 # --------------------------------------------------------------------------
 def run():
-    print("👟 BUYER AGENT STARTING")
-    print("   Mapping to thesis: Personal Agent on Buyer Side")
-    print("   Connecting to Seller Agent at:", SELLER_URL)
+    print("=" * 60)
+    print(" BUYER AGENT v2.0.0  — ACP Nike Demo")
+    print(" Phase 1: Handshake + Session + Commerce Request")
+    print("=" * 60)
 
-    # Step 1: Handshake
-    seller_capabilities = initialize()
-    if not seller_capabilities:
-        return
+    item      = "air_max_270"
+    max_price = 200.00
 
-    # Step 2: Send intent
-    offer = request_item(
-        item               = "air_max_270",
-        max_price          = 200.00,
-        seller_capabilities = seller_capabilities
-    )
-    if not offer:
-        return
+    # 1. Handshake
+    seller_caps = initialize()
 
-    # Step 3: Pay (placeholder)
-    pay(offer)
+    # 2. Session
+    session_id = setup_session(seller_caps)
 
-    print("\n" + "="*60)
-    print(" PHASE 1 COMPLETE — Two agents communicated via ACP!")
-    print("   Next: Add Stripe payment in Phase 2")
-    print("="*60)
+    # 3. Commerce
+    offer = request_item(session_id, item, max_price)
+
+    # 4. Evaluate
+    if offer:
+        evaluate_offer(offer, max_price)
+
+    # 5. Close
+    close_session(session_id)
+
+    print("\n" + "=" * 60)
+    print(" COMPLETE — All 4 ACP steps executed")
+    print("=" * 60)
 
 
 if __name__ == "__main__":
