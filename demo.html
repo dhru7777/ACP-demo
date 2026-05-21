@@ -171,19 +171,21 @@
   }
   .offer-body {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 14px;
+    margin-top: 6px;
   }
   .offer-img {
-    width: 72px;
-    height: 72px;
+    width: 80px;
+    height: 80px;
     border-radius: 50%;
     object-fit: cover;
     border: 1px solid var(--border-hi);
     flex-shrink: 0;
     background: #f8f8f8;
+    margin-top: 2px;
   }
-  .offer-details { flex: 1; }
+  .offer-details { flex: 1; min-width: 0; }
 
   /* CENTER */
   .center {
@@ -626,10 +628,10 @@ function addOfferCard(feedId, offer) {
     ? `<img class="offer-img" src="${imgSrc}" alt="${offer.item}" />`
     : '';
   card.innerHTML = `
-    <div class="offer-item">${offer.item}</div>
     <div class="offer-body">
       ${imgHtml}
       <div class="offer-details">
+        <div class="offer-item">${offer.item}</div>
         <div class="offer-name">${offer.description}</div>
         <div class="offer-price">$${offer.price.toFixed(2)}</div>
         <div class="offer-meta">${offer.currency} &middot; fiat &middot; ${offer.seller_agent}</div>
