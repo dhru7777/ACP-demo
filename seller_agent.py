@@ -51,6 +51,19 @@ connected_clients = {}
 
 
 # --------------------------------------------------------------------------
+# Health check — Railway pings GET / to verify the container is alive
+# --------------------------------------------------------------------------
+@app.get("/")
+async def health():
+    return JSONResponse({
+        "status":  "ok",
+        "agent":   "nike-seller-agent",
+        "version": "2.0.0",
+        "session": True
+    })
+
+
+# --------------------------------------------------------------------------
 # Single JSON-RPC endpoint — all ACP messages arrive here
 # --------------------------------------------------------------------------
 @app.post("/")
