@@ -375,11 +375,11 @@
     .header-title { font-size: 9px; }
     .header-sub   { font-size: 13px; }
 
-    /* Phase dots shrink and fit */
-    .phases { gap: 0; }
-    .phase-connector { width: 10px; }
-    .phase-label { font-size: 7.5px; letter-spacing: 0; }
-    .phase-dot   { width: 8px; height: 8px; }
+    /* Phase dots — 5 phases need to fit narrow screens */
+    .phases { gap: 0; flex-wrap: nowrap; }
+    .phase-connector { width: 6px; }
+    .phase-label { font-size: 6.5px; letter-spacing: 0; }
+    .phase-dot   { width: 7px; height: 7px; }
 
     /* Keep 3-column layout — just tighter */
     .stage {
@@ -427,6 +427,19 @@
     .status-txt { width: 100%; order: 3; font-size: 9px; }
     .pips       { order: 2; }
     .pip        { width: 14px; }
+
+    /* Prompt input — full width, tighter on mobile */
+    .prompt-wrap { padding: 8px 8px 0; gap: 6px; }
+    .prompt-input { font-size: 11px; padding: 8px 10px; }
+    .prompt-label { font-size: 9px; }
+
+    /* Caps toggle — always visible, smaller */
+    .caps-toggle { font-size: 8px; margin-top: 4px; }
+    .caps-detail { font-size: 9px; }
+
+    /* Offer body — stack image above details on very small screens */
+    .offer-body  { gap: 8px; }
+    .offer-img   { width: 48px; height: 48px; }
   }
 </style>
 </head>
