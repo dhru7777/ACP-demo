@@ -80,6 +80,7 @@ async def handle_jsonrpc(request: Request):
     elif method == "session/load":     return JSONResponse(handle_session_load(id_, params))
     elif method == "session/resume":   return JSONResponse(handle_session_resume(id_, params))
     elif method == "session/close":    return JSONResponse(handle_session_close(id_, params))
+    elif method == "session/prompt":   return JSONResponse(handle_session_prompt(id_, params))
     elif method == "commerce/request": return JSONResponse(handle_commerce_request(id_, params))
     else:
         return JSONResponse({
@@ -258,6 +259,129 @@ def handle_session_close(id_, params):
         "jsonrpc": "2.0",
         "id": id_,
         "result": {}   # Spec: empty result on success
+    }
+
+
+# --------------------------------------------------------------------------
+# INTENT PARSER — simulates LLM extraction with keyword + regex matching.
+# In production: send `text` to OpenAI/Anthropic, get back structured JSON.
+# --------------------------------------------------------------------------
+def parse_prompt_intent(text: str) -> dict:
+    import re
+    t = text.lower()
+
+    # Item detection — keyword matching (replaces vector DB similarity search)
+    item = None
+    if   "air max 270"    in t or "airmax 270"    in t: item = "air_max_270"
+    elif "air force 1"    in t or "airforce 1"    in t: item = "air_force_1"
+    elif "react infinity" in t or "react infinity" in t: item = "react_infinity_4"
+
+    # Budget extraction — matches "$200", "max $200", "budget of 200", "200 dollars"
+    price_match = re.search(r'\$\s*(\d+(?:\.\d+)?)', text)
+    if not price_match:
+        price_match = re.search(r'budget\s+(?:of\s+)?(\d+(?:\.\d+)?)', t)
+    max_price = float(price_match.group(1)) if price_match else 500.0
+
+    return {"item": item, "max_price": max_price}
+
+
+# --------------------------------------------------------------------------
+# HANDLER: session/prompt
+# Buyer sends a natural-language message. We extract intent and return offer.
+#
+# ACP spec: agent should stream session/update notifications, then respond
+# with stopReason. Demo simplification: return everything inline in one HTTP
+# response (no SSE streaming).
+# --------------------------------------------------------------------------
+def handle_session_prompt(id_, params):
+    session_id = params.get("sessionId")
+    prompt     = params.get("prompt", [])
+
+    # Validate session
+    if not session_id or not session_manager.exists(session_id):
+        return {
+            "jsonrpc": "2.0", "id": id_,
+            "error": {"code": -32000, "message": "Valid sessionId required."}
+        }
+
+    # Extract text from prompt content blocks
+    text = ""
+    for block in prompt:
+        if block.get("type") == "text":
+            text += block.get("text", "")
+
+    if not text.strip():
+        return {
+            "jsonrpc": "2.0", "id": id_,
+            "error": {"code": -32000, "message": "Empty prompt — send a text message."}
+        }
+
+    print(f"  Prompt received: \"{text[:80]}\"")
+
+    # --- Simulate LLM intent extraction ---
+    intent = parse_prompt_intent(text)
+    item      = intent["item"]
+    max_price = intent["max_price"]
+
+    print(f"  Parsed intent: item={item}, max_price={max_price}")
+
+    # --- Simulate Vector DB catalog search ---
+    if item is None:
+        # Fuzzy fallback: return all available items so buyer knows what to ask for
+        return {
+            "jsonrpc": "2.0", "id": id_,
+            "result": {
+                "stopReason": "end_turn",
+                "agentMessage": "I couldn't identify the exact item. Available: " + ", ".join(CATALOG.keys()),
+                "parsedIntent": intent,
+                "offer": None
+            }
+        }
+
+    if item not in CATALOG:
+        return {
+            "jsonrpc": "2.0", "id": id_,
+            "error": {"code": -32000, "message": f"Item '{item}' not in catalog."}
+        }
+
+    product   = CATALOG[item]
+    our_price = product["price"]
+
+    if max_price < our_price:
+        return {
+            "jsonrpc": "2.0", "id": id_,
+            "result": {
+                "stopReason": "end_turn",
+                "agentMessage": f"Budget too low. {item} costs ${our_price}, you offered ${max_price}.",
+                "parsedIntent": intent,
+                "offer": None
+            }
+        }
+
+    offer = {
+        "item":             item,
+        "description":      product["description"],
+        "price":            our_price,
+        "currency":         product["currency"],
+        "payment_required": True,
+        "status":           "offer_ready",
+        "seller_agent":     "nike-seller-agent-v2.0.0"
+    }
+
+    # Save to session history
+    session_manager.add_history(session_id, "buyer",  "session/prompt", {"text": text})
+    session_manager.add_history(session_id, "seller", "session/prompt.response", offer)
+
+    print(f"  Offer ready: ${our_price} for '{item}'")
+
+    return {
+        "jsonrpc": "2.0", "id": id_,
+        "result": {
+            "stopReason":   "end_turn",
+            "agentMessage": f"Found it. {product['description']} — ${our_price} {product['currency']}.",
+            "parsedIntent": intent,   # shows what the "LLM" extracted
+            "offer":        offer
+        }
     }
 
 

@@ -169,6 +169,21 @@
     border: 1px solid var(--border-hi);
     color: var(--muted);
   }
+  .offer-body {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .offer-img {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid var(--border-hi);
+    flex-shrink: 0;
+    background: #f8f8f8;
+  }
+  .offer-details { flex: 1; }
 
   /* CENTER */
   .center {
@@ -294,6 +309,59 @@
     flex-shrink: 0;
   }
 
+  /* COLLAPSIBLE CAPS BUBBLE */
+  .caps-summary { white-space: pre-wrap; display: block; }
+  .caps-toggle {
+    display: inline-block;
+    margin-top: 6px;
+    font-size: 9px;
+    cursor: pointer;
+    user-select: none;
+    letter-spacing: 0.04em;
+    opacity: 0.55;
+    transition: opacity 0.15s;
+  }
+  .caps-toggle:hover { opacity: 1; }
+  .bubble.out .caps-toggle { color: #fff; }
+  .bubble.inc .caps-toggle { color: #000; }
+  .caps-detail {
+    display: none;
+    white-space: pre-wrap;
+    margin-top: 8px;
+    padding-top: 8px;
+    font-size: 10px;
+  }
+  .bubble.out .caps-detail { border-top: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.8); }
+  .bubble.inc .caps-detail { border-top: 1px solid var(--border); color: #444; }
+  .caps-detail.open { display: block; }
+
+  /* PROMPT INPUT */
+  .prompt-wrap {
+    display: none;
+    padding: 10px 40px 0;
+    gap: 10px;
+    align-items: center;
+  }
+  .prompt-wrap.visible { display: flex; }
+  .prompt-input {
+    flex: 1;
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 10px 14px;
+    border: 1px solid var(--border-hi);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .prompt-input:focus { border-color: #000; }
+  .prompt-label {
+    font-size: 10px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
   /* ── MOBILE ── */
   @media (max-width: 680px) {
 
@@ -341,6 +409,7 @@
     .offer-name  { font-size: 11px; }
     .offer-meta  { font-size: 9px; }
     .offer-badge { font-size: 8px; padding: 2px 6px; }
+    .offer-img   { width: 52px; height: 52px; }
 
     /* Center column: tighter */
     .center { padding-top: 44px; }
@@ -435,6 +504,14 @@
 
 </div>
 
+<div class="prompt-wrap" id="prompt-wrap">
+  <span class="prompt-label">prompt</span>
+  <input class="prompt-input" id="prompt-input"
+         type="text"
+         value="Buy me a Nike Air Max 270, budget $200"
+         placeholder="Type what you want to buy..." />
+</div>
+
 <div class="bottom">
   <button class="btn primary" id="next-btn" onclick="nextStep()">Start</button>
   <button class="btn" id="reset-btn" onclick="resetDemo()" style="display:none">Reset</button>
@@ -453,8 +530,10 @@
 <script>
 const delay = ms => new Promise(r => setTimeout(r, ms));
 const SELLER = 'https://acp-demo-production.up.railway.app';
+//const SELLER = 'http://localhost:8002';
 
-let step = 0, busy = false, sellerCaps = null, activeSession = null, pendingOffer = null;
+
+let step = 0, busy = false, sellerCaps = null, activeSession = null, pendingOffer = null, promptBox = null;
 
 // ── DOM helpers ──────────────────────────────────────────────────────────────
 
@@ -477,6 +556,36 @@ function addBubble(feedId, side, label, text) {
   feed.scrollTop = feed.scrollHeight;
 }
 
+function addCapsBubble(feedId, info, canLoad, sessCaps, items, isSeller = false) {
+  const feed = document.getElementById(feedId);
+  const wrap = document.createElement('div');
+  wrap.className = 'bwrap ' + (isSeller ? 'sent' : 'recv');
+
+  const lb = document.createElement('div');
+  lb.className = 'blabel';
+  lb.textContent = isSeller
+    ? 'seller  →  buyer   |   capabilities'
+    : 'buyer received  |  capabilities';
+  wrap.appendChild(lb);
+
+  const b = document.createElement('div');
+  b.className = 'bubble ' + (isSeller ? 'out' : 'inc') + ' caps-bubble';
+
+  const summary = `${info.name} v${info.version}
+canSell: true  ·  canCreateSession: ${canLoad}  ·  ${items.length} items`;
+
+  const detail = `sessionMethods: ${sessCaps.join(', ') || '—'}
+
+catalog (${items.length} items):
+${items.map(i => '  ' + i).join('\n')}`;
+
+  b.innerHTML = `<span class="caps-summary">${summary}</span><span class="caps-toggle" onclick="this.parentNode.querySelector('.caps-detail').classList.toggle('open');this.textContent=this.textContent.includes('▾')?'▸ show details':'▾ hide details'"> ▾ show details</span><div class="caps-detail">${detail}</div>`;
+  wrap.appendChild(b);
+  feed.appendChild(wrap);
+  requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.add('show')));
+  feed.scrollTop = feed.scrollHeight;
+}
+
 function addErrBubble(feedId, text) {
   const feed = document.getElementById(feedId);
   const wrap = document.createElement('div');
@@ -490,16 +599,30 @@ function addErrBubble(feedId, text) {
   feed.scrollTop = feed.scrollHeight;
 }
 
+const ITEM_IMAGES = {
+  'air_max_270': 'air_max_270.png'
+  // add more item images here as you get them
+};
+
 function addOfferCard(feedId, offer) {
-  const feed = document.getElementById(feedId);
-  const card = document.createElement('div');
+  const feed    = document.getElementById(feedId);
+  const card    = document.createElement('div');
   card.className = 'offer-card';
+  const imgSrc  = ITEM_IMAGES[offer.item];
+  const imgHtml = imgSrc
+    ? `<img class="offer-img" src="${imgSrc}" alt="${offer.item}" />`
+    : '';
   card.innerHTML = `
     <div class="offer-item">${offer.item}</div>
-    <div class="offer-name">${offer.description}</div>
-    <div class="offer-price">$${offer.price.toFixed(2)}</div>
-    <div class="offer-meta">${offer.currency} &middot; fiat &middot; ${offer.seller_agent}</div>
-    <div class="offer-badge">offer_ready &middot; payment required</div>
+    <div class="offer-body">
+      ${imgHtml}
+      <div class="offer-details">
+        <div class="offer-name">${offer.description}</div>
+        <div class="offer-price">$${offer.price.toFixed(2)}</div>
+        <div class="offer-meta">${offer.currency} &middot; fiat &middot; ${offer.seller_agent}</div>
+        <div class="offer-badge">offer_ready &middot; payment required</div>
+      </div>
+    </div>
   `;
   feed.appendChild(card);
   requestAnimationFrame(() => requestAnimationFrame(() => card.classList.add('show')));
@@ -554,9 +677,9 @@ async function nextStep() {
     setDot('dot-buyer', 'working');
     setDot('dot-seller', 'working');
     await delay(800);
-    addBubble('feed-buyer', 'mid', '', 'buyer agent ready');
-    await delay(600);
     addBubble('feed-seller', 'mid', '', 'nike store agent online');
+    await delay(700);
+    addBubble('feed-buyer', 'mid', '', 'buyer agent authenticated and ready');
     await delay(800);
     setPip(0, 'done');
     setDot('dot-buyer', 'on');
@@ -625,27 +748,12 @@ preferredCurrencies: USD`);
 protocolVersion: ${result.result.protocolVersion} agreed`);
     await delay(1200);
 
-    const catalogLines = items.map(i => '  ' + i).join('\n');
-    addBubble('feed-seller', 'sent', 'seller  →  buyer   |   capabilities',
-`${info.name} v${info.version}
-canSell: true
-canCreateSession: ${canLoad}
-sessionMethods: ${sessCaps.join(', ')}
-
-catalog (${items.length} items):
-${catalogLines}`);
+    addCapsBubble('feed-seller', info, canLoad, sessCaps, items, true);
     await delay(1000);
     addArrow('left', 'capabilities', 'seller → buyer');
     await delay(1400);
 
-    addBubble('feed-buyer', 'recv', 'buyer received  |  capabilities',
-`${info.name} v${info.version}
-canSell: true
-canCreateSession: ${canLoad}
-sessionMethods: ${sessCaps.join(', ')}
-
-catalog (${items.length} items):
-${catalogLines}`);
+    addCapsBubble('feed-buyer', info, canLoad, sessCaps, items);
     await delay(1000);
 
     addBubble('feed-buyer', 'mid', '', 'handshake complete — session allowed');
@@ -721,33 +829,41 @@ stored — will be sent with all requests`);
     addBubble('feed-seller', 'mid', '', 'session context active');
     setDot('dot-buyer', 'on');
     setPip(2, 'done');
-    setStatus('Session ready — all messages now tracked. Click Next to send buying intent.');
-    setBtn('Next: Send Intent');
+
+    // Show the prompt input box for the user to type (or leave as default)
+    document.getElementById('prompt-wrap').classList.add('visible');
+    setStatus('Session ready — edit the prompt below or leave as default, then click Send.');
+    setBtn('Send Prompt');
   }
 
-  // ── STEP 3 — Commerce Request ──────────────────────────────────────────────
+  // ── STEP 3 — session/prompt (natural language intent) ────────────────────
   else if (step === 3) {
-    if (!activeSession) { busy = false; setBtn('Next: Send Intent'); return; }
+    if (!activeSession) { busy = false; setBtn('Send Prompt'); return; }
+
+    // Read whatever the user typed (or left as default)
+    const promptText = document.getElementById('prompt-input').value.trim()
+                    || 'Buy me a Nike Air Max 270, budget $200';
+
+    // Hide the input bar while processing
+    document.getElementById('prompt-wrap').classList.remove('visible');
+
     setPip(3, 'active');
     litStep(2);
-    setStatus('Sending buying intent to seller...');
+    setStatus('Sending prompt to seller agent...');
     setDot('dot-buyer', 'working');
 
-    const item     = sellerCaps.commerce?.items[0] || 'air_max_270';
-    const maxPrice = 200.00;
-
-    addBubble('feed-buyer', 'sent', 'buyer  →  seller   |   commerce/request',
+    // Show the user's typed message as a chat bubble
+    addBubble('feed-buyer', 'sent', 'buyer  →  seller   |   session/prompt',
 `sessionId: ${activeSession}
-item: ${item}
-max_price: $${maxPrice.toFixed(2)}`);
+
+"${promptText}"`);
     await delay(1000);
-    addArrow('right', 'intent', 'buyer → seller');
+    addArrow('right', 'session/prompt', 'buyer → seller');
     await delay(1400);
 
-    addBubble('feed-seller', 'recv', 'seller received  |  intent',
-`session verified: ${activeSession}
-checking catalog...`);
-    await delay(1000);
+    addBubble('feed-seller', 'recv', 'seller received  |  session/prompt',
+`parsing intent...`);
+    await delay(1200);
 
     let result;
     try {
@@ -755,27 +871,54 @@ checking catalog...`);
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          jsonrpc: '2.0', id: 3, method: 'commerce/request',
-          params: { sessionId: activeSession, item, max_price: maxPrice, buyer_id: 'buyer-agent-v2.0.0' }
+          jsonrpc: '2.0', id: 3, method: 'session/prompt',
+          params: {
+            sessionId: activeSession,
+            prompt: [{ type: 'text', text: promptText }]
+          }
         })
       });
       result = await r.json();
     } catch (e) {
       addErrBubble('feed-buyer', 'Lost connection to seller agent');
+      document.getElementById('prompt-wrap').classList.add('visible');
       busy = false;
-      setBtn('Retry');
+      setBtn('Send Prompt');
       return;
     }
 
     if (result.error) {
       addErrBubble('feed-seller', 'Error: ' + result.error.message);
+      document.getElementById('prompt-wrap').classList.add('visible');
       busy = false;
-      setBtn('Retry');
+      setBtn('Send Prompt');
       return;
     }
 
-    pendingOffer = result.result.offer;
+    const res    = result.result;
+    const intent = res.parsedIntent || {};
+    pendingOffer = res.offer;
     litStep(3);
+
+    // Show what the "LLM" extracted
+    addBubble('feed-seller', 'mid', 'intent extracted',
+`item: ${intent.item || 'unknown'}
+max_price: $${(intent.max_price || 0).toFixed(2)}`);
+    await delay(800);
+
+    if (!pendingOffer) {
+      addBubble('feed-seller', 'sent', 'seller  →  buyer   |   session/update',
+`stopReason: end_turn
+message: ${res.agentMessage || 'Could not fulfill request'}`);
+      await delay(800);
+      addArrow('left', 'no offer', 'seller → buyer');
+      addErrBubble('feed-buyer', res.agentMessage || 'Could not fulfill request');
+      setDot('dot-buyer', 'on');
+      document.getElementById('prompt-wrap').classList.add('visible');
+      busy = false;
+      setBtn('Send Prompt');
+      return;
+    }
 
     addBubble('feed-seller', 'sent', 'seller  →  buyer   |   offer',
 `${pendingOffer.description}
@@ -839,6 +982,8 @@ function resetDemo() {
   setDot('dot-buyer', '');
   setDot('dot-seller', '');
   setStatus('Click Start to begin the ACP demo step by step');
+  document.getElementById('prompt-wrap').classList.remove('visible');
+  document.getElementById('prompt-input').value = 'Buy me a Nike Air Max 270, budget $200';
   step = 0; sellerCaps = null; activeSession = null; pendingOffer = null;
   const btn = document.getElementById('next-btn');
   btn.textContent = 'Start';
