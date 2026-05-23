@@ -686,7 +686,7 @@
     .offer-img   { width: 48px; height: 48px; }
   }
 
-  /* iPhone SE / very small phones — stack panels full width */
+  /* iPhone SE — stay side-by-side, just tighter */
   @media (max-width: 390px) {
     .header {
       padding: 10px 12px;
@@ -694,68 +694,26 @@
     }
     .header-title { font-size: 8px; letter-spacing: 0.06em; }
     .header-sub   { font-size: 12px; line-height: 1.35; }
-    .header-sub .sub-full { display: none; }
 
     .phases { width: 100%; justify-content: space-between; }
     .phase-label { display: none; }
     .phase-connector { width: 4px; margin-bottom: 0; }
 
     .stage {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      padding: 6px 8px;
-      min-height: auto;
+      grid-template-columns: minmax(0, 1fr) 44px minmax(0, 1fr);
+      column-gap: 4px;
+      padding: 6px 4px;
     }
-    .panel {
-      width: 100%;
-      min-height: auto;
-    }
-    .panel:first-child { order: 1; }
-    .center {
-      order: 2;
-      width: 100%;
-      padding-top: 0;
-      min-height: 32px;
-      flex-shrink: 0;
-    }
-    .panel:last-child { order: 3; }
-    .wire { display: none; }
+    .center { padding-top: 28px; }
+    .wire { top: 28px; }
 
-    .panel-head  { padding: 6px 8px; }
+    .panel-head  { padding: 6px 6px; gap: 4px; }
     .panel-icon  { width: 20px; height: 20px; font-size: 8px; }
     .name-long   { display: none; }
     .name-short  { display: inline; }
     .panel-name  { font-size: 9px; }
 
-    .feed { min-height: 60px; padding: 4px; }
-    .panel:first-child .feed,
-    .panel:last-child  .feed { padding-left: 4px; padding-right: 4px; }
-
-    .bubble,
-    .bubble.out,
-    .bubble.inc,
-    .bubble.sys,
-    .bubble.err,
-    .bubble.decision,
-    .bubble.caps-bubble {
-      font-size: 10px;
-      line-height: 1.45;
-      padding: 6px 8px;
-    }
-    .blabel { font-size: 7px; }
-
-    .arrows {
-      flex-direction: row;
-      justify-content: center;
-      width: auto;
-      max-width: 100%;
-    }
-    .arrow-row { width: auto; max-width: 160px; }
-    .arrow-chip  { font-size: 8px; padding: 3px 6px; white-space: nowrap; }
-
-    .offer-grid { grid-template-columns: 1fr; gap: 6px; }
-    .offer-mini { padding: 8px; }
+    .feed { padding: 4px; min-height: 100px; }
 
     .bottom {
       padding: 10px 12px;
@@ -764,7 +722,6 @@
     .btn { font-size: 9px; padding: 10px 12px; min-height: 40px; }
     .status-txt { font-size: 8px; line-height: 1.4; }
 
-    .prompt-wrap { padding: 6px 8px 0; }
     .prompt-input { font-size: 16px; height: 36px; }
   }
 </style>
@@ -873,7 +830,7 @@
 
 <script>
 const delay = ms => new Promise(r => setTimeout(r, ms));
-const DEMO_BUILD = '2026-05-23i';
+const DEMO_BUILD = '2026-05-23j';
 
 function isMobileLayout() {
   return window.matchMedia('(max-width: 680px)').matches;
