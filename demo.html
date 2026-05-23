@@ -21,7 +21,7 @@
     --mono:      'DM Mono', monospace;
   }
 
-  html, body { background: var(--bg); color: var(--text); font-family: var(--mono); font-size: 13px; line-height: 1.6; min-height: 100vh; }
+  html, body { background: var(--bg); color: var(--text); font-family: var(--mono); font-size: 13px; line-height: 1.6; min-height: 100vh; min-height: 100dvh; overflow-x: hidden; }
 
   /* HEADER */
   .header {
@@ -217,6 +217,8 @@
     position: relative;
     background: var(--surface);
     text-align: left;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
   .offer-mini:hover:not(.faded) { border-color: rgba(0,0,0,0.3); box-shadow: 0 1px 4px rgba(0,0,0,0.07); }
   .offer-mini.agent-pick {
@@ -516,6 +518,7 @@
       padding-top: 0;
       min-height: 36px;
     }
+    .wire { display: none; }
 
     /* Compact panel headers */
     .panel-head  { padding: 8px 8px; gap: 6px; }
@@ -569,7 +572,7 @@
 
     /* Prompt input — full width, tighter on mobile */
     .prompt-wrap { padding: 8px 8px 0; gap: 6px; flex-wrap: wrap; }
-    .prompt-input { font-size: 11px; padding: 8px 32px 8px 10px; }
+    .prompt-input { font-size: 16px; padding: 10px 36px 10px 10px; }
     .prompt-cancel { width: 28px; height: 28px; font-size: 10px; right: 5px; min-width: 44px; min-height: 44px; }
     .prompt-label { font-size: 9px; }
     .countdown-pill { font-size: 8px; width: 100%; text-align: center; }
@@ -956,12 +959,12 @@ function startCountdown(secs, callback) {
   const pill  = document.getElementById('countdown-pill');
   const input = document.getElementById('prompt-input');
   pill.style.display = '';
-  let remaining = secs;
+  const deadline = Date.now() + secs * 1000;
   let humanControl = false;
 
   function tick() {
     if (humanControl) return;
-    remaining--;
+    const remaining = Math.ceil((deadline - Date.now()) / 1000);
     if (remaining <= 0) {
       clearCountdown();
       callback();
@@ -970,8 +973,8 @@ function startCountdown(secs, callback) {
     }
   }
 
-  pill.textContent = `agent sends in ${remaining}s — click to take control`;
-  autoFireTimer = setInterval(tick, 1000);
+  tick();
+  autoFireTimer = setInterval(tick, 250);
 
   // When user clicks / focuses the input → stop timer, give human control
   function onHumanFocus() {
@@ -1286,7 +1289,8 @@ preferredCurrencies: USD`);
     sellerCaps = result.result.agentCapabilities;
     const info       = result.result.agentInfo;
     const itemCount  = sellerCaps.commerce?.itemCount  || 0;
-    const categories = sellerCaps.commerce?.categories || [];
+    const categories = Array.isArray(sellerCaps.commerce?.categories)
+    ? sellerCaps.commerce.categories : [];
     const canLoad    = sellerCaps.loadSession === true;
     const sessCaps   = Object.keys(sellerCaps.sessionCapabilities || {});
 
