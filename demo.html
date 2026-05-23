@@ -410,17 +410,50 @@
     align-items: center;
   }
   .prompt-wrap.visible { display: flex; }
+  .prompt-field {
+    flex: 1;
+    position: relative;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+  }
   .prompt-input {
     flex: 1;
+    width: 100%;
     font-family: var(--mono);
     font-size: 12px;
-    padding: 10px 14px;
+    padding: 10px 36px 10px 14px;
     border: 1px solid var(--border-hi);
     border-radius: 8px;
     background: var(--surface);
     color: var(--text);
     outline: none;
     transition: border-color 0.2s;
+  }
+  .prompt-cancel {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    border: 1px solid var(--border-hi);
+    border-radius: 50%;
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+  }
+  .prompt-cancel:hover {
+    border-color: #000;
+    color: #000;
+    background: var(--card);
   }
   .prompt-input:focus { border-color: #000; }
   .prompt-input.agent-controlled {
@@ -520,7 +553,8 @@
 
     /* Prompt input — full width, tighter on mobile */
     .prompt-wrap { padding: 8px 8px 0; gap: 6px; flex-wrap: wrap; }
-    .prompt-input { font-size: 11px; padding: 8px 10px; }
+    .prompt-input { font-size: 11px; padding: 8px 32px 8px 10px; }
+    .prompt-cancel { width: 22px; height: 22px; font-size: 10px; right: 5px; }
     .prompt-label { font-size: 9px; }
     .countdown-pill { font-size: 8px; width: 100%; text-align: center; }
 
@@ -610,10 +644,14 @@
 
 <div class="prompt-wrap" id="prompt-wrap">
   <span class="prompt-label" id="prompt-label">prompt</span>
-  <input class="prompt-input" id="prompt-input"
-         type="text"
-         value=""
-         placeholder="e.g. comfortable running shoes..." />
+  <div class="prompt-field">
+    <input class="prompt-input" id="prompt-input"
+           type="text"
+           value=""
+           placeholder="e.g. comfortable running shoes..." />
+    <button type="button" id="prompt-cancel" class="prompt-cancel"
+            title="Cancel turn — edit prompt" onclick="cancelPromptTurn()">✕</button>
+  </div>
   <span class="countdown-pill" id="countdown-pill" style="display:none"></span>
 </div>
 
@@ -648,7 +686,10 @@ const BUYER_PROFILE = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 let step = 0, busy = false, sellerCaps = null, activeSession = null, pendingOffer = null;
-let autoFireTimer = null;  // handle for the countdown auto-fire
+let autoFireTimer = null;
+let promptInFlight = false;
+let promptTurnAborted = false;
+let activePromptController = null;
 
 // ── DOM helpers ──────────────────────────────────────────────────────────────
 
@@ -783,8 +824,62 @@ function setBtn(text) {
   b.disabled = false;
 }
 
+function setHumanInControl(statusMsg) {
+  clearCountdown();
+  const input = document.getElementById('prompt-input');
+  const pill  = document.getElementById('countdown-pill');
+  input.className = 'prompt-input';
+  document.getElementById('prompt-label').textContent = 'your prompt';
+  document.getElementById('prompt-wrap').classList.add('visible');
+  pill.style.display = '';
+  pill.style.animation = 'none';
+  pill.textContent = statusMsg || 'you are in control — Enter or Send';
+  setStatus(statusMsg || 'Edit the prompt, then press Enter or Send');
+  setBtn('Send Now');
+  document.getElementById('next-btn').onclick = nextStep;
+  input.focus();
+}
+
+async function cancelPromptTurn() {
+  const wasInFlight = promptInFlight;
+  clearCountdown();
+  busy = false;
+
+  if (wasInFlight) {
+    promptTurnAborted = true;
+    if (activePromptController) {
+      activePromptController.abort();
+    }
+  }
+
+  if (wasInFlight && activeSession) {
+    setStatus('Cancelling turn...');
+    try {
+      await fetch(SELLER + '/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0', id: 90, method: 'session/cancel',
+          params: { sessionId: activeSession }
+        })
+      });
+      addBubble('feed-buyer', 'sent', 'buyer  →  seller   |   session/cancel',
+        'abort in-flight turn');
+      await delay(400);
+      addArrow('right', 'session/cancel', 'buyer → seller');
+      addBubble('feed-seller', 'mid', '', 'turn cancelled — session still active');
+    } catch (e) {
+      addErrBubble('feed-buyer', 'Could not reach seller to cancel');
+    }
+  }
+
+  setHumanInControl(wasInFlight ? 'turn cancelled — edit and send' : 'countdown stopped — edit prompt');
+  setDot('dot-buyer', 'on');
+}
+
 // Show the prompt input box with a value, optional countdown label, optional agent-controlled style
 function showPrompt(value, label = 'prompt', agentControlled = false) {
+  promptTurnAborted = false;
   const wrap  = document.getElementById('prompt-wrap');
   const input = document.getElementById('prompt-input');
   const lbl   = document.getElementById('prompt-label');
@@ -830,13 +925,8 @@ function startCountdown(secs, callback) {
     humanControl = true;
     clearInterval(autoFireTimer);
     autoFireTimer = null;
-    pill.textContent = 'you are in control — press Enter or click Send';
-    pill.style.animation = 'none';  // stop blinking
-    input.className = 'prompt-input';  // remove agent-controlled grey
-    document.getElementById('next-btn').textContent = 'Send';
-    document.getElementById('next-btn').disabled = false;
+    setHumanInControl('countdown stopped — edit prompt');
 
-    // Enter key fires the callback
     function onEnter(e) {
       if (e.key === 'Enter') {
         e.preventDefault();
@@ -847,7 +937,6 @@ function startCountdown(secs, callback) {
       }
     }
     input.addEventListener('keydown', onEnter);
-    // Store so clearCountdown can remove it
     input._onEnter = onEnter;
   }
 
@@ -951,6 +1040,7 @@ function addOfferGrid(feedId, offers, agentIdx, budget) {
 // Shared by: direct-budget path and post-clarification path.
 
 async function showOffers(res, promptText) {
+  hidePrompt();
   const intent      = res.parsedIntent || {};
   const offers      = res.offers || (res.offer ? [res.offer] : []);
   const claudeTag   = res.usedClaude ? ' · claude haiku' : ' · regex';
@@ -999,11 +1089,12 @@ offers.map((o, i) => {
 
     const pill = document.getElementById('countdown-pill');
     const wrap = document.getElementById('prompt-wrap');
+    const field = document.querySelector('.prompt-field');
     pill.style.display   = '';
     pill.style.animation = '';
     pill.textContent     = `agent selects option ${pick.index + 1} in ${remaining}s — click a card to choose`;
     wrap.classList.add('visible');
-    document.getElementById('prompt-input').style.display = 'none';
+    if (field) field.style.display = 'none';
     document.getElementById('prompt-label').textContent   = '';
 
     const timer = setInterval(() => {
@@ -1013,7 +1104,7 @@ offers.map((o, i) => {
         clearInterval(timer);
         pill.style.display = 'none';
         wrap.classList.remove('visible');
-        document.getElementById('prompt-input').style.display = '';
+        if (field) field.style.display = '';
         resolve({ index: pick.index, humanChose: false });
       } else {
         pill.textContent = `agent selects option ${pick.index + 1} in ${remaining}s — click a card to choose`;
@@ -1027,7 +1118,7 @@ offers.map((o, i) => {
         clearInterval(timer);
         pill.style.display = 'none';
         wrap.classList.remove('visible');
-        document.getElementById('prompt-input').style.display = '';
+        if (field) field.style.display = '';
         // Update badge to "your pick"
         const prevBadge = document.querySelector('.offer-mini-badge');
         if (prevBadge) prevBadge.remove();
@@ -1261,31 +1352,50 @@ stored — will be sent with all requests`);
 
     // ── Helper: send one session/prompt turn ─────────────────────────────────
     async function sendPromptTurn(text, turnId) {
-      // Show buyer's message
+      promptInFlight = true;
+      promptTurnAborted = false;
+      activePromptController = new AbortController();
+
+      showPrompt(text, `turn ${turnId} — sending…`, true);
+
       addBubble('feed-buyer', 'sent', 'buyer  →  seller   |   session/prompt',
 `"${text}"`);
       await delay(900);
+      if (promptTurnAborted) return null;
+
       addArrow('right', 'session/prompt', `turn ${turnId} — buyer → seller`);
       await delay(1300);
+      if (promptTurnAborted) return null;
+
       addBubble('feed-seller', 'recv', 'seller received  |  session/prompt',
 `processing turn ${turnId}...`);
       await delay(1000);
+      if (promptTurnAborted) return null;
 
-      const r = await fetch(SELLER + '/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jsonrpc: '2.0', id: 3 + turnId, method: 'session/prompt',
-          params: { sessionId: activeSession, prompt: [{ type: 'text', text }] }
-        })
-      });
-      return r.json();
+      try {
+        const r = await fetch(SELLER + '/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: activePromptController.signal,
+          body: JSON.stringify({
+            jsonrpc: '2.0', id: 3 + turnId, method: 'session/prompt',
+            params: { sessionId: activeSession, prompt: [{ type: 'text', text }] }
+          })
+        });
+        if (promptTurnAborted) return null;
+        return await r.json();
+      } catch (e) {
+        if (promptTurnAborted || e.name === 'AbortError') return null;
+        throw e;
+      } finally {
+        promptInFlight = false;
+        activePromptController = null;
+      }
     }
 
     // ── Turn 1: send the agent's initial intent ───────────────────────────────
     const turn1Text = document.getElementById('prompt-input').value.trim()
                    || BUYER_PROFILE.initialIntent;
-    hidePrompt();
 
     setPip(3, 'active');
     litStep(2);
@@ -1299,6 +1409,12 @@ stored — will be sent with all requests`);
       addErrBubble('feed-buyer', 'Connection lost — is the seller agent running?');
       showPrompt(turn1Text, 'buyer agent intent', true);
       busy = false; setBtn('Retry'); return;
+    }
+
+    if (promptTurnAborted || !result1) {
+      busy = false;
+      setDot('dot-buyer', 'on');
+      return;
     }
 
     if (result1.error) {
@@ -1348,7 +1464,6 @@ res1.agentMessage);
       // ── Turn 2: buyer sends budget ────────────────────────────────────────
       const turn2Text = document.getElementById('prompt-input').value.trim()
                      || agentBudgetReply;
-      hidePrompt();
       setDot('dot-buyer', 'working');
       setStatus('Buyer agent sending budget...');
 
@@ -1357,7 +1472,14 @@ res1.agentMessage);
         result2 = await sendPromptTurn(turn2Text, 2);
       } catch (e) {
         addErrBubble('feed-buyer', 'Connection lost on turn 2');
+        showPrompt(turn2Text, 'buyer agent reply (auto)', true);
         busy = false; setBtn('Retry'); return;
+      }
+
+      if (promptTurnAborted || !result2) {
+        busy = false;
+        setDot('dot-buyer', 'on');
+        return;
       }
 
       if (result2.error) {
@@ -1424,6 +1546,7 @@ function resetDemo() {
   document.getElementById('prompt-label').textContent = 'prompt';
   document.getElementById('prompt-input').className = 'prompt-input';
   step = 0; sellerCaps = null; activeSession = null; pendingOffer = null; autoFireTimer = null;
+  promptInFlight = false; promptTurnAborted = false; activePromptController = null;
   const btn = document.getElementById('next-btn');
   btn.textContent = 'Start';
   btn.style.display = '';

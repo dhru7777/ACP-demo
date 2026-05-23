@@ -41,7 +41,10 @@ class SessionManager:
             "cwd":        cwd,
             "status":     "active",
             "createdAt":  datetime.utcnow().isoformat(),
-            "history":    []   # each commerce exchange stored here for replay
+            "history":    [],
+            "context":    {},
+            "processing": False,
+            "cancelled":  False,
         }
         print(f"  [SessionManager] Created session: {session_id} for buyer: {buyer_id}")
         return session_id
@@ -69,10 +72,43 @@ class SessionManager:
     # ------------------------------------------------------------------
     def close(self, session_id: str) -> bool:
         if session_id in self._sessions:
+            self.cancel(session_id)   # spec: close MUST cancel ongoing work first
             del self._sessions[session_id]
             print(f"  [SessionManager] Closed session: {session_id}")
             return True
         return False
+
+    # ------------------------------------------------------------------
+    # CANCEL
+    # Called when buyer sends session/cancel.
+    # Aborts in-flight work but keeps the session alive for a new prompt.
+    # ------------------------------------------------------------------
+    def cancel(self, session_id: str) -> bool:
+        if session_id not in self._sessions:
+            return False
+        s = self._sessions[session_id]
+        s["cancelled"]  = True
+        s["processing"] = False
+        s["context"]    = {}          # clear mid-turn state (e.g. awaiting_budget)
+        print(f"  [SessionManager] Cancelled in-flight work: {session_id}")
+        return True
+
+    def start_processing(self, session_id: str):
+        if session_id in self._sessions:
+            self._sessions[session_id]["processing"] = True
+            self._sessions[session_id]["cancelled"]  = False
+
+    def finish_processing(self, session_id: str):
+        if session_id in self._sessions:
+            self._sessions[session_id]["processing"] = False
+
+    def is_cancelled(self, session_id: str) -> bool:
+        s = self._sessions.get(session_id)
+        return bool(s and s.get("cancelled"))
+
+    def clear_cancelled(self, session_id: str):
+        if session_id in self._sessions:
+            self._sessions[session_id]["cancelled"] = False
 
     # ------------------------------------------------------------------
     # UPDATE CONTEXT

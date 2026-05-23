@@ -97,6 +97,7 @@ async def handle_jsonrpc(request: Request):
     elif method == "session/load":     return JSONResponse(handle_session_load(id_, params))
     elif method == "session/resume":   return JSONResponse(handle_session_resume(id_, params))
     elif method == "session/close":    return JSONResponse(handle_session_close(id_, params))
+    elif method == "session/cancel":   return JSONResponse(handle_session_cancel(id_, params))
     elif method == "session/prompt":   return JSONResponse(handle_session_prompt(id_, params))
     elif method == "commerce/request": return JSONResponse(handle_commerce_request(id_, params))
     else:
@@ -249,6 +250,36 @@ def handle_session_resume(id_, params):
         "jsonrpc": "2.0",
         "id": id_,
         "result": {}   # Spec: empty result on success
+    }
+
+
+# --------------------------------------------------------------------------
+# HANDLER: session/cancel
+# Buyer aborts in-flight work (Claude call, catalog search) but keeps the
+# session open. The buyer can send a new session/prompt immediately after.
+# Spec: all Agents MUST support session/cancel as a baseline session method.
+# --------------------------------------------------------------------------
+def handle_session_cancel(id_, params):
+    session_id = params.get("sessionId")
+
+    if not session_id or not session_manager.exists(session_id):
+        return {
+            "jsonrpc": "2.0", "id": id_,
+            "error": {
+                "code": -32000,
+                "message": f"Session '{session_id}' does not exist or is not active."
+            }
+        }
+
+    session_manager.cancel(session_id)
+    session_manager.add_history(session_id, "buyer", "session/cancel", {})
+
+    print(f"  Session cancel: {session_id} — in-flight work stopped, session still active")
+
+    return {
+        "jsonrpc": "2.0",
+        "id": id_,
+        "result": {}
     }
 
 
@@ -432,6 +463,20 @@ def extract_budget(text: str) -> float | None:
 # Swap guide: replace catalog_search in search.py with a Pinecone/MCP
 # backend — this handler stays identical.
 # --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+def _cancelled_prompt_response(id_, session_id: str) -> dict:
+    """Return when session/cancel interrupted this prompt turn."""
+    session_manager.add_history(session_id, "seller", "session/prompt.cancelled", {})
+    return {
+        "jsonrpc": "2.0", "id": id_,
+        "result": {
+            "stopReason":   "cancelled",
+            "agentMessage": "Turn cancelled — session still active.",
+            "offers":       []
+        }
+    }
+
+
 def handle_session_prompt(id_, params):
     session_id = params.get("sessionId")
     prompt     = params.get("prompt", [])
@@ -455,88 +500,98 @@ def handle_session_prompt(id_, params):
             "error": {"code": -32000, "message": "Empty prompt — send a text message."}
         }
 
-    # Retrieve session context (tracks multi-turn state)
-    session  = session_manager.get(session_id)
-    ctx      = session.get("context", {})
-    turn_num = ctx.get("turn", 1)
-    history  = session.get("history", [])
+    session_manager.clear_cancelled(session_id)
+    session_manager.start_processing(session_id)
 
-    print(f"  Prompt (turn {turn_num}): \"{text[:100]}\"")
+    try:
+        # Retrieve session context (tracks multi-turn state)
+        session  = session_manager.get(session_id)
+        ctx      = session.get("context", {})
+        turn_num = ctx.get("turn", 1)
+        history  = session.get("history", [])
 
-    # Record this buyer turn in session history
-    session_manager.add_history(session_id, "buyer", "session/prompt",
-                                {"text": text, "turn": turn_num})
+        print(f"  Prompt (turn {turn_num}): \"{text[:100]}\"")
 
-    # ── TURN 2+: buyer is responding to our clarification question ────────────
-    if ctx.get("awaiting_budget"):
-        # Use Claude to extract budget from this reply
+        # Record this buyer turn in session history
+        session_manager.add_history(session_id, "buyer", "session/prompt",
+                                    {"text": text, "turn": turn_num})
+
+        if session_manager.is_cancelled(session_id):
+            return _cancelled_prompt_response(id_, session_id)
+
+        # ── TURN 2+: buyer is responding to our clarification question ────────────
+        if ctx.get("awaiting_budget"):
+            parsed   = claude_parse_intent(text, history)
+            if session_manager.is_cancelled(session_id):
+                return _cancelled_prompt_response(id_, session_id)
+
+            budget   = parsed.get("max_price")
+            used_llm = parsed.get("used_claude", False)
+
+            if budget is None:
+                msg = parsed.get("response_message",
+                                 "I still need a specific amount to search for you. "
+                                 "Try something like '$150' or 'under $200'.")
+                session_manager.add_history(session_id, "seller", "session/prompt.clarification",
+                                            {"question": msg})
+                return {
+                    "jsonrpc": "2.0", "id": id_,
+                    "result": {
+                        "stopReason":    "needs_clarification",
+                        "agentMessage":  msg,
+                        "parsedIntent":  {"query": ctx.get("pending_query", ""), "max_price": None},
+                        "awaitingBudget": True,
+                        "usedClaude":    used_llm,
+                        "offers":        []
+                    }
+                }
+
+            original_query = ctx.get("pending_query", text)
+            session_manager.update_context(session_id, {})
+            print(f"  Budget resolved: ${budget} | original: \"{original_query[:60]}\"")
+            return _build_offers(id_, session_id, original_query, budget, text,
+                                 used_claude=used_llm)
+
+        # ── TURN 1: parse the full message with Claude ────────────────────────────
         parsed   = claude_parse_intent(text, history)
+        if session_manager.is_cancelled(session_id):
+            return _cancelled_prompt_response(id_, session_id)
+
+        intent   = parsed.get("intent", text)
         budget   = parsed.get("max_price")
         used_llm = parsed.get("used_claude", False)
 
-        if budget is None:
-            # Still no budget — Claude or regex couldn't find a number
-            msg = parsed.get("response_message",
-                             "I still need a specific amount to search for you. "
-                             "Try something like '$150' or 'under $200'.")
+        if parsed.get("needs_clarification") or budget is None:
+            question = parsed.get("response_message",
+                                  "I can help you find the perfect Nike shoe. "
+                                  "What's your budget for this purchase?")
+            session_manager.update_context(session_id, {
+                "awaiting_budget": True,
+                "pending_query":   intent,
+                "turn":            2
+            })
             session_manager.add_history(session_id, "seller", "session/prompt.clarification",
-                                        {"question": msg})
+                                        {"question": question})
+            print(f"  Needs budget — asking: \"{question[:80]}\"")
             return {
                 "jsonrpc": "2.0", "id": id_,
                 "result": {
                     "stopReason":    "needs_clarification",
-                    "agentMessage":  msg,
-                    "parsedIntent":  {"query": ctx.get("pending_query", ""), "max_price": None},
+                    "agentMessage":  question,
+                    "parsedIntent":  {"query": intent, "max_price": None},
                     "awaitingBudget": True,
                     "usedClaude":    used_llm,
                     "offers":        []
                 }
             }
 
-        # Budget resolved — combine original intent with new budget and search
-        original_query = ctx.get("pending_query", text)
+        print(f"  Budget in first message: ${budget}")
         session_manager.update_context(session_id, {})
-        print(f"  Budget resolved: ${budget} | original: \"{original_query[:60]}\"")
-        return _build_offers(id_, session_id, original_query, budget, text,
+        return _build_offers(id_, session_id, intent, budget, text,
                              used_claude=used_llm)
 
-    # ── TURN 1: parse the full message with Claude ────────────────────────────
-    parsed   = claude_parse_intent(text, history)
-    intent   = parsed.get("intent", text)
-    budget   = parsed.get("max_price")
-    used_llm = parsed.get("used_claude", False)
-
-    if parsed.get("needs_clarification") or budget is None:
-        # Ask for budget — use Claude's natural-sounding question
-        question = parsed.get("response_message",
-                              "I can help you find the perfect Nike shoe. "
-                              "What's your budget for this purchase?")
-        session_manager.update_context(session_id, {
-            "awaiting_budget": True,
-            "pending_query":   intent,   # Claude's cleaned-up intent, not raw text
-            "turn":            2
-        })
-        session_manager.add_history(session_id, "seller", "session/prompt.clarification",
-                                    {"question": question})
-        print(f"  Needs budget — asking: \"{question[:80]}\"")
-        return {
-            "jsonrpc": "2.0", "id": id_,
-            "result": {
-                "stopReason":    "needs_clarification",
-                "agentMessage":  question,
-                "parsedIntent":  {"query": intent, "max_price": None},
-                "awaitingBudget": True,
-                "usedClaude":    used_llm,
-                "offers":        []
-            }
-        }
-
-    # Budget included in first message — search immediately
-    confirm_msg = parsed.get("response_message", f"Searching within ${budget:.0f} now...")
-    print(f"  Budget in first message: ${budget}")
-    session_manager.update_context(session_id, {})
-    return _build_offers(id_, session_id, intent, budget, text,
-                         used_claude=used_llm, confirm_msg=confirm_msg)
+    finally:
+        session_manager.finish_processing(session_id)
 
 
 # --------------------------------------------------------------------------
@@ -683,5 +738,5 @@ if __name__ == "__main__":
     print("Nike Seller Agent v2.0.0 starting on http://localhost:8002")
     print(f"  Catalog: {summary['total_items']} items across {len(summary['categories'])} categories")
     print(f"  Price range: ${summary['price_range']['min']} – ${summary['price_range']['max']}")
-    print(f"  Session support: session/new, session/load, session/resume, session/close\n")
+    print(f"  Session support: session/new, session/load, session/resume, session/cancel, session/close\n")
     uvicorn.run(app, host="0.0.0.0", port=8002)
