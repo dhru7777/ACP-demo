@@ -145,7 +145,7 @@
     padding: 6px 14px;
   }
 
-  /* OFFER CARD */
+  /* OFFER CARD (legacy single-card, kept for reference) */
   .offer-card {
     border: 1px solid var(--border-hi);
     border-radius: 10px;
@@ -186,6 +186,64 @@
     margin-top: 2px;
   }
   .offer-details { flex: 1; min-width: 0; }
+
+  /* OFFER GRID — 3 cards shown in parallel for agent/human selection */
+  .offer-grid-wrap {
+    padding: 4px 0;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.4s, transform 0.4s;
+  }
+  .offer-grid-wrap.show { opacity: 1; transform: translateY(0); }
+  .offer-grid-label {
+    font-size: 9px;
+    color: #aaaaaa;
+    letter-spacing: 0.02em;
+    margin-bottom: 6px;
+    padding-left: 2px;
+  }
+  .offer-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .offer-mini {
+    border: 1px solid var(--border-hi);
+    border-radius: 8px;
+    padding: 10px;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s, opacity 0.3s;
+    position: relative;
+    background: var(--surface);
+  }
+  .offer-mini:hover:not(.faded) { border-color: rgba(0,0,0,0.3); box-shadow: 0 1px 4px rgba(0,0,0,0.07); }
+  .offer-mini.agent-pick {
+    border: 2px solid #000;
+  }
+  .offer-mini.human-pick {
+    border: 2px solid #000;
+    background: var(--card);
+  }
+  .offer-mini.faded { opacity: 0.3; pointer-events: none; }
+  .offer-mini-badge {
+    position: absolute;
+    top: -9px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 8px;
+    background: #000;
+    color: #fff;
+    padding: 2px 7px;
+    border-radius: 10px;
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+  }
+  .offer-mini-badge.human { background: #555; }
+  .offer-mini-name  { font-size: 10px; font-weight: 500; color: var(--text); line-height: 1.4; }
+  .offer-mini-price { font-size: 20px; font-weight: 300; color: var(--text); letter-spacing: -0.02em; margin: 5px 0 3px; }
+  .offer-mini-status { font-size: 9px; line-height: 1.6; }
+  .offer-mini-status.ok   { color: #000; }
+  .offer-mini-status.over { color: #bbb; }
+  .offer-mini-cat   { font-size: 9px; color: var(--muted); margin-top: 2px; }
 
   /* CENTER */
   .center {
@@ -425,6 +483,11 @@
     .offer-meta  { font-size: 9px; }
     .offer-badge { font-size: 8px; padding: 2px 6px; }
     .offer-img   { width: 52px; height: 52px; }
+    /* Offer grid — stack on very small screens */
+    .offer-grid         { grid-template-columns: 1fr; gap: 10px; }
+    .offer-mini-price   { font-size: 16px; }
+    .offer-mini-name    { font-size: 9px; }
+    .offer-mini-status  { font-size: 8px; }
 
     /* Center column: tighter */
     .center { padding-top: 44px; }
@@ -786,6 +849,81 @@ function clearCountdown() {
   }
 }
 
+// ── Agent offer selection logic ────────────────────────────────────────────────
+// Returns {index, reason} — the agent's recommended pick and why.
+function agentPickOffer(offers, budget) {
+  const withinBudget = offers
+    .map((o, i) => ({ o, i }))
+    .filter(({ o }) => o.price <= budget);
+
+  if (withinBudget.length > 0) {
+    // Best match within budget = first result (highest relevance score from search)
+    const pick = withinBudget[0];
+    return {
+      index:  pick.i,
+      reason: `$${pick.o.price} ≤ budget $${budget} — best match within budget`,
+      ok:     true
+    };
+  }
+
+  // All above budget — pick cheapest and flag it
+  const cheapestIdx = offers.reduce((best, o, i) =>
+    o.price < offers[best].price ? i : best, 0);
+  return {
+    index:  cheapestIdx,
+    reason: `all options above budget $${budget} — selecting closest at $${offers[cheapestIdx].price}`,
+    ok:     false
+  };
+}
+
+// ── Offer grid: show 3 cards, wait 4s for human override, resolve choice ───────
+function addOfferGrid(feedId, offers, agentIdx, budget) {
+  const feed = document.getElementById(feedId);
+  const wrap = document.createElement('div');
+  wrap.className = 'offer-grid-wrap';
+
+  const lbl = document.createElement('div');
+  lbl.className = 'offer-grid-label';
+  lbl.textContent = `buyer received  |  ${offers.length} offers — agent evaluating`;
+  wrap.appendChild(lbl);
+
+  const grid = document.createElement('div');
+  grid.className = 'offer-grid';
+
+  offers.forEach((o, idx) => {
+    const card = document.createElement('div');
+    card.className = 'offer-mini' + (idx === agentIdx ? ' agent-pick' : '');
+    card.dataset.idx = idx;
+
+    const withinBudget = o.price <= budget;
+    const statusClass  = withinBudget ? 'ok' : 'over';
+    const statusText   = withinBudget
+      ? `✓ $${o.price} within budget`
+      : `✗ $${o.price} over budget $${budget}`;
+
+    if (idx === agentIdx) {
+      const badge = document.createElement('div');
+      badge.className = 'offer-mini-badge';
+      badge.textContent = 'agent\'s pick';
+      card.appendChild(badge);
+    }
+
+    card.innerHTML += `
+      <div class="offer-mini-name">${o.name}</div>
+      <div class="offer-mini-price">$${o.price.toFixed(0)}</div>
+      <div class="offer-mini-status ${statusClass}">${statusText}</div>
+      <div class="offer-mini-cat">${o.category}</div>
+    `;
+    grid.appendChild(card);
+  });
+
+  wrap.appendChild(grid);
+  feed.appendChild(wrap);
+  requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.add('show')));
+  feed.scrollTop = feed.scrollHeight;
+  return grid;
+}
+
 // ── Show offers after a resolved session/prompt turn ─────────────────────────
 // Shared by: direct-budget path and post-clarification path.
 
@@ -793,9 +931,8 @@ async function showOffers(res, promptText) {
   const intent    = res.parsedIntent || {};
   const offers    = res.offers || (res.offer ? [res.offer] : []);
   const claudeTag = res.usedClaude ? ' · claude haiku' : ' · regex';
-  pendingOffer    = offers[0] || null;
 
-  // Show what was extracted + which engine parsed it
+  // Show what was extracted
   const iLines = [`query: "${intent.query || promptText}"`];
   if (intent.max_price) iLines.push(`budget ceiling: $${intent.max_price.toFixed(2)}`);
   iLines.push(`parsed by: ${res.usedClaude ? 'Claude Haiku (LLM)' : 'regex fallback'}`);
@@ -814,48 +951,97 @@ message: ${res.agentMessage || 'No matches found'}`);
     busy = false; setBtn('Try Again'); return;
   }
 
-  const topOffer   = offers[0];
-  const extraCount = offers.length - 1;
-  addBubble('feed-seller', 'sent', 'seller  →  buyer   |   offer',
-`${topOffer.name}
-price: $${topOffer.price.toFixed(2)} ${topOffer.currency}
-status: ${topOffer.status}${extraCount > 0 ? `\n+ ${extraCount} more option${extraCount > 1 ? 's' : ''} included` : ''}
-logged to session history`);
+  // Seller sends all offers
+  addBubble('feed-seller', 'sent', 'seller  →  buyer   |   offers',
+offers.map((o, i) =>
+  `  ${i+1}. ${o.name} — $${o.price.toFixed(2)} ${o.currency}`
+).join('\n') + '\nlogged to session history');
   await delay(900);
-  addArrow('left', offers.length > 1 ? `${offers.length} offers` : 'offer', 'seller → buyer');
+  addArrow('left', `${offers.length} offer${offers.length > 1 ? 's' : ''}`, 'seller → buyer');
   await delay(1300);
 
-  // Top offer card
-  addOfferCard('feed-buyer', {
-    item:        topOffer.id || topOffer.item,
-    description: topOffer.name,
-    price:       topOffer.price,
-    currency:    topOffer.currency,
-    status:      topOffer.status,
-    seller_agent: topOffer.seller_agent
+  // Agent evaluates: find best within budget
+  const pick = agentPickOffer(offers, BUYER_PROFILE.budget);
+
+  // Show all 3 cards in grid, agent's pick highlighted
+  addOfferGrid('feed-buyer', offers, pick.index, BUYER_PROFILE.budget);
+  await delay(600);
+
+  // 4-second countdown for human to pick a different card
+  const selected = await new Promise(resolve => {
+    const cards = document.querySelectorAll('.offer-mini');
+    let done     = false;
+    let remaining = 4;
+
+    const pill = document.getElementById('countdown-pill');
+    const wrap = document.getElementById('prompt-wrap');
+    pill.style.display   = '';
+    pill.style.animation = '';
+    pill.textContent     = `agent selects option ${pick.index + 1} in ${remaining}s — click a card to choose`;
+    wrap.classList.add('visible');
+    document.getElementById('prompt-input').style.display = 'none';
+    document.getElementById('prompt-label').textContent   = '';
+
+    const timer = setInterval(() => {
+      if (done) return;
+      remaining--;
+      if (remaining <= 0) {
+        clearInterval(timer);
+        pill.style.display = 'none';
+        wrap.classList.remove('visible');
+        document.getElementById('prompt-input').style.display = '';
+        resolve({ index: pick.index, humanChose: false });
+      } else {
+        pill.textContent = `agent selects option ${pick.index + 1} in ${remaining}s — click a card to choose`;
+      }
+    }, 1000);
+
+    cards.forEach((card, idx) => {
+      card.addEventListener('click', () => {
+        if (done) return;
+        done = true;
+        clearInterval(timer);
+        pill.style.display = 'none';
+        wrap.classList.remove('visible');
+        document.getElementById('prompt-input').style.display = '';
+        // Update badge to "your pick"
+        const prevBadge = document.querySelector('.offer-mini-badge');
+        if (prevBadge) prevBadge.remove();
+        cards.forEach(c => c.classList.remove('agent-pick', 'human-pick', 'faded'));
+        card.classList.add('human-pick');
+        const b = document.createElement('div');
+        b.className = 'offer-mini-badge human';
+        b.textContent = 'your pick';
+        card.prepend(b);
+        cards.forEach((c, i) => { if (i !== idx) c.classList.add('faded'); });
+        resolve({ index: idx, humanChose: true });
+      });
+    });
   });
-  await delay(500);
 
-  // Additional offers as compact list
-  if (offers.length > 1) {
-    const altLines = offers.slice(1)
-      .map(o => `  · ${o.name} — $${o.price.toFixed(2)}`).join('\n');
-    addBubble('feed-buyer', 'recv',
-      `buyer received  |  ${offers.length - 1} more option${offers.length > 2 ? 's' : ''}`,
-      altLines);
-    await delay(400);
-  }
+  const chosenOffer = offers[selected.index];
+  pendingOffer = chosenOffer;
+  await delay(400);
 
-  // Agent makes the decision autonomously — no human click
-  const withinBudget = topOffer.price <= BUYER_PROFILE.budget;
+  // Show agent decision with clear reasoning
+  const decisionLines = [];
+  offers.forEach((o, i) => {
+    const withinBudget = o.price <= BUYER_PROFILE.budget;
+    const marker = i === selected.index ? '→' : ' ';
+    const status = withinBudget ? `✓ within budget` : `✗ $${o.price - BUYER_PROFILE.budget} over`;
+    decisionLines.push(`${marker} ${o.name}  $${o.price}  ${status}`);
+  });
+
+  const finalLine = selected.humanChose
+    ? `human override — selected: ${chosenOffer.name}`
+    : pick.reason;
+
   addBubble('feed-buyer', 'mid', 'agent decision',
-    withinBudget
-      ? `$${topOffer.price} ≤ budget $${BUYER_PROFILE.budget} — offer accepted`
-      : `$${topOffer.price} > budget $${BUYER_PROFILE.budget} — seeking alternatives`);
+    decisionLines.join('\n') + `\n\n${finalLine}`);
 
   setDot('dot-buyer', 'on');
   setPip(3, 'done');
-  setStatus('Offer accepted — click Next to proceed to payment.');
+  setStatus('Offer selected — click Next to proceed to payment.');
   setBtn('Next: Payment');
   step++;
   busy = false;
