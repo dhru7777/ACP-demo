@@ -21,7 +21,24 @@
     --mono:      'DM Mono', monospace;
   }
 
-  html, body { background: var(--bg); color: var(--text); font-family: var(--mono); font-size: 13px; line-height: 1.6; min-height: 100vh; min-height: 100dvh; overflow-x: hidden; }
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.6;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  body::-webkit-scrollbar { display: none; }
 
   /* HEADER */
   .header {
@@ -30,6 +47,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-shrink: 0;
   }
   .header-title { font-size: 11px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
   .header-sub   { font-size: 18px; font-weight: 300; color: var(--text); margin-top: 4px; letter-spacing: -0.01em; }
@@ -38,10 +56,13 @@
   /* STAGE */
   .stage {
     display: grid;
-    grid-template-columns: 1fr 120px 1fr;
+    grid-template-columns: minmax(0, 1fr) 120px minmax(0, 1fr);
+    column-gap: 10px;
     padding: 28px 40px;
-    min-height: 520px;
-    gap: 0;
+    flex: 1 0 auto;
+    min-height: 320px;
+    overflow: visible;
+    align-items: stretch;
   }
 
   /* PANELS */
@@ -51,8 +72,13 @@
     background: var(--surface);
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow: visible;
+    min-width: 0;
+    min-height: 280px;
+    position: relative;
   }
+  .panel:first-child .feed { padding-right: 10px; }
+  .panel:last-child  .feed { padding-left: 10px; }
   .panel-head {
     padding: 14px 18px;
     border-bottom: 1px solid var(--border);
@@ -70,6 +96,7 @@
     flex-shrink: 0;
   }
   .panel-name  { font-size: 13px; font-weight: 500; color: var(--text); }
+  .name-short  { display: none; }
   .panel-sub   { font-size: 10px; color: var(--muted); margin-top: 1px; }
   .panel-meta  { flex: 1; }
   .port-tag {
@@ -95,8 +122,8 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
-    overflow-y: auto;
-    min-height: 360px;
+    overflow: visible;
+    min-height: 180px;
   }
 
   /* BUBBLES */
@@ -120,12 +147,14 @@
     border: 1px solid #000;
     color: #ffffff;
     border-bottom-right-radius: 2px;
+    max-width: 88%;
   }
   .bubble.inc {
     background: var(--card);
     border: 1px solid var(--border-hi);
     color: #222222;
     border-bottom-left-radius: 2px;
+    max-width: 88%;
   }
   .bubble.sys {
     background: transparent;
@@ -134,7 +163,8 @@
     font-size: 10px;
     text-align: center;
     border-radius: 6px;
-    padding: 6px 14px;
+    padding: 6px 10px;
+    max-width: 100%;
   }
   .bubble.err {
     background: transparent;
@@ -143,7 +173,8 @@
     font-size: 10px;
     text-align: center;
     border-radius: 6px;
-    padding: 6px 14px;
+    padding: 6px 10px;
+    max-width: 100%;
   }
 
   /* OFFER CARD (legacy single-card, kept for reference) */
@@ -255,13 +286,21 @@
     max-width: 100%;
   }
 
-  /* CENTER */
+  /* CENTER — protocol arrows live only in this gutter, never over chat */
   .center {
     display: flex;
     flex-direction: column;
     align-items: center;
     padding-top: 60px;
     position: relative;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    background: var(--bg);
+    pointer-events: auto;
+    -webkit-overflow-scrolling: touch;
   }
   .wire {
     position: absolute;
@@ -271,24 +310,40 @@
     background: var(--border);
     bottom: 0;
     z-index: 0;
+    pointer-events: none;
   }
-  .arrows { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: stretch; gap: 10px; width: 100%; padding: 0 8px; }
+  .arrows {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+    width: 100%;
+    max-width: 100%;
+    padding: 0 2px;
+    overflow: hidden;
+    box-sizing: border-box;
+    pointer-events: none;
+  }
   .arrow-row {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 3px;
     opacity: 0;
+    max-width: 100%;
+    width: 100%;
   }
-  .arrow-row.to-right { animation: slideRight 0.45s ease forwards; align-items: flex-end; }
-  .arrow-row.to-left  { animation: slideLeft  0.45s ease forwards; align-items: flex-start; }
+  .arrow-row.to-right { animation: slideRight 0.45s ease forwards; }
+  .arrow-row.to-left  { animation: slideLeft  0.45s ease forwards; }
   @keyframes slideRight {
-    from { opacity: 0; transform: translateX(-16px); }
-    to   { opacity: 1; transform: translateX(0); }
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
   @keyframes slideLeft {
-    from { opacity: 0; transform: translateX(16px); }
-    to   { opacity: 1; transform: translateX(0); }
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
   .arrow-label {
     font-size: 9px;
@@ -298,11 +353,18 @@
   .arrow-chip {
     background: #000;
     color: #fff;
-    border-radius: 20px;
-    padding: 4px 11px;
-    font-size: 10px;
-    white-space: nowrap;
-    letter-spacing: 0.02em;
+    border-radius: 10px;
+    padding: 4px 5px;
+    font-size: 9px;
+    line-height: 1.25;
+    white-space: normal;
+    word-break: break-word;
+    hyphens: auto;
+    text-align: center;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    letter-spacing: 0;
   }
   .arrow-row.to-right .arrow-chip { border-bottom-right-radius: 3px; }
   .arrow-row.to-left  .arrow-chip { border-bottom-left-radius: 3px; }
@@ -315,8 +377,7 @@
     display: flex;
     align-items: center;
     gap: 16px;
-    position: sticky;
-    bottom: 0;
+    flex-shrink: 0;
     z-index: 20;
     background: var(--bg);
   }
@@ -416,24 +477,29 @@
   /* PROMPT INPUT */
   .prompt-wrap {
     display: none;
-    padding: 10px 40px 0;
-    gap: 10px;
+    padding: 8px 40px 0;
+    gap: 8px;
     align-items: center;
+    flex-shrink: 0;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
   }
   .prompt-wrap.visible { display: flex; }
   .prompt-field {
     flex: 1;
-    position: relative;
     min-width: 0;
     display: flex;
     align-items: center;
+    gap: 8px;
   }
   .prompt-input {
     flex: 1;
+    min-width: 0;
     width: 100%;
     font-family: var(--mono);
     font-size: 12px;
-    padding: 10px 36px 10px 14px;
+    padding: 8px 10px;
+    height: 36px;
     border: 1px solid var(--border-hi);
     border-radius: 8px;
     background: var(--surface);
@@ -442,23 +508,22 @@
     transition: border-color 0.2s;
   }
   .prompt-cancel {
-    position: absolute;
-    right: 6px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 24px;
-    height: 24px;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
     border: 1px solid var(--border-hi);
-    border-radius: 50%;
+    border-radius: 8px;
     background: var(--surface);
     color: var(--muted);
-    font-size: 11px;
+    font-size: 12px;
     line-height: 1;
     cursor: pointer;
     padding: 0;
     display: flex;
     align-items: center;
     justify-content: center;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
     transition: border-color 0.15s, color 0.15s, background 0.15s;
   }
   .prompt-cancel:hover {
@@ -498,6 +563,7 @@
     }
     .header-title { font-size: 9px; }
     .header-sub   { font-size: 13px; }
+    .header-sub .sub-full { display: none; }
 
     /* Phase dots — 5 phases need to fit narrow screens */
     .phases { gap: 0; flex-wrap: nowrap; }
@@ -505,38 +571,56 @@
     .phase-label { font-size: 6.5px; letter-spacing: 0; }
     .phase-dot   { width: 7px; height: 7px; }
 
-    /* Keep 3-column side-by-side on mobile (same as desktop, tighter) */
+    /* Side-by-side panels with a dedicated arrow gutter between them */
     .stage {
-      grid-template-columns: 1fr 44px 1fr;
-      grid-template-rows: none;
-      padding: 8px 6px;
-      min-height: auto;
-      gap: 0;
+      grid-template-columns: minmax(0, 1fr) 58px minmax(0, 1fr);
+      column-gap: 6px;
+      padding: 6px 4px;
+      min-height: 0;
     }
     .center {
       order: 0;
-      padding-top: 36px;
-      min-height: auto;
+      padding-top: 32px;
+      align-self: stretch;
+      overflow: hidden;
     }
+    .panel:first-child .feed { padding-right: 4px; }
+    .panel:last-child  .feed { padding-left: 4px; }
+    .bubble.out,
+    .bubble.inc { max-width: 92%; }
     .wire {
       display: block;
-      top: 36px;
+      top: 32px;
     }
 
     /* Compact panel headers */
-    .panel-head  { padding: 8px 8px; gap: 6px; }
+    .panel-head  { padding: 8px 8px; gap: 6px; flex-shrink: 0; }
     .panel-icon  { width: 24px; height: 24px; font-size: 9px; border-radius: 6px; }
     .panel-name  { font-size: 10px; }
     .panel-sub   { display: none; }
     .port-tag    { display: none; }
     .dot         { width: 5px; height: 5px; }
 
-    /* Compact feed — shorter but panels stay side-by-side */
-    .feed { padding: 6px; gap: 5px; min-height: 220px; max-height: 42vh; }
+    /* Feeds grow with content — no inner scrollbar */
+    .feed { padding: 5px; gap: 5px; min-height: 120px; }
 
-    /* Smaller bubbles */
-    .bubble { font-size: 9px; line-height: 1.55; padding: 6px 8px; max-width: 100%; }
-    .blabel { font-size: 8px; }
+    /* Consistent bubble typography on mobile */
+    .bubble,
+    .bubble.out,
+    .bubble.inc,
+    .bubble.sys,
+    .bubble.err,
+    .bubble.decision,
+    .bubble.caps-bubble {
+      font-size: 9px;
+      line-height: 1.5;
+      padding: 5px 7px;
+      max-width: 100%;
+    }
+    .blabel { font-size: 7px; }
+    .caps-summary,
+    .caps-detail,
+    .caps-toggle { font-size: 9px; line-height: 1.5; }
 
     /* Offer card compact */
     .offer-card  { padding: 10px 10px; }
@@ -554,12 +638,12 @@
     .offer-mini-meta  { font-size: 8px; }
     .offer-mini-flag  { font-size: 7px; }
     .offer-mini-badge { font-size: 6px; top: -7px; left: 4px; padding: 1px 4px; }
-    .bubble.decision  { font-size: 9px; line-height: 1.5; padding: 7px 8px; }
+    .bubble.decision  { text-align: left; }
 
-    /* Center column — tighter arrows between panels */
-    .arrows { padding: 0 2px; gap: 6px; }
-    .arrow-chip  { font-size: 8px; padding: 3px 6px; border-radius: 12px; }
-    .arrow-label { font-size: 7px; }
+    /* Center gutter — compact labels, hard-clipped to column width */
+    .arrows { padding: 0; gap: 5px; }
+    .arrow-chip  { font-size: 6.5px; padding: 2px 2px; border-radius: 5px; line-height: 1.15; }
+    .arrow-label { display: none; }
 
     /* Bottom bar */
     .bottom {
@@ -572,20 +656,116 @@
     .pips       { order: 2; }
     .pip        { width: 14px; }
 
-    /* Prompt input — full width, tighter on mobile */
-    .prompt-wrap { padding: 8px 8px 0; gap: 6px; flex-wrap: wrap; }
-    .prompt-input { font-size: 16px; padding: 10px 36px 10px 10px; }
-    .prompt-cancel { width: 28px; height: 28px; font-size: 10px; right: 5px; min-width: 44px; min-height: 44px; }
-    .prompt-label { font-size: 9px; }
+    /* Prompt bar — input + cancel side by side, no overlap */
+    .prompt-wrap {
+      flex-direction: column;
+      align-items: stretch;
+      padding: 6px 8px 0;
+      gap: 4px;
+    }
+    .prompt-label { font-size: 8px; width: 100%; }
+    .prompt-field { width: 100%; gap: 6px; }
+    .prompt-input {
+      font-size: 14px;
+      height: 34px;
+      padding: 6px 8px;
+    }
+    .prompt-cancel {
+      width: 30px;
+      height: 30px;
+      min-width: 30px;
+      font-size: 11px;
+    }
     .countdown-pill { font-size: 8px; width: 100%; text-align: center; }
 
     /* Caps toggle — always visible, smaller */
-    .caps-toggle { font-size: 8px; margin-top: 4px; }
-    .caps-detail { font-size: 9px; }
+    .caps-toggle { margin-top: 4px; }
 
     /* Offer body — stack image above details on very small screens */
     .offer-body  { gap: 8px; }
     .offer-img   { width: 48px; height: 48px; }
+  }
+
+  /* iPhone SE / very small phones — stack panels full width */
+  @media (max-width: 390px) {
+    .header {
+      padding: 10px 12px;
+      gap: 8px;
+    }
+    .header-title { font-size: 8px; letter-spacing: 0.06em; }
+    .header-sub   { font-size: 12px; line-height: 1.35; }
+    .header-sub .sub-full { display: none; }
+
+    .phases { width: 100%; justify-content: space-between; }
+    .phase-label { display: none; }
+    .phase-connector { width: 4px; margin-bottom: 0; }
+
+    .stage {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 6px 8px;
+      min-height: auto;
+    }
+    .panel {
+      width: 100%;
+      min-height: auto;
+    }
+    .panel:first-child { order: 1; }
+    .center {
+      order: 2;
+      width: 100%;
+      padding-top: 0;
+      min-height: 32px;
+      flex-shrink: 0;
+    }
+    .panel:last-child { order: 3; }
+    .wire { display: none; }
+
+    .panel-head  { padding: 6px 8px; }
+    .panel-icon  { width: 20px; height: 20px; font-size: 8px; }
+    .name-long   { display: none; }
+    .name-short  { display: inline; }
+    .panel-name  { font-size: 9px; }
+
+    .feed { min-height: 60px; padding: 4px; }
+    .panel:first-child .feed,
+    .panel:last-child  .feed { padding-left: 4px; padding-right: 4px; }
+
+    .bubble,
+    .bubble.out,
+    .bubble.inc,
+    .bubble.sys,
+    .bubble.err,
+    .bubble.decision,
+    .bubble.caps-bubble {
+      font-size: 10px;
+      line-height: 1.45;
+      padding: 6px 8px;
+    }
+    .blabel { font-size: 7px; }
+
+    .arrows {
+      flex-direction: row;
+      justify-content: center;
+      width: auto;
+      max-width: 100%;
+    }
+    .arrow-row { width: auto; max-width: 160px; }
+    .arrow-chip  { font-size: 8px; padding: 3px 6px; white-space: nowrap; }
+
+    .offer-grid { grid-template-columns: 1fr; gap: 6px; }
+    .offer-mini { padding: 8px; }
+
+    .bottom {
+      padding: 10px 12px;
+      padding-bottom: max(10px, env(safe-area-inset-bottom));
+    }
+    .btn { font-size: 9px; padding: 10px 12px; min-height: 40px; }
+    .status-txt { font-size: 8px; line-height: 1.4; }
+
+    .prompt-wrap { padding: 6px 8px 0; }
+    .prompt-input { font-size: 16px; height: 36px; }
   }
 </style>
 </head>
@@ -594,7 +774,7 @@
 <div class="header">
   <div>
     <div class="header-title">Dheeraj Maske &middot; Thesis Demo &middot; 2026 &middot; <span id="demo-build">build …</span></div>
-    <div class="header-sub">Simulating Agentic Payments with ACP <span style="font-size:13px;color:var(--muted);font-weight:300;">(Agent Client Protocol)</span></div>
+    <div class="header-sub">Simulating Agentic Payments with ACP <span class="sub-full" style="font-size:13px;color:var(--muted);font-weight:300;">(Agent Client Protocol)</span></div>
   </div>
   <div class="phases">
     <div class="phase-step" id="ph0">
@@ -630,7 +810,7 @@
     <div class="panel-head">
       <div class="panel-icon">B</div>
       <div class="panel-meta">
-        <div class="panel-name">Buyer Agent</div>
+        <div class="panel-name"><span class="name-long">Buyer Agent</span><span class="name-short">Buyer</span></div>
         <div class="panel-sub">acts on your behalf</div>
       </div>
       <div class="dot" id="dot-buyer"></div>
@@ -650,7 +830,7 @@
     <div class="panel-head">
       <div class="panel-icon">S</div>
       <div class="panel-meta">
-        <div class="panel-name">Nike Seller Agent</div>
+        <div class="panel-name"><span class="name-long">Nike Seller Agent</span><span class="name-short">Nike</span></div>
         <div class="panel-sub">vendor · nike.com</div>
       </div>
       <div class="dot" id="dot-seller"></div>
@@ -693,7 +873,49 @@
 
 <script>
 const delay = ms => new Promise(r => setTimeout(r, ms));
-const DEMO_BUILD = '2026-05-23d';
+const DEMO_BUILD = '2026-05-23i';
+
+function isMobileLayout() {
+  return window.matchMedia('(max-width: 680px)').matches;
+}
+
+function isSmallPhoneLayout() {
+  return window.matchMedia('(max-width: 390px)').matches;
+}
+
+function compactArrowText(label, sublabel) {
+  if (!isMobileLayout()) return { label, sublabel };
+  if (isSmallPhoneLayout()) {
+    const turnSub = sublabel && String(sublabel).match(/^turn\s+(\d+)/i);
+    if (turnSub) return { label: 'turn ' + turnSub[1], sublabel: null };
+  }
+  const turnSub = sublabel && String(sublabel).match(/^turn\s+(\d+)/i);
+  if (turnSub) return { label: 't' + turnSub[1], sublabel: null };
+  const turnMatch = String(label).match(/^turn\s+(\d+)/i);
+  if (turnMatch) return { label: 't' + turnMatch[1], sublabel: null };
+  const offerMatch = String(label).match(/^(\d+)\s+offer/i);
+  if (offerMatch) return { label: offerMatch[1] + ' off', sublabel: null };
+  const short = {
+    initialize: 'init',
+    capabilities: 'caps',
+    'session/new': 'new',
+    'session ready': 'ready',
+    'session/prompt': 'prompt',
+    'session/cancel': 'cancel',
+    clarification: 'ask',
+    'no offer': 'none',
+    pay: 'pay',
+  };
+  let l = short[label] || String(label).replace(/^session\//, '').replace(/ .*/, '');
+  if (l.length > 8) l = l.slice(0, 7) + '…';
+  return { label: l, sublabel: null };
+}
+
+function scrollToLatest() {
+  requestAnimationFrame(() => {
+    window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' });
+  });
+}
 // Auto-pick seller: localhost only when demo is opened locally (never on phone Netlify)
 const SELLER = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
   ? 'http://localhost:8002'
@@ -778,7 +1000,7 @@ function addBubble(feedId, side, label, text, extraClass = '') {
   wrap.appendChild(b);
   feed.appendChild(wrap);
   requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.add('show')));
-  feed.scrollTop = feed.scrollHeight;
+  scrollToLatest();
 }
 
 function shortName(name, max = 26) {
@@ -840,7 +1062,7 @@ inventory: ${itemCount} Nike products`;
   wrap.appendChild(b);
   feed.appendChild(wrap);
   requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.add('show')));
-  feed.scrollTop = feed.scrollHeight;
+  scrollToLatest();
 }
 
 function addErrBubble(feedId, text) {
@@ -853,7 +1075,7 @@ function addErrBubble(feedId, text) {
   wrap.appendChild(b);
   feed.appendChild(wrap);
   requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.add('show')));
-  feed.scrollTop = feed.scrollHeight;
+  scrollToLatest();
 }
 
 const ITEM_IMAGES = {
@@ -885,16 +1107,19 @@ function addOfferCard(feedId, offer) {
   `;
   feed.appendChild(card);
   requestAnimationFrame(() => requestAnimationFrame(() => card.classList.add('show')));
-  feed.scrollTop = feed.scrollHeight;
+  scrollToLatest();
 }
 
 function addArrow(direction, label, sublabel) {
+  ({ label, sublabel } = compactArrowText(label, sublabel));
   const c = document.getElementById('arrows');
+  c.innerHTML = '';
   const row = document.createElement('div');
   row.className = 'arrow-row ' + (direction === 'right' ? 'to-right' : 'to-left');
   const chip = document.createElement('div');
   chip.className = 'arrow-chip';
   chip.textContent = (direction === 'right' ? label + ' →' : '← ' + label);
+  if (sublabel) chip.title = sublabel;
   row.appendChild(chip);
   if (sublabel) {
     const lbl = document.createElement('div');
@@ -1124,7 +1349,7 @@ function addOfferGrid(feedId, offers, agentIdx, budget) {
   wrap.appendChild(grid);
   feed.appendChild(wrap);
   requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.add('show')));
-  feed.scrollTop = feed.scrollHeight;
+  scrollToLatest();
   return grid;
 }
 
