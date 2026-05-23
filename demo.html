@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>Agentic Commerce Protocol — Phase 1 Demo</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
@@ -308,14 +309,20 @@
   .bottom {
     border-top: 1px solid var(--border);
     padding: 18px 40px;
+    padding-bottom: max(18px, env(safe-area-inset-bottom));
     display: flex;
     align-items: center;
     gap: 16px;
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    background: var(--bg);
   }
   .btn {
     font-family: var(--mono);
     font-size: 11px;
     padding: 9px 22px;
+    min-height: 44px;
     border-radius: 7px;
     border: 1px solid var(--border-hi);
     background: transparent;
@@ -323,6 +330,8 @@
     cursor: pointer;
     letter-spacing: 0.04em;
     transition: background 0.15s;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
   .btn:hover   { background: var(--card); }
   .btn:disabled { opacity: 0.3; cursor: not-allowed; }
@@ -494,11 +503,18 @@
     .phase-label { font-size: 6.5px; letter-spacing: 0; }
     .phase-dot   { width: 7px; height: 7px; }
 
-    /* Keep 3-column layout — just tighter */
+    /* Stack panels on narrow screens — avoids crushed columns + tap misses */
     .stage {
-      grid-template-columns: 1fr 52px 1fr;
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto auto;
       padding: 10px 8px;
       min-height: auto;
+      gap: 10px;
+    }
+    .center {
+      order: -1;
+      padding-top: 0;
+      min-height: 36px;
     }
 
     /* Compact panel headers */
@@ -534,8 +550,8 @@
     .offer-mini-badge { font-size: 7px; top: -8px; left: 8px; padding: 1px 6px; }
     .bubble.decision  { font-size: 9px; line-height: 1.5; padding: 7px 8px; }
 
-    /* Center column: tighter */
-    .center { padding-top: 44px; }
+    /* Center column: arrows row above panels when stacked */
+    .center { padding-top: 0; }
     .arrows { padding: 0 2px; gap: 6px; }
     .arrow-chip  { font-size: 8px; padding: 3px 6px; border-radius: 12px; }
     .arrow-label { font-size: 7px; }
@@ -546,7 +562,7 @@
       flex-wrap: wrap;
       gap: 8px;
     }
-    .btn        { font-size: 10px; padding: 8px 16px; }
+    .btn        { font-size: 10px; padding: 10px 18px; min-height: 44px; flex-shrink: 0; }
     .status-txt { width: 100%; order: 3; font-size: 9px; }
     .pips       { order: 2; }
     .pip        { width: 14px; }
@@ -554,7 +570,7 @@
     /* Prompt input — full width, tighter on mobile */
     .prompt-wrap { padding: 8px 8px 0; gap: 6px; flex-wrap: wrap; }
     .prompt-input { font-size: 11px; padding: 8px 32px 8px 10px; }
-    .prompt-cancel { width: 22px; height: 22px; font-size: 10px; right: 5px; }
+    .prompt-cancel { width: 28px; height: 28px; font-size: 10px; right: 5px; min-width: 44px; min-height: 44px; }
     .prompt-label { font-size: 9px; }
     .countdown-pill { font-size: 8px; width: 100%; text-align: center; }
 
@@ -672,8 +688,50 @@
 
 <script>
 const delay = ms => new Promise(r => setTimeout(r, ms));
-const SELLER = 'https://acp-demo-production.up.railway.app';
-//const SELLER = 'http://localhost:8002';
+// Auto-pick seller: localhost only when demo is opened locally (never on phone Netlify)
+const SELLER = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+  ? 'http://localhost:8002'
+  : 'https://acp-demo-production.up.railway.app';
+
+// JSON-RPC to seller — timeout + retry for mobile networks / Railway cold start
+async function sellerFetch(body, { signal, timeoutMs = 90000, retries = 2 } = {}) {
+  let lastErr;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const timerCtrl = new AbortController();
+    const timer = setTimeout(() => timerCtrl.abort(), timeoutMs);
+    const onParentAbort = () => timerCtrl.abort();
+    if (signal) {
+      if (signal.aborted) { clearTimeout(timer); throw new DOMException('Aborted', 'AbortError'); }
+      signal.addEventListener('abort', onParentAbort);
+    }
+    try {
+      const r = await fetch(SELLER + '/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: timerCtrl.signal,
+        body: JSON.stringify(body)
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return await r.json();
+    } catch (e) {
+      lastErr = e;
+      if (signal?.aborted) throw e;
+      if (attempt < retries) await delay(2000);
+    } finally {
+      clearTimeout(timer);
+      if (signal) signal.removeEventListener('abort', onParentAbort);
+    }
+  }
+  throw lastErr;
+}
+
+function sellerErrorMsg(e) {
+  if (e?.name === 'AbortError') return 'Request timed out — slow network or seller waking up. Tap Retry.';
+  return e?.message || 'Network error';
+}
+
+// Wake Railway health check early (helps mobile first tap)
+fetch(SELLER + '/').catch(() => {});
 
 // ── BUYER AGENT PROFILE ──────────────────────────────────────────────────────
 // This is what the human configures ONCE before the agent runs.
@@ -855,14 +913,10 @@ async function cancelPromptTurn() {
   if (wasInFlight && activeSession) {
     setStatus('Cancelling turn...');
     try {
-      await fetch(SELLER + '/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jsonrpc: '2.0', id: 90, method: 'session/cancel',
-          params: { sessionId: activeSession }
-        })
-      });
+      await sellerFetch({
+        jsonrpc: '2.0', id: 90, method: 'session/cancel',
+        params: { sessionId: activeSession }
+      }, { timeoutMs: 30000, retries: 1 });
       addBubble('feed-buyer', 'sent', 'buyer  →  seller   |   session/cancel',
         'abort in-flight turn');
       await delay(400);
@@ -1202,25 +1256,20 @@ preferredCurrencies: USD`);
 
     let result;
     try {
-      const r = await fetch(SELLER + '/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jsonrpc: '2.0', id: 1, method: 'initialize',
-          params: {
-            protocolVersion: 1,
-            clientInfo: { name: 'buyer-agent', title: 'Nike Buyer Agent', version: '2.0.0' },
-            clientCapabilities: {
-              fs: { readTextFile: true, writeTextFile: false },
-              terminal: false
-            }
+      result = await sellerFetch({
+        jsonrpc: '2.0', id: 1, method: 'initialize',
+        params: {
+          protocolVersion: 1,
+          clientInfo: { name: 'buyer-agent', title: 'Nike Buyer Agent', version: '2.0.0' },
+          clientCapabilities: {
+            fs: { readTextFile: true, writeTextFile: false },
+            terminal: false
           }
-        })
+        }
       });
-      result = await r.json();
     } catch (e) {
-      addErrBubble('feed-buyer', 'Cannot reach seller agent. Is Railway deployed?');
-      setStatus('Connection failed — seller unreachable');
+      addErrBubble('feed-buyer', 'Cannot reach seller: ' + sellerErrorMsg(e));
+      setStatus(`Connection failed — ${new URL(SELLER).host}`);
       setDot('dot-buyer', '');
       busy = false;
       setBtn('Retry');
@@ -1285,17 +1334,12 @@ allocating state storage`);
 
     let result;
     try {
-      const r = await fetch(SELLER + '/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jsonrpc: '2.0', id: 2, method: 'session/new',
-          params: { buyerId: 'buyer-agent-v2.0.0', cwd: '/demo' }
-        })
+      result = await sellerFetch({
+        jsonrpc: '2.0', id: 2, method: 'session/new',
+        params: { buyerId: 'buyer-agent-v2.0.0', cwd: '/demo' }
       });
-      result = await r.json();
     } catch (e) {
-      addErrBubble('feed-buyer', 'Lost connection during session/new');
+      addErrBubble('feed-buyer', 'Lost connection during session/new: ' + sellerErrorMsg(e));
       busy = false;
       setBtn('Retry');
       return;
@@ -1373,17 +1417,12 @@ stored — will be sent with all requests`);
       if (promptTurnAborted) return null;
 
       try {
-        const r = await fetch(SELLER + '/', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          signal: activePromptController.signal,
-          body: JSON.stringify({
-            jsonrpc: '2.0', id: 3 + turnId, method: 'session/prompt',
-            params: { sessionId: activeSession, prompt: [{ type: 'text', text }] }
-          })
-        });
+        const data = await sellerFetch({
+          jsonrpc: '2.0', id: 3 + turnId, method: 'session/prompt',
+          params: { sessionId: activeSession, prompt: [{ type: 'text', text }] }
+        }, { signal: activePromptController.signal, timeoutMs: 120000, retries: 1 });
         if (promptTurnAborted) return null;
-        return await r.json();
+        return data;
       } catch (e) {
         if (promptTurnAborted || e.name === 'AbortError') return null;
         throw e;
@@ -1406,7 +1445,7 @@ stored — will be sent with all requests`);
     try {
       result1 = await sendPromptTurn(turn1Text, 1);
     } catch (e) {
-      addErrBubble('feed-buyer', 'Connection lost — is the seller agent running?');
+      addErrBubble('feed-buyer', 'Connection lost: ' + sellerErrorMsg(e));
       showPrompt(turn1Text, 'buyer agent intent', true);
       busy = false; setBtn('Retry'); return;
     }
@@ -1471,7 +1510,7 @@ res1.agentMessage);
       try {
         result2 = await sendPromptTurn(turn2Text, 2);
       } catch (e) {
-        addErrBubble('feed-buyer', 'Connection lost on turn 2');
+        addErrBubble('feed-buyer', 'Connection lost on turn 2: ' + sellerErrorMsg(e));
         showPrompt(turn2Text, 'buyer agent reply (auto)', true);
         busy = false; setBtn('Retry'); return;
       }
