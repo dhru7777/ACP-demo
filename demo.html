@@ -244,6 +244,7 @@
   .offer-mini-status.ok   { color: #000; }
   .offer-mini-status.over { color: #bbb; }
   .offer-mini-cat   { font-size: 9px; color: var(--muted); margin-top: 2px; }
+  .offer-mini-match { font-size: 9px; color: var(--text); margin-top: 4px; line-height: 1.4; }
 
   /* CENTER */
   .center {
@@ -850,30 +851,47 @@ function clearCountdown() {
 }
 
 // ── Agent offer selection logic ────────────────────────────────────────────────
-// Returns {index, reason} — the agent's recommended pick and why.
-function agentPickOffer(offers, budget) {
-  const withinBudget = offers
-    .map((o, i) => ({ o, i }))
-    .filter(({ o }) => o.price <= budget);
+// Picks by intent relevance first, budget second — not cheapest price.
+// Returns {index, reason, ok, intentQuery}.
+function agentPickOffer(offers, budget, intentQuery) {
+  const query = intentQuery || 'your request';
+  const scored = offers.map((o, i) => ({ o, i, score: o.score ?? 0 }));
+
+  const withinBudget = scored.filter(({ o }) => o.price <= budget);
+
+  function bestByScore(list) {
+    return list.reduce((best, cur) => (cur.score > best.score ? cur : best), list[0]);
+  }
 
   if (withinBudget.length > 0) {
-    // Best match within budget = first result (highest relevance score from search)
-    const pick = withinBudget[0];
+    const pick = bestByScore(withinBudget);
+    const pct  = Math.round(pick.score * 100);
     return {
-      index:  pick.i,
-      reason: `$${pick.o.price} ≤ budget $${budget} — best match within budget`,
-      ok:     true
+      index: pick.i,
+      ok:    true,
+      intentQuery: query,
+      reason: `best match for "${query}" · relevance ${pct}% · $${pick.o.price} within budget $${budget}`
     };
   }
 
-  // All above budget — pick cheapest and flag it
-  const cheapestIdx = offers.reduce((best, o, i) =>
-    o.price < offers[best].price ? i : best, 0);
+  // Nothing in budget — still pick best intent fit and flag budget conflict
+  const pick = bestByScore(scored);
+  const pct  = Math.round(pick.score * 100);
   return {
-    index:  cheapestIdx,
-    reason: `all options above budget $${budget} — selecting closest at $${offers[cheapestIdx].price}`,
-    ok:     false
+    index: pick.i,
+    ok:    false,
+    intentQuery: query,
+    reason: `best match for "${query}" · relevance ${pct}% · but $${pick.o.price} exceeds budget $${budget}`
   };
+}
+
+function formatOfferFit(o, budget) {
+  const within = o.price <= budget;
+  const pct    = o.score != null ? `${Math.round(o.score * 100)}% match` : '';
+  const price  = within
+    ? `✓ $${o.price} within $${budget}`
+    : `✗ $${o.price} over budget by $${o.price - budget}`;
+  return [pct, price].filter(Boolean).join(' · ');
 }
 
 // ── Offer grid: show 3 cards, wait 4s for human override, resolve choice ───────
@@ -897,22 +915,17 @@ function addOfferGrid(feedId, offers, agentIdx, budget) {
 
     const withinBudget = o.price <= budget;
     const statusClass  = withinBudget ? 'ok' : 'over';
-    const statusText   = withinBudget
-      ? `✓ $${o.price} within budget`
-      : `✗ $${o.price} over budget $${budget}`;
+    const matchPct     = o.score != null ? Math.round(o.score * 100) : null;
+    const badgeHtml    = idx === agentIdx
+      ? `<div class="offer-mini-badge">agent's pick</div>`
+      : '';
 
-    if (idx === agentIdx) {
-      const badge = document.createElement('div');
-      badge.className = 'offer-mini-badge';
-      badge.textContent = 'agent\'s pick';
-      card.appendChild(badge);
-    }
-
-    card.innerHTML += `
+    card.innerHTML = badgeHtml + `
       <div class="offer-mini-name">${o.name}</div>
       <div class="offer-mini-price">$${o.price.toFixed(0)}</div>
-      <div class="offer-mini-status ${statusClass}">${statusText}</div>
-      <div class="offer-mini-cat">${o.category}</div>
+      <div class="offer-mini-match">${matchPct != null ? matchPct + '% intent match' : ''}</div>
+      <div class="offer-mini-status ${statusClass}">${withinBudget ? `✓ $${o.price} within $${budget}` : `✗ $${o.price} over $${budget}`}</div>
+      <div class="offer-mini-cat">${o.category} · ${(o.description || '').slice(0, 40)}${(o.description || '').length > 40 ? '…' : ''}</div>
     `;
     grid.appendChild(card);
   });
@@ -951,20 +964,25 @@ message: ${res.agentMessage || 'No matches found'}`);
     busy = false; setBtn('Try Again'); return;
   }
 
-  // Seller sends all offers
+  // Use seller-agreed budget when available — keeps search filter and agent decision aligned
+  const budget      = intent.max_price || BUYER_PROFILE.budget;
+  const intentQuery = intent.query || promptText;
+
+  // Seller sends all offers (with relevance scores)
   addBubble('feed-seller', 'sent', 'seller  →  buyer   |   offers',
-offers.map((o, i) =>
-  `  ${i+1}. ${o.name} — $${o.price.toFixed(2)} ${o.currency}`
-).join('\n') + '\nlogged to session history');
+offers.map((o, i) => {
+  const pct = o.score != null ? ` · ${Math.round(o.score * 100)}% match` : '';
+  return `  ${i+1}. ${o.name} — $${o.price.toFixed(2)}${pct}`;
+}).join('\n') + '\nlogged to session history');
   await delay(900);
   addArrow('left', `${offers.length} offer${offers.length > 1 ? 's' : ''}`, 'seller → buyer');
   await delay(1300);
 
-  // Agent evaluates: find best within budget
-  const pick = agentPickOffer(offers, BUYER_PROFILE.budget);
+  // Agent evaluates: best intent fit within budget (not cheapest price)
+  const pick = agentPickOffer(offers, budget, intentQuery);
 
   // Show all 3 cards in grid, agent's pick highlighted
-  addOfferGrid('feed-buyer', offers, pick.index, BUYER_PROFILE.budget);
+  addOfferGrid('feed-buyer', offers, pick.index, budget);
   await delay(600);
 
   // 4-second countdown for human to pick a different card
@@ -1023,17 +1041,16 @@ offers.map((o, i) =>
   pendingOffer = chosenOffer;
   await delay(400);
 
-  // Show agent decision with clear reasoning
-  const decisionLines = [];
+  // Show agent decision with intent + budget reasoning
+  const decisionLines = [`evaluating for: "${intentQuery}"`, ''];
   offers.forEach((o, i) => {
-    const withinBudget = o.price <= BUYER_PROFILE.budget;
     const marker = i === selected.index ? '→' : ' ';
-    const status = withinBudget ? `✓ within budget` : `✗ $${o.price - BUYER_PROFILE.budget} over`;
-    decisionLines.push(`${marker} ${o.name}  $${o.price}  ${status}`);
+    decisionLines.push(`${marker} ${o.name}`);
+    decisionLines.push(`    ${formatOfferFit(o, budget)}`);
   });
 
   const finalLine = selected.humanChose
-    ? `human override — selected: ${chosenOffer.name}`
+    ? `human override — you chose: ${chosenOffer.name}`
     : pick.reason;
 
   addBubble('feed-buyer', 'mid', 'agent decision',

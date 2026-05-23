@@ -572,6 +572,7 @@ def _build_offers(id_, session_id: str, query: str, max_price: float, raw_text: 
             "price":            r["price"],
             "currency":         r["currency"],
             "category":         r["category"],
+            "score":            r.get("score", 0),   # intent relevance — buyer agent uses this
             "payment_required": True,
             "status":           "offer_ready",
             "seller_agent":     "nike-seller-agent-v2.0.0"
