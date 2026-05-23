@@ -779,6 +779,19 @@ function shortName(name, max = 26) {
   return name.length > max ? name.slice(0, max - 1) + '…' : name;
 }
 
+function getCommerceItemCount(commerce) {
+  if (!commerce) return 0;
+  if (typeof commerce.itemCount === 'number') return commerce.itemCount;
+  if (Array.isArray(commerce.items)) return commerce.items.length;
+  return 0;
+}
+
+function getCommerceCategories(commerce) {
+  if (!commerce) return [];
+  if (Array.isArray(commerce.categories)) return commerce.categories;
+  return [];
+}
+
 function addCapsBubble(feedId, info, canLoad, sessCaps, itemCount, categories, isSeller = false) {
   const feed = document.getElementById(feedId);
   const wrap = document.createElement('div');
@@ -1288,9 +1301,9 @@ preferredCurrencies: USD`);
 
     sellerCaps = result.result.agentCapabilities;
     const info       = result.result.agentInfo;
-    const itemCount  = sellerCaps.commerce?.itemCount  || 0;
-    const categories = Array.isArray(sellerCaps.commerce?.categories)
-    ? sellerCaps.commerce.categories : [];
+    const commerce   = sellerCaps?.commerce || {};
+    const itemCount  = getCommerceItemCount(commerce);
+    const categories = getCommerceCategories(commerce);
     const canLoad    = sellerCaps.loadSession === true;
     const sessCaps   = Object.keys(sellerCaps.sessionCapabilities || {});
 
@@ -1312,7 +1325,7 @@ protocolVersion: ${result.result.protocolVersion} agreed`);
     addBubble('feed-seller', 'mid', '', 'buyer verified');
     setDot('dot-buyer', 'on');
     setPip(1, 'done');
-    setStatus('Handshake done — seller supports sessions. Click Next to create one.');
+    setStatus(`Handshake done — ${itemCount} items in catalog. Click Next to create session.`);
     setBtn('Next: Create Session');
   }
 
