@@ -75,6 +75,18 @@ class SessionManager:
         return False
 
     # ------------------------------------------------------------------
+    # UPDATE CONTEXT
+    # Store arbitrary working state for the current conversation turn.
+    # Used by multi-turn session/prompt flows (e.g. pending intent while
+    # waiting for the buyer to supply a budget).
+    #
+    # Pass an empty dict {} to clear context between turns.
+    # ------------------------------------------------------------------
+    def update_context(self, session_id: str, context: dict):
+        if session_id in self._sessions:
+            self._sessions[session_id]["context"] = context
+
+    # ------------------------------------------------------------------
     # ADD HISTORY
     # Store each meaningful message in the session so we can replay
     # it later via session/load.

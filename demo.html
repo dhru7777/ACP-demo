@@ -358,10 +358,23 @@
     transition: border-color 0.2s;
   }
   .prompt-input:focus { border-color: #000; }
+  .prompt-input.agent-controlled {
+    border-color: rgba(0,0,0,0.3);
+    background: #fafafa;
+  }
   .prompt-label {
     font-size: 10px;
     color: var(--muted);
     white-space: nowrap;
+  }
+  .countdown-pill {
+    font-size: 9px;
+    padding: 3px 9px;
+    border-radius: 20px;
+    border: 1px solid var(--border-hi);
+    color: var(--muted);
+    white-space: nowrap;
+    animation: blink 1s infinite;
   }
 
   /* ── MOBILE ── */
@@ -431,9 +444,10 @@
     .pip        { width: 14px; }
 
     /* Prompt input — full width, tighter on mobile */
-    .prompt-wrap { padding: 8px 8px 0; gap: 6px; }
+    .prompt-wrap { padding: 8px 8px 0; gap: 6px; flex-wrap: wrap; }
     .prompt-input { font-size: 11px; padding: 8px 10px; }
     .prompt-label { font-size: 9px; }
+    .countdown-pill { font-size: 8px; width: 100%; text-align: center; }
 
     /* Caps toggle — always visible, smaller */
     .caps-toggle { font-size: 8px; margin-top: 4px; }
@@ -520,11 +534,12 @@
 </div>
 
 <div class="prompt-wrap" id="prompt-wrap">
-  <span class="prompt-label">prompt</span>
+  <span class="prompt-label" id="prompt-label">prompt</span>
   <input class="prompt-input" id="prompt-input"
          type="text"
-         value="Buy me a Nike Air Max 270, budget $200"
-         placeholder="Type what you want to buy..." />
+         value=""
+         placeholder="e.g. comfortable running shoes..." />
+  <span class="countdown-pill" id="countdown-pill" style="display:none"></span>
 </div>
 
 <div class="bottom">
@@ -547,8 +562,18 @@ const delay = ms => new Promise(r => setTimeout(r, ms));
 const SELLER = 'https://acp-demo-production.up.railway.app';
 //const SELLER = 'http://localhost:8002';
 
+// ── BUYER AGENT PROFILE ──────────────────────────────────────────────────────
+// This is what the human configures ONCE before the agent runs.
+// After this, no human is in the loop — the agent acts on these preferences.
+const BUYER_PROFILE = {
+  budget:        150,                               // max spend in USD
+  initialIntent: "I want comfortable running shoes" // deliberately no budget —
+  // the seller will ask back, demonstrating multi-turn agentic negotiation
+};
+// ─────────────────────────────────────────────────────────────────────────────
 
-let step = 0, busy = false, sellerCaps = null, activeSession = null, pendingOffer = null, promptBox = null;
+let step = 0, busy = false, sellerCaps = null, activeSession = null, pendingOffer = null;
+let autoFireTimer = null;  // handle for the countdown auto-fire
 
 // ── DOM helpers ──────────────────────────────────────────────────────────────
 
@@ -571,7 +596,7 @@ function addBubble(feedId, side, label, text) {
   feed.scrollTop = feed.scrollHeight;
 }
 
-function addCapsBubble(feedId, info, canLoad, sessCaps, items, isSeller = false) {
+function addCapsBubble(feedId, info, canLoad, sessCaps, itemCount, categories, isSeller = false) {
   const feed = document.getElementById(feedId);
   const wrap = document.createElement('div');
   wrap.className = 'bwrap ' + (isSeller ? 'sent' : 'recv');
@@ -587,12 +612,11 @@ function addCapsBubble(feedId, info, canLoad, sessCaps, items, isSeller = false)
   b.className = 'bubble ' + (isSeller ? 'out' : 'inc') + ' caps-bubble';
 
   const summary = `${info.name} v${info.version}
-canSell: true  ·  canCreateSession: ${canLoad}  ·  ${items.length} items`;
+canSell: true  ·  canCreateSession: ${canLoad}  ·  ${itemCount} items`;
 
   const detail = `sessionMethods: ${sessCaps.join(', ') || '—'}
-
-catalog (${items.length} items):
-${items.map(i => '  ' + i).join('\n')}`;
+categories: ${categories.join(', ')}
+inventory: ${itemCount} Nike products`;
 
   b.innerHTML = `<span class="caps-summary">${summary}</span><span class="caps-toggle" onclick="this.parentNode.querySelector('.caps-detail').classList.toggle('open');this.textContent=this.textContent.includes('▾')?'▸ show details':'▾ hide details'"> ▾ show details</span><div class="caps-detail">${detail}</div>`;
   wrap.appendChild(b);
@@ -620,21 +644,23 @@ const ITEM_IMAGES = {
 };
 
 function addOfferCard(feedId, offer) {
-  const feed    = document.getElementById(feedId);
-  const card    = document.createElement('div');
+  const feed     = document.getElementById(feedId);
+  const card     = document.createElement('div');
   card.className = 'offer-card';
-  const imgSrc  = ITEM_IMAGES[offer.item];
-  const imgHtml = imgSrc
-    ? `<img class="offer-img" src="${imgSrc}" alt="${offer.item}" />`
+  // item id can be in offer.item or offer.id depending on caller
+  const itemId   = offer.item || offer.id || '';
+  const imgSrc   = ITEM_IMAGES[itemId];
+  const imgHtml  = imgSrc
+    ? `<img class="offer-img" src="${imgSrc}" alt="${itemId}" />`
     : '';
   card.innerHTML = `
     <div class="offer-body">
       ${imgHtml}
       <div class="offer-details">
-        <div class="offer-item">${offer.item}</div>
-        <div class="offer-name">${offer.description}</div>
+        <div class="offer-item">${itemId}</div>
+        <div class="offer-name">${offer.description || offer.name || ''}</div>
         <div class="offer-price">$${offer.price.toFixed(2)}</div>
-        <div class="offer-meta">${offer.currency} &middot; fiat &middot; ${offer.seller_agent}</div>
+        <div class="offer-meta">${offer.currency} &middot; fiat &middot; ${offer.seller_agent || 'nike-seller-agent'}</div>
         <div class="offer-badge">offer_ready &middot; payment required</div>
       </div>
     </div>
@@ -674,6 +700,122 @@ function setBtn(text) {
   const b = document.getElementById('next-btn');
   b.textContent = text;
   b.disabled = false;
+}
+
+// Show the prompt input box with a value, optional countdown label, optional agent-controlled style
+function showPrompt(value, label = 'prompt', agentControlled = false) {
+  const wrap  = document.getElementById('prompt-wrap');
+  const input = document.getElementById('prompt-input');
+  const lbl   = document.getElementById('prompt-label');
+  input.value = value;
+  lbl.textContent = label;
+  input.className = 'prompt-input' + (agentControlled ? ' agent-controlled' : '');
+  wrap.classList.add('visible');
+}
+
+function hidePrompt() {
+  document.getElementById('prompt-wrap').classList.remove('visible');
+  clearCountdown();
+}
+
+// Start a countdown that fires callback after `secs` seconds.
+// Shows a pill: "agent sends in 3s — edit to override"
+// Clearing the timer prevents auto-fire (user took manual control).
+function startCountdown(secs, callback) {
+  clearCountdown();
+  const pill = document.getElementById('countdown-pill');
+  pill.style.display = '';
+  let remaining = secs;
+  pill.textContent = `agent sends in ${remaining}s — edit to override`;
+
+  autoFireTimer = setInterval(() => {
+    remaining--;
+    if (remaining <= 0) {
+      clearCountdown();
+      callback();
+    } else {
+      pill.textContent = `agent sends in ${remaining}s — edit to override`;
+    }
+  }, 1000);
+}
+
+function clearCountdown() {
+  if (autoFireTimer) { clearInterval(autoFireTimer); autoFireTimer = null; }
+  const pill = document.getElementById('countdown-pill');
+  if (pill) pill.style.display = 'none';
+}
+
+// ── Show offers after a resolved session/prompt turn ─────────────────────────
+// Shared by: direct-budget path and post-clarification path.
+
+async function showOffers(res, promptText) {
+  const intent = res.parsedIntent || {};
+  const offers = res.offers || (res.offer ? [res.offer] : []);
+  pendingOffer  = offers[0] || null;
+
+  // Show what was extracted
+  const iLines = [`query: "${intent.query || promptText}"`];
+  if (intent.max_price) iLines.push(`budget ceiling: $${intent.max_price.toFixed(2)}`);
+  addBubble('feed-seller', 'mid', 'intent resolved', iLines.join('\n'));
+  await delay(700);
+
+  if (offers.length === 0) {
+    addBubble('feed-seller', 'sent', 'seller  →  buyer   |   session/update',
+`stopReason: end_turn
+message: ${res.agentMessage || 'No matches found'}`);
+    await delay(700);
+    addArrow('left', 'no offer', 'seller → buyer');
+    addErrBubble('feed-buyer', res.agentMessage || 'No matching shoes found');
+    setDot('dot-buyer', 'on');
+    showPrompt('', 'try a different search', false);
+    busy = false; setBtn('Try Again'); return;
+  }
+
+  const topOffer   = offers[0];
+  const extraCount = offers.length - 1;
+  addBubble('feed-seller', 'sent', 'seller  →  buyer   |   offer',
+`${topOffer.name}
+price: $${topOffer.price.toFixed(2)} ${topOffer.currency}
+status: ${topOffer.status}${extraCount > 0 ? `\n+ ${extraCount} more option${extraCount > 1 ? 's' : ''} included` : ''}
+logged to session history`);
+  await delay(900);
+  addArrow('left', offers.length > 1 ? `${offers.length} offers` : 'offer', 'seller → buyer');
+  await delay(1300);
+
+  // Top offer card
+  addOfferCard('feed-buyer', {
+    item:        topOffer.id || topOffer.item,
+    description: topOffer.name,
+    price:       topOffer.price,
+    currency:    topOffer.currency,
+    status:      topOffer.status,
+    seller_agent: topOffer.seller_agent
+  });
+  await delay(500);
+
+  // Additional offers as compact list
+  if (offers.length > 1) {
+    const altLines = offers.slice(1)
+      .map(o => `  · ${o.name} — $${o.price.toFixed(2)}`).join('\n');
+    addBubble('feed-buyer', 'recv',
+      `buyer received  |  ${offers.length - 1} more option${offers.length > 2 ? 's' : ''}`,
+      altLines);
+    await delay(400);
+  }
+
+  // Agent makes the decision autonomously — no human click
+  const withinBudget = topOffer.price <= BUYER_PROFILE.budget;
+  addBubble('feed-buyer', 'mid', 'agent decision',
+    withinBudget
+      ? `$${topOffer.price} ≤ budget $${BUYER_PROFILE.budget} — offer accepted`
+      : `$${topOffer.price} > budget $${BUYER_PROFILE.budget} — seeking alternatives`);
+
+  setDot('dot-buyer', 'on');
+  setPip(3, 'done');
+  setStatus('Offer accepted — click Next to proceed to payment.');
+  setBtn('Next: Payment');
+  step++;
+  busy = false;
 }
 
 // ── Steps ────────────────────────────────────────────────────────────────────
@@ -753,22 +895,23 @@ preferredCurrencies: USD`);
     }
 
     sellerCaps = result.result.agentCapabilities;
-    const info    = result.result.agentInfo;
-    const items   = sellerCaps.commerce?.items || [];
-    const canLoad = sellerCaps.loadSession === true;
-    const sessCaps = Object.keys(sellerCaps.sessionCapabilities || {});
+    const info       = result.result.agentInfo;
+    const itemCount  = sellerCaps.commerce?.itemCount  || 0;
+    const categories = sellerCaps.commerce?.categories || [];
+    const canLoad    = sellerCaps.loadSession === true;
+    const sessCaps   = Object.keys(sellerCaps.sessionCapabilities || {});
 
     addBubble('feed-seller', 'recv', 'seller received  |  initialize',
 `buyer-agent connected
 protocolVersion: ${result.result.protocolVersion} agreed`);
     await delay(1200);
 
-    addCapsBubble('feed-seller', info, canLoad, sessCaps, items, true);
+    addCapsBubble('feed-seller', info, canLoad, sessCaps, itemCount, categories, true);
     await delay(1000);
     addArrow('left', 'capabilities', 'seller → buyer');
     await delay(1400);
 
-    addCapsBubble('feed-buyer', info, canLoad, sessCaps, items);
+    addCapsBubble('feed-buyer', info, canLoad, sessCaps, itemCount, categories);
     await delay(1000);
 
     addBubble('feed-buyer', 'mid', '', 'handshake complete — session allowed');
@@ -845,112 +988,139 @@ stored — will be sent with all requests`);
     setDot('dot-buyer', 'on');
     setPip(2, 'done');
 
-    // Show the prompt input box for the user to type (or leave as default)
-    document.getElementById('prompt-wrap').classList.add('visible');
-    setStatus('Session ready — edit the prompt below or leave as default, then click Send.');
-    setBtn('Send Prompt');
+    // Show the buyer agent's pre-configured intent in the prompt box
+    // Agent controls the value — human can edit before it fires
+    showPrompt(BUYER_PROFILE.initialIntent, 'buyer agent intent', true);
+    setStatus(`Buyer agent sending intent in 3s — edit the prompt to override`);
+    setBtn('Send Now');
+
+    step++;
+    busy = false;
+    startCountdown(3, () => { if (!busy) nextStep(); });
+    return;
   }
 
-  // ── STEP 3 — session/prompt (natural language intent) ────────────────────
+  // ── STEP 3 — Multi-turn agentic conversation ──────────────────────────────
+  // The buyer agent sends its intent. If the seller needs clarification (e.g.
+  // budget missing), the buyer auto-responds from BUYER_PROFILE. The human
+  // can edit the prompt at any point to override the agent's response.
+  // No human click needed after the first auto-fire — it's fully agentic.
   else if (step === 3) {
-    if (!activeSession) { busy = false; setBtn('Send Prompt'); return; }
+    if (!activeSession) { busy = false; setBtn('Send Now'); return; }
 
-    // Read whatever the user typed (or left as default)
-    const promptText = document.getElementById('prompt-input').value.trim()
-                    || 'Buy me a Nike Air Max 270, budget $200';
+    clearCountdown();
 
-    // Hide the input bar while processing
-    document.getElementById('prompt-wrap').classList.remove('visible');
+    // ── Helper: send one session/prompt turn ─────────────────────────────────
+    async function sendPromptTurn(text, turnId) {
+      // Show buyer's message
+      addBubble('feed-buyer', 'sent', 'buyer  →  seller   |   session/prompt',
+`"${text}"`);
+      await delay(900);
+      addArrow('right', 'session/prompt', `turn ${turnId} — buyer → seller`);
+      await delay(1300);
+      addBubble('feed-seller', 'recv', 'seller received  |  session/prompt',
+`processing turn ${turnId}...`);
+      await delay(1000);
 
-    setPip(3, 'active');
-    litStep(2);
-    setStatus('Sending prompt to seller agent...');
-    setDot('dot-buyer', 'working');
-
-    // Show the user's typed message as a chat bubble
-    addBubble('feed-buyer', 'sent', 'buyer  →  seller   |   session/prompt',
-`sessionId: ${activeSession}
-
-"${promptText}"`);
-    await delay(1000);
-    addArrow('right', 'session/prompt', 'buyer → seller');
-    await delay(1400);
-
-    addBubble('feed-seller', 'recv', 'seller received  |  session/prompt',
-`parsing intent...`);
-    await delay(1200);
-
-    let result;
-    try {
       const r = await fetch(SELLER + '/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          jsonrpc: '2.0', id: 3, method: 'session/prompt',
-          params: {
-            sessionId: activeSession,
-            prompt: [{ type: 'text', text: promptText }]
-          }
+          jsonrpc: '2.0', id: 3 + turnId, method: 'session/prompt',
+          params: { sessionId: activeSession, prompt: [{ type: 'text', text }] }
         })
       });
-      result = await r.json();
+      return r.json();
+    }
+
+    // ── Turn 1: send the agent's initial intent ───────────────────────────────
+    const turn1Text = document.getElementById('prompt-input').value.trim()
+                   || BUYER_PROFILE.initialIntent;
+    hidePrompt();
+
+    setPip(3, 'active');
+    litStep(2);
+    setStatus('Buyer agent sending intent...');
+    setDot('dot-buyer', 'working');
+
+    let result1;
+    try {
+      result1 = await sendPromptTurn(turn1Text, 1);
     } catch (e) {
-      addErrBubble('feed-buyer', 'Lost connection to seller agent');
-      document.getElementById('prompt-wrap').classList.add('visible');
-      busy = false;
-      setBtn('Send Prompt');
-      return;
+      addErrBubble('feed-buyer', 'Connection lost — is the seller agent running?');
+      showPrompt(turn1Text, 'buyer agent intent', true);
+      busy = false; setBtn('Retry'); return;
     }
 
-    if (result.error) {
-      addErrBubble('feed-seller', 'Error: ' + result.error.message);
-      document.getElementById('prompt-wrap').classList.add('visible');
-      busy = false;
-      setBtn('Send Prompt');
-      return;
+    if (result1.error) {
+      addErrBubble('feed-seller', 'Error: ' + result1.error.message);
+      showPrompt(turn1Text, 'buyer agent intent', true);
+      busy = false; setBtn('Retry'); return;
     }
 
-    const res    = result.result;
-    const intent = res.parsedIntent || {};
-    pendingOffer = res.offer;
+    const res1 = result1.result;
     litStep(3);
 
-    // Show what the "LLM" extracted
-    addBubble('feed-seller', 'mid', 'intent extracted',
-`item: ${intent.item || 'unknown'}
-max_price: $${(intent.max_price || 0).toFixed(2)}`);
-    await delay(800);
-
-    if (!pendingOffer) {
+    // ── Seller needs budget clarification ─────────────────────────────────────
+    if (res1.awaitingBudget) {
+      // Show seller's question
       addBubble('feed-seller', 'sent', 'seller  →  buyer   |   session/update',
-`stopReason: end_turn
-message: ${res.agentMessage || 'Could not fulfill request'}`);
-      await delay(800);
-      addArrow('left', 'no offer', 'seller → buyer');
-      addErrBubble('feed-buyer', res.agentMessage || 'Could not fulfill request');
+`stopReason: needs_clarification
+
+"${res1.agentMessage}"`);
+      await delay(900);
+      addArrow('left', 'clarification', 'seller → buyer');
+      await delay(1300);
+
+      addBubble('feed-buyer', 'recv', 'seller asks  |  buyer agent processing',
+res1.agentMessage);
+      await delay(700);
+
+      // Buyer agent formulates its budget response from BUYER_PROFILE
+      // Human can edit this in the prompt box before the countdown fires
+      const agentBudgetReply = `My budget is $${BUYER_PROFILE.budget}`;
+      showPrompt(agentBudgetReply, 'buyer agent reply (auto)', true);
+      setStatus(`Buyer agent responding with budget in 3s — edit to override`);
       setDot('dot-buyer', 'on');
-      document.getElementById('prompt-wrap').classList.add('visible');
-      busy = false;
-      setBtn('Send Prompt');
-      return;
+
+      // Wait for countdown (or human override via button)
+      await new Promise(resolve => {
+        startCountdown(3, resolve);
+        document.getElementById('next-btn').textContent = 'Send Reply Now';
+        document.getElementById('next-btn').disabled = false;
+        document.getElementById('next-btn').onclick = () => { clearCountdown(); resolve(); };
+      });
+
+      // Restore default button handler
+      document.getElementById('next-btn').onclick = nextStep;
+
+      // ── Turn 2: buyer sends budget ────────────────────────────────────────
+      const turn2Text = document.getElementById('prompt-input').value.trim()
+                     || agentBudgetReply;
+      hidePrompt();
+      setDot('dot-buyer', 'working');
+      setStatus('Buyer agent sending budget...');
+
+      let result2;
+      try {
+        result2 = await sendPromptTurn(turn2Text, 2);
+      } catch (e) {
+        addErrBubble('feed-buyer', 'Connection lost on turn 2');
+        busy = false; setBtn('Retry'); return;
+      }
+
+      if (result2.error) {
+        addErrBubble('feed-seller', 'Error: ' + result2.error.message);
+        busy = false; setBtn('Retry'); return;
+      }
+
+      // Use turn 2 response to resolve offers
+      await showOffers(result2.result, turn2Text);
+
+    } else {
+      // Budget was already in the first message — show offers directly
+      await showOffers(res1, turn1Text);
     }
-
-    addBubble('feed-seller', 'sent', 'seller  →  buyer   |   offer',
-`${pendingOffer.description}
-price: $${pendingOffer.price.toFixed(2)} ${pendingOffer.currency}
-status: ${pendingOffer.status}
-logged to session history`);
-    await delay(1000);
-    addArrow('left', 'offer', 'seller → buyer');
-    await delay(1400);
-
-    addOfferCard('feed-buyer', pendingOffer);
-    await delay(600);
-    addBubble('feed-buyer', 'mid', 'agent decision', 'within budget — offer accepted');
-    setDot('dot-buyer', 'on');
-    setPip(3, 'done');
-    setStatus('Offer accepted — click Next to proceed to payment.');
-    setBtn('Next: Payment');
   }
 
   // ── STEP 4 — Payment placeholder ──────────────────────────────────────────
@@ -980,13 +1150,14 @@ method: stripe  [phase 2]`);
     return;
   }
 
-  step++;
-  busy = false;
+  // Note: step 2 and step 3 manage step++ themselves (async / multi-turn)
+  if (step <= 1) { step++; busy = false; }
 }
 
 // ── Reset ─────────────────────────────────────────────────────────────────────
 
 function resetDemo() {
+  clearCountdown();
   clearFeed('feed-buyer');
   clearFeed('feed-seller');
   document.getElementById('arrows').innerHTML = '';
@@ -997,13 +1168,16 @@ function resetDemo() {
   setDot('dot-buyer', '');
   setDot('dot-seller', '');
   setStatus('Click Start to begin the ACP demo step by step');
-  document.getElementById('prompt-wrap').classList.remove('visible');
-  document.getElementById('prompt-input').value = 'Buy me a Nike Air Max 270, budget $200';
-  step = 0; sellerCaps = null; activeSession = null; pendingOffer = null;
+  hidePrompt();
+  document.getElementById('prompt-input').value = '';
+  document.getElementById('prompt-label').textContent = 'prompt';
+  document.getElementById('prompt-input').className = 'prompt-input';
+  step = 0; sellerCaps = null; activeSession = null; pendingOffer = null; autoFireTimer = null;
   const btn = document.getElementById('next-btn');
   btn.textContent = 'Start';
   btn.style.display = '';
   btn.disabled = false;
+  btn.onclick = nextStep;
   document.getElementById('reset-btn').style.display = 'none';
 }
 </script>
