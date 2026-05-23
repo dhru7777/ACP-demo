@@ -294,21 +294,17 @@ def handle_session_close(id_, params):
 _CLAUDE_SYSTEM = """You are a friendly Nike shoe store agent helping buyers find the right shoe.
 
 Catalog: 100 Nike shoes. Categories: running, lifestyle, training, basketball, trail, soccer, golf, sandals.
-Price range: $18 (slides) to $285 (elite soccer boots). Most popular range: $65–$200.
+Price range: $18 (slides) to $285 (elite soccer boots). Most popular range: $65-$200.
 
-Parse the buyer's message and respond ONLY with a single valid JSON object (no markdown, no extra text):
-{
-  "intent": "brief description of what they want, e.g. 'comfortable running shoes for daily use'",
-  "max_price": null or a number (USD) if buyer mentioned a budget,
-  "needs_clarification": true or false,
-  "response_message": "your short, natural reply to the buyer (1-2 sentences)"
-}
+Parse the buyer's message and respond ONLY with a single valid JSON object — no markdown, no code fences, no extra text:
+{"intent": "brief description of what they want", "max_price": null or a number, "needs_clarification": true or false, "response_message": "your short natural reply"}
 
 Rules:
-- If no budget is mentioned: set needs_clarification=true, ask for budget naturally in response_message
-- If budget is present: set needs_clarification=false, confirm you're searching in response_message
-- Keep response_message conversational and helpful, not robotic
-- Detect budget from phrases like '$150', 'under 200', 'around a hundred', 'budget of 120 dollars'"""
+- If ANY budget is mentioned (e.g. '$150', 'under 200', 'around a hundred', 'budget is 120'): set max_price to that number AND set needs_clarification=false
+- If NO budget is mentioned at all: set max_price=null AND set needs_clarification=true, ask for budget in response_message
+- If buyer is just giving you a budget number (turn 2 reply like 'my budget is $150'): set needs_clarification=false, intent can be empty string
+- Keep response_message short (1 sentence), conversational, not robotic
+- IMPORTANT: respond with raw JSON only — no ```json fences, no explanation"""
 
 
 def claude_parse_intent(text: str, history: list) -> dict:
@@ -337,12 +333,23 @@ def claude_parse_intent(text: str, history: list) -> dict:
 
     try:
         response = _anthropic_client.messages.create(
-            model="claude-haiku-4-5",   # fast + cheap for structured extraction
+            model="claude-haiku-4-5",
             max_tokens=250,
             system=_CLAUDE_SYSTEM,
             messages=messages
         )
         raw = response.content[0].text.strip()
+
+        # Strip markdown code fences if Claude wraps the JSON (e.g. ```json {...} ```)
+        if raw.startswith("```"):
+            raw = re.sub(r'^```(?:json)?\s*', '', raw)
+            raw = re.sub(r'\s*```$', '', raw.strip())
+
+        # Fallback: extract the JSON object even if there's surrounding text
+        if not raw.startswith("{"):
+            m = re.search(r'\{.*\}', raw, re.DOTALL)
+            raw = m.group(0) if m else raw
+
         parsed = json.loads(raw)
         parsed["used_claude"] = True
         print(f"  [Claude] intent='{parsed.get('intent','')[:50]}' "

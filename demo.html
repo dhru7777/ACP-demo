@@ -559,8 +559,8 @@
 
 <script>
 const delay = ms => new Promise(r => setTimeout(r, ms));
-const SELLER = 'https://acp-demo-production.up.railway.app';
-//const SELLER = 'http://localhost:8002';
+//const SELLER = 'https://acp-demo-production.up.railway.app';
+const SELLER = 'http://localhost:8002';
 
 // ── BUYER AGENT PROFILE ──────────────────────────────────────────────────────
 // This is what the human configures ONCE before the agent runs.
@@ -719,30 +719,71 @@ function hidePrompt() {
 }
 
 // Start a countdown that fires callback after `secs` seconds.
-// Shows a pill: "agent sends in 3s — edit to override"
-// Clearing the timer prevents auto-fire (user took manual control).
+// If the user clicks/focuses the prompt input, the timer STOPS and
+// the human takes full control. They then press Enter or click Send.
 function startCountdown(secs, callback) {
   clearCountdown();
-  const pill = document.getElementById('countdown-pill');
+  const pill  = document.getElementById('countdown-pill');
+  const input = document.getElementById('prompt-input');
   pill.style.display = '';
   let remaining = secs;
-  pill.textContent = `agent sends in ${remaining}s — edit to override`;
+  let humanControl = false;
 
-  autoFireTimer = setInterval(() => {
+  function tick() {
+    if (humanControl) return;
     remaining--;
     if (remaining <= 0) {
       clearCountdown();
       callback();
     } else {
-      pill.textContent = `agent sends in ${remaining}s — edit to override`;
+      pill.textContent = `agent sends in ${remaining}s — click to take control`;
     }
-  }, 1000);
+  }
+
+  pill.textContent = `agent sends in ${remaining}s — click to take control`;
+  autoFireTimer = setInterval(tick, 1000);
+
+  // When user clicks / focuses the input → stop timer, give human control
+  function onHumanFocus() {
+    if (humanControl) return;
+    humanControl = true;
+    clearInterval(autoFireTimer);
+    autoFireTimer = null;
+    pill.textContent = 'you are in control — press Enter or click Send';
+    pill.style.animation = 'none';  // stop blinking
+    input.className = 'prompt-input';  // remove agent-controlled grey
+    document.getElementById('next-btn').textContent = 'Send';
+    document.getElementById('next-btn').disabled = false;
+
+    // Enter key fires the callback
+    function onEnter(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        input.removeEventListener('keydown', onEnter);
+        input.removeEventListener('focus', onHumanFocus);
+        clearCountdown();
+        callback();
+      }
+    }
+    input.addEventListener('keydown', onEnter);
+    // Store so clearCountdown can remove it
+    input._onEnter = onEnter;
+  }
+
+  input.addEventListener('focus', onHumanFocus);
+  // Store so clearCountdown can remove it
+  input._onHumanFocus = onHumanFocus;
 }
 
 function clearCountdown() {
   if (autoFireTimer) { clearInterval(autoFireTimer); autoFireTimer = null; }
-  const pill = document.getElementById('countdown-pill');
+  const pill  = document.getElementById('countdown-pill');
+  const input = document.getElementById('prompt-input');
   if (pill) pill.style.display = 'none';
+  if (input) {
+    if (input._onHumanFocus) { input.removeEventListener('focus', input._onHumanFocus); input._onHumanFocus = null; }
+    if (input._onEnter)      { input.removeEventListener('keydown', input._onEnter); input._onEnter = null; }
+  }
 }
 
 // ── Show offers after a resolved session/prompt turn ─────────────────────────
@@ -993,12 +1034,12 @@ stored — will be sent with all requests`);
     // Show the buyer agent's pre-configured intent in the prompt box
     // Agent controls the value — human can edit before it fires
     showPrompt(BUYER_PROFILE.initialIntent, 'buyer agent intent', true);
-    setStatus(`Buyer agent sending intent in 3s — edit the prompt to override`);
+    setStatus(`Buyer agent sending in 5s — click the prompt to take control`);
     setBtn('Send Now');
 
     step++;
     busy = false;
-    startCountdown(3, () => { if (!busy) nextStep(); });
+    startCountdown(5, () => { if (!busy) nextStep(); });
     return;
   }
 
@@ -1084,12 +1125,12 @@ res1.agentMessage);
       // Human can edit this in the prompt box before the countdown fires
       const agentBudgetReply = `My budget is $${BUYER_PROFILE.budget}`;
       showPrompt(agentBudgetReply, 'buyer agent reply (auto)', true);
-      setStatus(`Buyer agent responding with budget in 3s — edit to override`);
+      setStatus(`Buyer agent responding with budget in 5s — click prompt to take control`);
       setDot('dot-buyer', 'on');
 
-      // Wait for countdown (or human override via button)
+      // Wait for countdown (or human override via button / Enter key)
       await new Promise(resolve => {
-        startCountdown(3, resolve);
+        startCountdown(5, resolve);
         document.getElementById('next-btn').textContent = 'Send Reply Now';
         document.getElementById('next-btn').disabled = false;
         document.getElementById('next-btn').onclick = () => { clearCountdown(); resolve(); };
