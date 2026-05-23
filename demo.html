@@ -646,10 +646,10 @@
     .offer-mini-badge { font-size: 6px; top: -7px; left: 4px; padding: 1px 4px; }
     .bubble.decision  { text-align: left; }
 
-    /* Center gutter — visible protocol chips between panels */
-    .arrows { padding: 0 1px; gap: 6px; max-height: calc(100dvh - 220px); }
-    .arrow-chip  { font-size: 7px; padding: 3px 3px; border-radius: 6px; line-height: 1.2; }
-    .arrow-label { display: block; font-size: 5.5px; text-align: center; line-height: 1.2; color: #999; }
+    /* Center gutter — full labels on regular phones, 58px column */
+    .arrows { padding: 0 2px; gap: 8px; max-height: calc(100dvh - 220px); }
+    .arrow-chip  { font-size: 8px; padding: 3px 4px; border-radius: 6px; line-height: 1.25; }
+    .arrow-label { display: block; font-size: 7px; text-align: center; line-height: 1.2; color: #999; }
 
     /* Bottom bar */
     .bottom {
@@ -712,7 +712,9 @@
     }
     .center { padding-top: 28px; top: 2px; }
     .wire { top: 28px; }
-    .arrow-chip { font-size: 7px; padding: 3px 4px; }
+    .arrows { gap: 5px; }
+    .arrow-chip { font-size: 6.5px; padding: 2px 3px; }
+    .arrow-label { font-size: 5.5px; }
 
     .panel-head  { padding: 6px 6px; gap: 4px; }
     .panel-icon  { width: 20px; height: 20px; font-size: 8px; }
@@ -837,7 +839,7 @@
 
 <script>
 const delay = ms => new Promise(r => setTimeout(r, ms));
-const DEMO_BUILD = '2026-05-23k';
+const DEMO_BUILD = '2026-05-23l';
 
 function isMobileLayout() {
   return window.matchMedia('(max-width: 680px)').matches;
@@ -848,13 +850,13 @@ function isSmallPhoneLayout() {
 }
 
 function compactArrowText(label, sublabel) {
-  if (!isMobileLayout()) return { label, sublabel };
+  if (!isSmallPhoneLayout()) return { label, sublabel };
   const turnSub = sublabel && String(sublabel).match(/^turn\s+(\d+)/i);
   if (turnSub) return { label: 't' + turnSub[1], sublabel: sublabel.replace(/^turn\s+\d+\s*—\s*/, '') || null };
   const turnMatch = String(label).match(/^turn\s+(\d+)/i);
   if (turnMatch) return { label: 't' + turnMatch[1], sublabel: null };
   const offerMatch = String(label).match(/^(\d+)\s+offer/i);
-  if (offerMatch) return { label: offerMatch[1] + ' off', sublabel: 'seller → buyer' };
+  if (offerMatch) return { label: offerMatch[1] + ' off', sublabel: 'S→B' };
   const short = {
     initialize: 'init',
     capabilities: 'caps',
