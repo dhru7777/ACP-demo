@@ -591,7 +591,7 @@
 
 <div class="header">
   <div>
-    <div class="header-title">Dheeraj Maske &middot; Thesis Demo &middot; 2026</div>
+    <div class="header-title">Dheeraj Maske &middot; Thesis Demo &middot; 2026 &middot; <span id="demo-build">build …</span></div>
     <div class="header-sub">Simulating Agentic Payments with ACP <span style="font-size:13px;color:var(--muted);font-weight:300;">(Agent Client Protocol)</span></div>
   </div>
   <div class="phases">
@@ -691,10 +691,13 @@
 
 <script>
 const delay = ms => new Promise(r => setTimeout(r, ms));
+const DEMO_BUILD = '2026-05-23c';
 // Auto-pick seller: localhost only when demo is opened locally (never on phone Netlify)
 const SELLER = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
   ? 'http://localhost:8002'
   : 'https://acp-demo-production.up.railway.app';
+
+let sellerCatalogCount = 0;  // filled from GET / health check before handshake
 
 // JSON-RPC to seller — timeout + retry for mobile networks / Railway cold start
 async function sellerFetch(body, { signal, timeoutMs = 90000, retries = 2 } = {}) {
@@ -733,8 +736,8 @@ function sellerErrorMsg(e) {
   return e?.message || 'Network error';
 }
 
-// Wake Railway health check early (helps mobile first tap)
-fetch(SELLER + '/').catch(() => {});
+// Warm seller + learn catalog size (fixes mobile showing 0 when initialize omits itemCount)
+refreshSellerHealth();
 
 // ── BUYER AGENT PROFILE ──────────────────────────────────────────────────────
 // This is what the human configures ONCE before the agent runs.
@@ -745,6 +748,8 @@ const BUYER_PROFILE = {
   // the seller will ask back, demonstrating multi-turn agentic negotiation
 };
 // ─────────────────────────────────────────────────────────────────────────────
+
+document.getElementById('demo-build').textContent = 'build ' + DEMO_BUILD;
 
 let step = 0, busy = false, sellerCaps = null, activeSession = null, pendingOffer = null;
 let autoFireTimer = null;
@@ -780,10 +785,24 @@ function shortName(name, max = 26) {
 }
 
 function getCommerceItemCount(commerce) {
-  if (!commerce) return 0;
-  if (typeof commerce.itemCount === 'number') return commerce.itemCount;
+  if (!commerce || typeof commerce !== 'object') return 0;
+  const raw = commerce.itemCount;
+  if (raw != null && raw !== '') {
+    const n = Number(raw);
+    if (!Number.isNaN(n) && n >= 0) return n;
+  }
   if (Array.isArray(commerce.items)) return commerce.items.length;
   return 0;
+}
+
+async function refreshSellerHealth() {
+  try {
+    const r = await fetch(SELLER + '/');
+    if (!r.ok) return;
+    const d = await r.json();
+    const n = Number(d.catalogCount ?? d.itemCount);
+    if (!Number.isNaN(n) && n > 0) sellerCatalogCount = n;
+  } catch (e) { /* ignore — handshake will retry */ }
 }
 
 function getCommerceCategories(commerce) {
@@ -792,7 +811,7 @@ function getCommerceCategories(commerce) {
   return [];
 }
 
-function addCapsBubble(feedId, info, canLoad, sessCaps, itemCount, categories, isSeller = false) {
+function addCapsBubble(feedId, info, canLoad, sessCaps, itemCount, categories, isSeller = false, commerce = {}) {
   const feed = document.getElementById(feedId);
   const wrap = document.createElement('div');
   wrap.className = 'bwrap ' + (isSeller ? 'sent' : 'recv');
@@ -807,8 +826,9 @@ function addCapsBubble(feedId, info, canLoad, sessCaps, itemCount, categories, i
   const b = document.createElement('div');
   b.className = 'bubble ' + (isSeller ? 'out' : 'inc') + ' caps-bubble';
 
+  const canSell = commerce?.canSell !== false;
   const summary = `${info.name} v${info.version}
-canSell: true  ·  canCreateSession: ${canLoad}  ·  ${itemCount} items`;
+canSell: ${canSell}  ·  canCreateSession: ${canLoad}  ·  ${itemCount} items`;
 
   const detail = `sessionMethods: ${sessCaps.join(', ') || '—'}
 categories: ${categories.join(', ')}
@@ -1262,6 +1282,8 @@ async function nextStep() {
     setStatus('Sending initialize to seller agent...');
     setDot('dot-buyer', 'working');
 
+    if (sellerCatalogCount === 0) await refreshSellerHealth();
+
     addBubble('feed-buyer', 'sent', 'buyer  →  seller   |   initialize',
 `protocolVersion: 1
 canBuy: true
@@ -1299,10 +1321,11 @@ preferredCurrencies: USD`);
       return;
     }
 
-    sellerCaps = result.result.agentCapabilities;
-    const info       = result.result.agentInfo;
-    const commerce   = sellerCaps?.commerce || {};
-    const itemCount  = getCommerceItemCount(commerce);
+    sellerCaps = result.result.agentCapabilities || {};
+    const info       = result.result.agentInfo || {};
+    const commerce   = sellerCaps.commerce || {};
+    let itemCount    = getCommerceItemCount(commerce);
+    if (itemCount === 0 && sellerCatalogCount > 0) itemCount = sellerCatalogCount;
     const categories = getCommerceCategories(commerce);
     const canLoad    = sellerCaps.loadSession === true;
     const sessCaps   = Object.keys(sellerCaps.sessionCapabilities || {});
@@ -1312,12 +1335,12 @@ preferredCurrencies: USD`);
 protocolVersion: ${result.result.protocolVersion} agreed`);
     await delay(1200);
 
-    addCapsBubble('feed-seller', info, canLoad, sessCaps, itemCount, categories, true);
+    addCapsBubble('feed-seller', info, canLoad, sessCaps, itemCount, categories, true, commerce);
     await delay(1000);
     addArrow('left', 'capabilities', 'seller → buyer');
     await delay(1400);
 
-    addCapsBubble('feed-buyer', info, canLoad, sessCaps, itemCount, categories);
+    addCapsBubble('feed-buyer', info, canLoad, sessCaps, itemCount, categories, false, commerce);
     await delay(1000);
 
     addBubble('feed-buyer', 'mid', '', 'handshake complete — session allowed');
@@ -1325,7 +1348,7 @@ protocolVersion: ${result.result.protocolVersion} agreed`);
     addBubble('feed-seller', 'mid', '', 'buyer verified');
     setDot('dot-buyer', 'on');
     setPip(1, 'done');
-    setStatus(`Handshake done — ${itemCount} items in catalog. Click Next to create session.`);
+    setStatus(`Handshake done — ${itemCount} items in catalog (build ${DEMO_BUILD}). Click Next to create session.`);
     setBtn('Next: Create Session');
   }
 

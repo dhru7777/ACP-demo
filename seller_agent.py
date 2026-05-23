@@ -72,11 +72,14 @@ connected_clients: dict = {}
 # --------------------------------------------------------------------------
 @app.get("/")
 async def health():
+    summary = catalog_search.summary()
     return JSONResponse({
-        "status":  "ok",
-        "agent":   "nike-seller-agent",
-        "version": "2.0.0",
-        "session": True
+        "status":        "ok",
+        "agent":           "nike-seller-agent",
+        "version":         "2.0.0",
+        "session":         True,
+        "catalogCount":    catalog_search.count(),
+        "catalogCategories": list(summary["categories"].keys()),
     })
 
 
