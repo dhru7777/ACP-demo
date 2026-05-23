@@ -292,15 +292,16 @@
     flex-direction: column;
     align-items: center;
     padding-top: 60px;
-    position: relative;
+    position: sticky;
+    top: 12px;
+    align-self: start;
     width: 100%;
     max-width: 100%;
     min-width: 0;
     min-height: 0;
-    overflow: hidden;
-    background: var(--bg);
-    pointer-events: auto;
-    -webkit-overflow-scrolling: touch;
+    overflow: visible;
+    background: transparent;
+    z-index: 5;
   }
   .wire {
     position: absolute;
@@ -318,14 +319,19 @@
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    gap: 6px;
+    gap: 8px;
     width: 100%;
     max-width: 100%;
     padding: 0 2px;
-    overflow: hidden;
     box-sizing: border-box;
     pointer-events: none;
+    max-height: calc(100dvh - 180px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
+  .arrows::-webkit-scrollbar { display: none; }
   .arrow-row {
     display: flex;
     flex-direction: column;
@@ -581,8 +587,8 @@
     .center {
       order: 0;
       padding-top: 32px;
-      align-self: stretch;
-      overflow: hidden;
+      top: 4px;
+      overflow: visible;
     }
     .panel:first-child .feed { padding-right: 4px; }
     .panel:last-child  .feed { padding-left: 4px; }
@@ -640,10 +646,10 @@
     .offer-mini-badge { font-size: 6px; top: -7px; left: 4px; padding: 1px 4px; }
     .bubble.decision  { text-align: left; }
 
-    /* Center gutter — compact labels, hard-clipped to column width */
-    .arrows { padding: 0; gap: 5px; }
-    .arrow-chip  { font-size: 6.5px; padding: 2px 2px; border-radius: 5px; line-height: 1.15; }
-    .arrow-label { display: none; }
+    /* Center gutter — visible protocol chips between panels */
+    .arrows { padding: 0 1px; gap: 6px; max-height: calc(100dvh - 220px); }
+    .arrow-chip  { font-size: 7px; padding: 3px 3px; border-radius: 6px; line-height: 1.2; }
+    .arrow-label { display: block; font-size: 5.5px; text-align: center; line-height: 1.2; color: #999; }
 
     /* Bottom bar */
     .bottom {
@@ -700,12 +706,13 @@
     .phase-connector { width: 4px; margin-bottom: 0; }
 
     .stage {
-      grid-template-columns: minmax(0, 1fr) 44px minmax(0, 1fr);
+      grid-template-columns: minmax(0, 1fr) 50px minmax(0, 1fr);
       column-gap: 4px;
       padding: 6px 4px;
     }
-    .center { padding-top: 28px; }
+    .center { padding-top: 28px; top: 2px; }
     .wire { top: 28px; }
+    .arrow-chip { font-size: 7px; padding: 3px 4px; }
 
     .panel-head  { padding: 6px 6px; gap: 4px; }
     .panel-icon  { width: 20px; height: 20px; font-size: 8px; }
@@ -830,7 +837,7 @@
 
 <script>
 const delay = ms => new Promise(r => setTimeout(r, ms));
-const DEMO_BUILD = '2026-05-23j';
+const DEMO_BUILD = '2026-05-23k';
 
 function isMobileLayout() {
   return window.matchMedia('(max-width: 680px)').matches;
@@ -842,16 +849,12 @@ function isSmallPhoneLayout() {
 
 function compactArrowText(label, sublabel) {
   if (!isMobileLayout()) return { label, sublabel };
-  if (isSmallPhoneLayout()) {
-    const turnSub = sublabel && String(sublabel).match(/^turn\s+(\d+)/i);
-    if (turnSub) return { label: 'turn ' + turnSub[1], sublabel: null };
-  }
   const turnSub = sublabel && String(sublabel).match(/^turn\s+(\d+)/i);
-  if (turnSub) return { label: 't' + turnSub[1], sublabel: null };
+  if (turnSub) return { label: 't' + turnSub[1], sublabel: sublabel.replace(/^turn\s+\d+\s*—\s*/, '') || null };
   const turnMatch = String(label).match(/^turn\s+(\d+)/i);
   if (turnMatch) return { label: 't' + turnMatch[1], sublabel: null };
   const offerMatch = String(label).match(/^(\d+)\s+offer/i);
-  if (offerMatch) return { label: offerMatch[1] + ' off', sublabel: null };
+  if (offerMatch) return { label: offerMatch[1] + ' off', sublabel: 'seller → buyer' };
   const short = {
     initialize: 'init',
     capabilities: 'caps',
@@ -865,7 +868,10 @@ function compactArrowText(label, sublabel) {
   };
   let l = short[label] || String(label).replace(/^session\//, '').replace(/ .*/, '');
   if (l.length > 8) l = l.slice(0, 7) + '…';
-  return { label: l, sublabel: null };
+  const sub = sublabel
+    ? sublabel.replace('buyer → seller', 'B→S').replace('seller → buyer', 'S→B')
+    : null;
+  return { label: l, sublabel: sub };
 }
 
 function scrollToLatest() {
@@ -1070,7 +1076,6 @@ function addOfferCard(feedId, offer) {
 function addArrow(direction, label, sublabel) {
   ({ label, sublabel } = compactArrowText(label, sublabel));
   const c = document.getElementById('arrows');
-  c.innerHTML = '';
   const row = document.createElement('div');
   row.className = 'arrow-row ' + (direction === 'right' ? 'to-right' : 'to-left');
   const chip = document.createElement('div');
@@ -1085,6 +1090,9 @@ function addArrow(direction, label, sublabel) {
     row.appendChild(lbl);
   }
   c.appendChild(row);
+  requestAnimationFrame(() => {
+    row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  });
 }
 
 function setDot(id, state) {
