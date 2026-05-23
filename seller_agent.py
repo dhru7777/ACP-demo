@@ -26,6 +26,8 @@ Note on session/load in this demo:
 """
 
 import re
+import os
+import json
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -33,6 +35,24 @@ import uvicorn
 
 from session_manager import session_manager
 from search import catalog_search   # modular search — swap backend here
+
+# --------------------------------------------------------------------------
+# Anthropic client — used for natural language intent parsing.
+# Falls back silently to regex if the key is missing or the call fails.
+# Key: set ANTHROPIC_API_KEY in Railway env vars (or local.env locally).
+# --------------------------------------------------------------------------
+_anthropic_client = None
+try:
+    import anthropic as _anthropic_lib
+    _api_key = (os.environ.get("ANTHROPIC_API_KEY")
+                or os.environ.get("Intent_Parsing_Anthropic"))
+    if _api_key:
+        _anthropic_client = _anthropic_lib.Anthropic(api_key=_api_key)
+        print("  [Claude] Anthropic client ready — using LLM for intent parsing")
+    else:
+        print("  [Claude] No API key found — falling back to regex intent parser")
+except ImportError:
+    print("  [Claude] anthropic package not installed — falling back to regex")
 
 app = FastAPI(title="Nike Seller Agent", version="2.0.0")
 
@@ -261,9 +281,98 @@ def handle_session_close(id_, params):
 
 
 # --------------------------------------------------------------------------
+# CLAUDE INTENT PARSER
+# Uses Claude to understand the buyer's message and decide:
+#   - What shoe are they looking for? (intent)
+#   - Did they mention a budget? (max_price)
+#   - Do we need to ask back? (needs_clarification)
+#   - What should the seller say? (response_message)
+#
+# If Claude is unavailable → falls back to extract_budget() + hardcoded text.
+# Architecture: Claude handles language, Python/difflib handles catalog search.
+# --------------------------------------------------------------------------
+_CLAUDE_SYSTEM = """You are a friendly Nike shoe store agent helping buyers find the right shoe.
+
+Catalog: 100 Nike shoes. Categories: running, lifestyle, training, basketball, trail, soccer, golf, sandals.
+Price range: $18 (slides) to $285 (elite soccer boots). Most popular range: $65–$200.
+
+Parse the buyer's message and respond ONLY with a single valid JSON object (no markdown, no extra text):
+{
+  "intent": "brief description of what they want, e.g. 'comfortable running shoes for daily use'",
+  "max_price": null or a number (USD) if buyer mentioned a budget,
+  "needs_clarification": true or false,
+  "response_message": "your short, natural reply to the buyer (1-2 sentences)"
+}
+
+Rules:
+- If no budget is mentioned: set needs_clarification=true, ask for budget naturally in response_message
+- If budget is present: set needs_clarification=false, confirm you're searching in response_message
+- Keep response_message conversational and helpful, not robotic
+- Detect budget from phrases like '$150', 'under 200', 'around a hundred', 'budget of 120 dollars'"""
+
+
+def claude_parse_intent(text: str, history: list) -> dict:
+    """
+    Call Claude to parse buyer intent. Returns a dict with:
+      intent, max_price, needs_clarification, response_message, used_claude (bool)
+
+    Falls back to regex if Claude is unavailable or errors.
+    """
+    if _anthropic_client is None:
+        return _regex_fallback(text)
+
+    # Build conversation context from last 4 session turns
+    messages = []
+    for entry in history[-4:]:
+        role    = entry.get("role", "")
+        content = entry.get("content", {})
+        if role == "buyer" and "text" in content:
+            messages.append({"role": "user", "content": content["text"]})
+        elif role == "seller":
+            q = content.get("question") or content.get("message")
+            if q:
+                messages.append({"role": "assistant", "content": q})
+
+    messages.append({"role": "user", "content": text})
+
+    try:
+        response = _anthropic_client.messages.create(
+            model="claude-haiku-4-5",   # fast + cheap for structured extraction
+            max_tokens=250,
+            system=_CLAUDE_SYSTEM,
+            messages=messages
+        )
+        raw = response.content[0].text.strip()
+        parsed = json.loads(raw)
+        parsed["used_claude"] = True
+        print(f"  [Claude] intent='{parsed.get('intent','')[:50]}' "
+              f"max_price={parsed.get('max_price')} "
+              f"needs_clarification={parsed.get('needs_clarification')}")
+        return parsed
+    except Exception as e:
+        print(f"  [Claude] Error: {e} — falling back to regex")
+        return _regex_fallback(text)
+
+
+def _regex_fallback(text: str) -> dict:
+    """Pure regex fallback when Claude is unavailable."""
+    budget = extract_budget(text)
+    return {
+        "intent":             text,
+        "max_price":          budget,
+        "needs_clarification": budget is None,
+        "response_message":   (
+            "I can help you find the perfect Nike shoe. What's your budget for this purchase?"
+            if budget is None
+            else f"Got it — searching for options within ${budget:.0f} for you now."
+        ),
+        "used_claude":        False
+    }
+
+
+# --------------------------------------------------------------------------
 # BUDGET EXTRACTOR — pull max price from natural language.
-# In production: this becomes an LLM call: extract_intent(text) → JSON
-# Kept as a pure function so it can be replaced without touching the handler.
+# Used by the regex fallback path and as a standalone utility.
 # --------------------------------------------------------------------------
 def extract_budget(text: str) -> float | None:
     """
@@ -343,6 +452,7 @@ def handle_session_prompt(id_, params):
     session  = session_manager.get(session_id)
     ctx      = session.get("context", {})
     turn_num = ctx.get("turn", 1)
+    history  = session.get("history", [])
 
     print(f"  Prompt (turn {turn_num}): \"{text[:100]}\"")
 
@@ -352,12 +462,16 @@ def handle_session_prompt(id_, params):
 
     # ── TURN 2+: buyer is responding to our clarification question ────────────
     if ctx.get("awaiting_budget"):
-        budget = extract_budget(text)
+        # Use Claude to extract budget from this reply
+        parsed   = claude_parse_intent(text, history)
+        budget   = parsed.get("max_price")
+        used_llm = parsed.get("used_claude", False)
 
         if budget is None:
-            # Still no number — gently ask one more time with a concrete example
-            msg = ("I need a specific budget to find the right shoe. "
-                   "Try something like '$150' or 'under $200'. What's your limit?")
+            # Still no budget — Claude or regex couldn't find a number
+            msg = parsed.get("response_message",
+                             "I still need a specific amount to search for you. "
+                             "Try something like '$150' or 'under $200'.")
             session_manager.add_history(session_id, "seller", "session/prompt.clarification",
                                         {"question": msg})
             return {
@@ -367,52 +481,63 @@ def handle_session_prompt(id_, params):
                     "agentMessage":  msg,
                     "parsedIntent":  {"query": ctx.get("pending_query", ""), "max_price": None},
                     "awaitingBudget": True,
+                    "usedClaude":    used_llm,
                     "offers":        []
                 }
             }
 
-        # Budget received — combine with saved intent and search
+        # Budget resolved — combine original intent with new budget and search
         original_query = ctx.get("pending_query", text)
-        session_manager.update_context(session_id, {})   # clear state after resolution
-        print(f"  Budget resolved: ${budget} | original query: \"{original_query[:60]}\"")
-        return _build_offers(id_, session_id, original_query, budget, text)
+        session_manager.update_context(session_id, {})
+        print(f"  Budget resolved: ${budget} | original: \"{original_query[:60]}\"")
+        return _build_offers(id_, session_id, original_query, budget, text,
+                             used_claude=used_llm)
 
-    # ── TURN 1: check if buyer included a budget ──────────────────────────────
-    budget = extract_budget(text)
+    # ── TURN 1: parse the full message with Claude ────────────────────────────
+    parsed   = claude_parse_intent(text, history)
+    intent   = parsed.get("intent", text)
+    budget   = parsed.get("max_price")
+    used_llm = parsed.get("used_claude", False)
 
-    if budget is None:
-        # No budget — save the intent and ask for it
+    if parsed.get("needs_clarification") or budget is None:
+        # Ask for budget — use Claude's natural-sounding question
+        question = parsed.get("response_message",
+                              "I can help you find the perfect Nike shoe. "
+                              "What's your budget for this purchase?")
         session_manager.update_context(session_id, {
             "awaiting_budget": True,
-            "pending_query":   text,
+            "pending_query":   intent,   # Claude's cleaned-up intent, not raw text
             "turn":            2
         })
-        question = ("I can help you find the perfect Nike shoe. "
-                    "What's your budget for this purchase?")
         session_manager.add_history(session_id, "seller", "session/prompt.clarification",
                                     {"question": question})
-        print(f"  No budget detected — asking buyer for budget")
+        print(f"  Needs budget — asking: \"{question[:80]}\"")
         return {
             "jsonrpc": "2.0", "id": id_,
             "result": {
                 "stopReason":    "needs_clarification",
                 "agentMessage":  question,
-                "parsedIntent":  {"query": text, "max_price": None},
+                "parsedIntent":  {"query": intent, "max_price": None},
                 "awaitingBudget": True,
+                "usedClaude":    used_llm,
                 "offers":        []
             }
         }
 
-    # Budget was included in the first message — skip clarification
-    session_manager.update_context(session_id, {})   # ensure context clean
-    return _build_offers(id_, session_id, text, budget, text)
+    # Budget included in first message — search immediately
+    confirm_msg = parsed.get("response_message", f"Searching within ${budget:.0f} now...")
+    print(f"  Budget in first message: ${budget}")
+    session_manager.update_context(session_id, {})
+    return _build_offers(id_, session_id, intent, budget, text,
+                         used_claude=used_llm, confirm_msg=confirm_msg)
 
 
 # --------------------------------------------------------------------------
 # HELPER: search catalog and build the offer response
 # Extracted so both clarification-resolved and direct-budget paths use it.
 # --------------------------------------------------------------------------
-def _build_offers(id_, session_id: str, query: str, max_price: float, raw_text: str) -> dict:
+def _build_offers(id_, session_id: str, query: str, max_price: float, raw_text: str,
+                  used_claude: bool = False, confirm_msg: str = "") -> dict:
     results = catalog_search.search(query=query, max_price=max_price, top_k=3)
     print(f"  Search '{query[:50]}' (≤${max_price}): {len(results)} result(s)")
 
@@ -427,6 +552,7 @@ def _build_offers(id_, session_id: str, query: str, max_price: float, raw_text: 
                 "stopReason":   "end_turn",
                 "agentMessage": msg,
                 "parsedIntent": {"query": query, "max_price": max_price},
+                "usedClaude":   used_claude,
                 "offers":       []
             }
         }
@@ -466,6 +592,7 @@ def _build_offers(id_, session_id: str, query: str, max_price: float, raw_text: 
             "stopReason":   "end_turn",
             "agentMessage": msg,
             "parsedIntent": {"query": query, "max_price": max_price},
+            "usedClaude":   used_claude,
             "offers":       offers
         }
     }

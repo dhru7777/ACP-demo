@@ -749,14 +749,16 @@ function clearCountdown() {
 // Shared by: direct-budget path and post-clarification path.
 
 async function showOffers(res, promptText) {
-  const intent = res.parsedIntent || {};
-  const offers = res.offers || (res.offer ? [res.offer] : []);
-  pendingOffer  = offers[0] || null;
+  const intent    = res.parsedIntent || {};
+  const offers    = res.offers || (res.offer ? [res.offer] : []);
+  const claudeTag = res.usedClaude ? ' · claude haiku' : ' · regex';
+  pendingOffer    = offers[0] || null;
 
-  // Show what was extracted
+  // Show what was extracted + which engine parsed it
   const iLines = [`query: "${intent.query || promptText}"`];
   if (intent.max_price) iLines.push(`budget ceiling: $${intent.max_price.toFixed(2)}`);
-  addBubble('feed-seller', 'mid', 'intent resolved', iLines.join('\n'));
+  iLines.push(`parsed by: ${res.usedClaude ? 'Claude Haiku (LLM)' : 'regex fallback'}`);
+  addBubble('feed-seller', 'mid', `intent resolved${claudeTag}`, iLines.join('\n'));
   await delay(700);
 
   if (offers.length === 0) {
@@ -1063,8 +1065,10 @@ stored — will be sent with all requests`);
 
     // ── Seller needs budget clarification ─────────────────────────────────────
     if (res1.awaitingBudget) {
+      const claudeTag = res1.usedClaude ? '  ·  claude haiku' : '  ·  regex parser';
       // Show seller's question
-      addBubble('feed-seller', 'sent', 'seller  →  buyer   |   session/update',
+      addBubble('feed-seller', 'sent',
+        `seller  →  buyer   |   session/update${claudeTag}`,
 `stopReason: needs_clarification
 
 "${res1.agentMessage}"`);
