@@ -15,7 +15,7 @@ Session persistence:
   sessionId is saved in session_state.json so the buyer can reload the
   same session across multiple runs (simulating a real persistent client).
 """
-
+from payments.wallets import AgentRole, wallet_status
 import requests
 import json
 import os
@@ -256,13 +256,66 @@ def close_session(session_id: str):
 # --------------------------------------------------------------------------
 # ACCEPT / REJECT OFFER
 # --------------------------------------------------------------------------
-def evaluate_offer(offer: dict, our_max: float):
+def evaluate_offer(offer: dict, our_max: float) -> bool:
     print(f"\n[ DECISION ] Evaluating offer...")
     if offer["price"] <= our_max:
         print(f"  ACCEPTED — ${offer['price']} is within our budget of ${our_max}")
-        print(f"  (Phase 2 will execute payment here)")
+        return True
+    print(f"  REJECTED — ${offer['price']} exceeds our budget of ${our_max}")
+    return False
+
+
+def _offer_id(offer: dict) -> str:
+    """Catalog id — commerce/request uses item; session/prompt uses id."""
+    return offer.get("id") or offer.get("item") or ""
+
+
+def pay_for_offer(session_id: str, offer: dict) -> dict:
+    """x402: quote then settle via commerce/pay (server signs if DEMO_SERVER_SIGN)."""
+    offer_id = _offer_id(offer)
+    if not offer_id:
+        print("  ERROR: offer missing id/item")
+        return {"error": {"message": "offer missing id/item"}}
+
+    print(f"\n[ STEP 5 ] COMMERCE / PAY — x402 USDC")
+    quote_resp = post("commerce/pay", {
+        "sessionId": session_id,
+        "offerId": offer_id,
+        "offer": offer,
+    })
+    if "error" in quote_resp:
+        print(f"  Quote error: {quote_resp['error']['message']}")
+        return quote_resp
+
+    quote = quote_resp.get("result", {})
+    fx = quote.get("fx", {})
+    print(f"  Catalog: ${fx.get('catalogUsd')} → {fx.get('usdc')} USDC ({fx.get('demoRate', '')})")
+    bal = quote.get("balanceCheck", {})
+    if bal and not bal.get("sufficient"):
+        print("  Insufficient USDC on buyer wallet for this offer.")
+        return quote_resp
+
+    pay_resp = post("commerce/pay", {
+        "sessionId": session_id,
+        "offerId": offer_id,
+        "offer": offer,
+        "execute": True,
+    })
+    if "error" in pay_resp:
+        print(f"  Pay error: {pay_resp['error']['message']}")
+        return pay_resp
+
+    result = pay_resp.get("result", {})
+    if result.get("status") == "paid":
+        rcpt = result.get("receipt", {})
+        print(f"  PAID — {rcpt.get('usdcPaid')} USDC")
+        print(f"  Tx: {rcpt.get('explorer') or rcpt.get('txHash')}")
+        if rcpt.get("ethGas"):
+            g = rcpt["ethGas"]
+            print(f"  Facilitator gas (ETH): {g.get('formatted', '—')}")
     else:
-        print(f"  REJECTED — ${offer['price']} exceeds our budget of ${our_max}")
+        print(f"  Payment status: {result.get('status')} — {result.get('error', '')}")
+    return pay_resp
 
 
 # --------------------------------------------------------------------------
@@ -271,7 +324,7 @@ def evaluate_offer(offer: dict, our_max: float):
 def run():
     print("=" * 60)
     print(" BUYER AGENT v2.0.0  — ACP Nike Demo")
-    print(" Phase 1: Handshake + Session + Commerce Request")
+    print(" Phase 1–2: Handshake + Session + Commerce + x402 Pay")
     print("=" * 60)
 
     item      = "air_max_270"
@@ -286,9 +339,9 @@ def run():
     # 3. Commerce
     offer = request_item(session_id, item, max_price)
 
-    # 4. Evaluate
-    if offer:
-        evaluate_offer(offer, max_price)
+    # 4. Evaluate + pay
+    if offer and evaluate_offer(offer, max_price):
+        pay_for_offer(session_id, offer)
 
     # 5. Close
     close_session(session_id)

@@ -2,3 +2,8 @@ fastapi
 uvicorn[standard]
 requests
 anthropic
+httpx>=0.28.0
+eth-account>=0.13.0
+python-dotenv>=1.0.0
+x402[evm,fastapi]>=2.10.0
+fpdf2>=2.8.0

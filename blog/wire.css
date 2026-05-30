@@ -1,0 +1,17 @@
+/* Side-by-side request/response in markdown preview */
+table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 1.25rem 0;
+}
+
+td {
+  vertical-align: top;
+}
+
+td pre {
+  white-space: pre;
+  word-wrap: normal;
+}

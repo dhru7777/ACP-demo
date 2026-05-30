@@ -62,7 +62,7 @@
     flex: 1 0 auto;
     min-height: 320px;
     overflow: visible;
-    align-items: stretch;
+    align-items: start;
   }
 
   /* PANELS */
@@ -85,6 +85,13 @@
     display: flex;
     align-items: center;
     gap: 10px;
+    position: relative;
+    z-index: 40;
+    overflow: visible;
+  }
+  /* Lift panel above center gutter + sibling feed while wallet is open */
+  .panel:has(.wallet-wrap.open) {
+    z-index: 60;
   }
   .panel-icon {
     width: 30px; height: 30px;
@@ -106,6 +113,201 @@
     border: 1px solid var(--border-hi);
     color: var(--muted);
   }
+
+  /* Wallet popover — live data from GET /wallet/buyer | /wallet/seller */
+  .wallet-wrap {
+    position: relative;
+    flex-shrink: 0;
+    z-index: 2;
+  }
+  .wallet-wrap.open {
+    z-index: 10;
+  }
+  .wallet-btn {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    min-height: 28px;
+    border: 1px solid var(--border-hi);
+    border-radius: 8px;
+    background: var(--card);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    line-height: 1;
+    color: var(--text);
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .wallet-btn:hover,
+  .wallet-wrap:focus-within .wallet-btn,
+  .wallet-wrap.open .wallet-btn {
+    border-color: var(--text);
+    background: var(--surface);
+  }
+  .wallet-pop {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    pointer-events: auto;
+    width: min(300px, calc(100vw - 24px));
+    max-height: min(320px, 55vh);
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    background: var(--surface);
+    border: 1px solid var(--border-hi);
+    border-radius: 10px;
+    padding: 10px 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    font-size: 10px;
+    line-height: 1.45;
+  }
+  .wallet-wrap.open .wallet-pop {
+    display: block;
+  }
+  .wallet-pop-title {
+    font-size: 9px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0;
+  }
+  .wallet-pop-head-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+  }
+  .wallet-pop-head-row .wallet-pop-title { flex-shrink: 0; }
+  .wallet-addr-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+  .wallet-addr-link {
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--text);
+    text-decoration: underline;
+    white-space: nowrap;
+  }
+  .wallet-addr-link:hover { opacity: 0.75; }
+  .wallet-addr-row,
+  .wallet-tx-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .wallet-addr-text {
+    flex: 1;
+    min-width: 0;
+    font-size: 9px;
+    word-break: break-all;
+    color: var(--text);
+    line-height: 1.35;
+  }
+  .wallet-addr-text a,
+  .wallet-tx-meta a {
+    color: var(--text);
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .wallet-addr-text a:hover,
+  .wallet-tx-meta a:hover { text-decoration: underline; }
+  .wallet-ext {
+    cursor: pointer;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    min-height: 28px;
+    padding: 6px;
+    margin: -6px -4px -6px 0;
+    color: var(--muted);
+    text-decoration: none;
+    border-radius: 6px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .wallet-ext:hover,
+  .wallet-ext:focus-visible {
+    color: var(--text);
+    background: var(--card);
+    outline: none;
+  }
+  .wallet-ext-icon {
+    display: block;
+    width: 12px;
+    height: 12px;
+  }
+  .wallet-bal-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .wallet-bal-row:last-of-type { border-bottom: none; }
+  .wallet-bal-val {
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+  .wallet-bal-val .wallet-ext { margin: -6px -6px -6px 0; }
+  .wallet-hist-title {
+    margin-top: 10px;
+    font-size: 9px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .wallet-tx {
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+  .wallet-tx:last-child { border-bottom: none; }
+  .wallet-tx-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    margin-top: 2px;
+  }
+  .wallet-tx-meta .wallet-muted { margin-top: 0; flex: 1; min-width: 0; }
+  .wallet-tx-in .wallet-tx-dir { color: #0a7a2f; }
+  .wallet-tx-out .wallet-tx-dir { color: #9a3412; }
+  .wallet-muted { color: var(--muted); font-size: 9px; margin-top: 6px; }
+  .wallet-err { color: #9a3412; font-size: 9px; }
+  .wallet-loading { color: var(--muted); }
+  .wallet-pay-hint {
+    margin-top: 8px;
+    padding: 6px 8px;
+    background: var(--card);
+    border-radius: 6px;
+    font-size: 9px;
+    color: var(--text);
+    line-height: 1.4;
+  }
+  .wallet-pay-hint.pending { color: #9a3412; }
+  .wallet-pay-hint.ok { color: #0a7a2f; }
+  .wallet-wrap.payment-active .wallet-btn {
+    border-color: #0a7a2f;
+    box-shadow: 0 0 0 2px rgba(10, 122, 47, 0.2);
+  }
   .dot {
     width: 6px; height: 6px;
     border-radius: 50%;
@@ -124,6 +326,8 @@
     gap: 8px;
     overflow: visible;
     min-height: 180px;
+    position: relative;
+    z-index: 1;
   }
 
   /* BUBBLES */
@@ -132,7 +336,9 @@
   .bwrap.sent  { align-items: flex-end; }
   .bwrap.recv  { align-items: flex-start; }
   .bwrap.mid   { align-items: center; }
-  .blabel { font-size: 9px; color: #aaaaaa; padding: 0 4px; letter-spacing: 0.02em; }
+  .blabel { font-size: 9px; color: #aaaaaa; padding: 0 4px; letter-spacing: 0.02em; line-height: 1.3; }
+  .bwrap.sent .blabel { text-align: right; }
+  .bwrap.recv .blabel { text-align: left; }
   .bubble {
     max-width: 90%;
     padding: 8px 12px;
@@ -176,6 +382,145 @@
     padding: 6px 10px;
     max-width: 100%;
   }
+  .chat-wallet-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .chat-wallet-icon {
+    font-size: 12px;
+    line-height: 1;
+  }
+  .bwrap.sent .chat-wallet-bwrap,
+  .bwrap.recv .chat-wallet-bwrap {
+    width: min(100%, 380px);
+    max-width: 96%;
+  }
+  .bubble.chat-wallet-bubble {
+    padding: 0;
+    background: transparent !important;
+    border: none !important;
+    color: #222 !important;
+    width: 100%;
+    max-width: 100%;
+    box-shadow: none;
+  }
+  .bubble.chat-wallet-bubble .chat-wallet-card {
+    display: block;
+    position: static;
+    width: 100%;
+    min-width: 0;
+    max-height: none;
+    overflow: visible;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    padding: 8px 10px;
+    font-size: 10px;
+    line-height: 1.35;
+    background: var(--surface);
+    color: #222;
+    border: 1px solid var(--border-hi);
+    border-radius: 10px;
+  }
+  .chat-wallet-card,
+  .chat-wallet-card .wallet-bal-row,
+  .chat-wallet-card .wallet-bal-val,
+  .chat-wallet-card .wallet-bal-val span,
+  .chat-wallet-card .wallet-addr-text a,
+  .chat-wallet-card .wallet-tx-dir {
+    color: #222 !important;
+  }
+  .chat-wallet-card .wallet-pop-title,
+  .chat-wallet-card .wallet-muted,
+  .chat-wallet-card .wallet-hist-title {
+    color: var(--muted) !important;
+  }
+  .chat-wallet-card .wallet-pay-hint {
+    color: #222 !important;
+    background: var(--card);
+  }
+  .chat-wallet-card .wallet-pay-hint.ok { color: #0a7a2f !important; }
+  .chat-wallet-card .wallet-tx-in .wallet-tx-dir { color: #0a7a2f !important; }
+  .chat-wallet-card .wallet-tx-out .wallet-tx-dir { color: #9a3412 !important; }
+  .chat-wallet-card .wallet-dl-btn {
+    display: block;
+    width: 100%;
+    margin-top: 8px;
+    padding: 8px 10px;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    border-radius: 6px;
+    border: 1px solid var(--border-hi);
+    background: #000;
+    color: #fff;
+    cursor: pointer;
+    text-align: center;
+  }
+  .chat-wallet-card .wallet-dl-btn:hover { background: #222; }
+  .chat-wallet-card .wallet-dl-btn:disabled { opacity: 0.6; cursor: wait; }
+  .chat-wallet-card .wallet-pop-title { margin-bottom: 3px; }
+  .chat-wallet-card .wallet-addr-row { margin-bottom: 3px; gap: 4px; }
+  .chat-wallet-card .wallet-addr-text { font-size: 9px; line-height: 1.3; }
+  .chat-wallet-card .wallet-bal-row { padding: 2px 0; gap: 4px; }
+  .chat-wallet-card .wallet-pay-hint {
+    margin-top: 4px;
+    padding: 4px 6px;
+    line-height: 1.3;
+  }
+  .chat-wallet-card .wallet-hist-title { margin-top: 4px; margin-bottom: 2px; }
+  .chat-wallet-card .wallet-tx { padding: 3px 0; }
+  .chat-wallet-card .wallet-tx-meta { margin-top: 1px; }
+  .chat-wallet-card .wallet-ext {
+    min-width: 22px;
+    min-height: 22px;
+    padding: 3px;
+    margin: -3px -3px -3px 0;
+  }
+  .chat-wallet-card .wallet-muted { margin-top: 2px; }
+  .chat-wallet-card .wallet-usdc-only-note {
+    margin-top: 2px;
+    margin-bottom: 2px;
+    font-size: 8px;
+    line-height: 1.3;
+  }
+  .bwrap:has(.chat-wallet-bubble) { gap: 1px; }
+  .bubble.out.chat-wallet-bubble { border: none; }
+  .bubble.receipt-bubble {
+    max-width: 92%;
+    text-align: left;
+    font-size: 10px;
+    line-height: 1.55;
+  }
+  .receipt-dl-btn {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 6px 10px;
+    font-size: 10px;
+    font-weight: 600;
+    border-radius: 6px;
+    border: 1px solid var(--border-hi);
+    background: var(--card);
+    color: #222;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .receipt-dl-btn:hover { background: #f0f0f0; }
+  .bubble.out .receipt-dl-btn {
+    border-color: rgba(255,255,255,0.35);
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+  }
+  .bubble.out .receipt-dl-btn:hover { background: rgba(255,255,255,0.22); }
+  .bubble a.tx-verify-link {
+    display: inline-block;
+    margin-top: 6px;
+    font-size: 10px;
+    font-weight: 600;
+    text-decoration: underline;
+    color: inherit;
+  }
+  .bubble.out a.tx-verify-link { color: #b8d4ff; }
+  .bubble.inc a.tx-verify-link { color: #1a56db; }
 
   /* OFFER CARD (legacy single-card, kept for reference) */
   .offer-card {
@@ -291,9 +636,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding-top: 60px;
-    position: sticky;
-    top: 12px;
+    padding-top: 14px;
     align-self: start;
     width: 100%;
     max-width: 100%;
@@ -325,13 +668,8 @@
     padding: 0 2px;
     box-sizing: border-box;
     pointer-events: none;
-    max-height: calc(100dvh - 180px);
-    overflow-y: auto;
-    overflow-x: hidden;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+    overflow: visible;
   }
-  .arrows::-webkit-scrollbar { display: none; }
   .arrow-row {
     display: flex;
     flex-direction: column;
@@ -374,6 +712,69 @@
   }
   .arrow-row.to-right .arrow-chip { border-bottom-right-radius: 3px; }
   .arrow-row.to-left  .arrow-chip { border-bottom-left-radius: 3px; }
+
+  /* Center gutter — ACP vs x402 protocol flow groups */
+  .flow-group {
+    width: 100%;
+    max-width: 100%;
+    border: 1.5px solid var(--border-hi);
+    border-radius: 10px;
+    padding: 8px 6px 10px;
+    margin-bottom: 4px;
+    background: var(--surface);
+    box-sizing: border-box;
+    pointer-events: none;
+  }
+  .flow-group-acp {
+    border-color: rgba(0, 0, 0, 0.28);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+  }
+  .flow-group-x402 {
+    border-color: rgba(0, 0, 0, 0.28);
+    background: var(--surface);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+  }
+  .flow-group-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+  }
+  .flow-group-badge {
+    flex-shrink: 0;
+    font-size: 8px;
+    font-weight: 600;
+    padding: 3px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.08em;
+    line-height: 1;
+  }
+  .flow-group-acp .flow-group-badge {
+    background: #000;
+    color: #fff;
+  }
+  .flow-group-x402 .flow-group-badge {
+    background: #0a7a2f;
+    color: #fff;
+  }
+  .flow-group-titles { flex: 1; min-width: 0; }
+  .flow-group-title {
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.35;
+    letter-spacing: 0.02em;
+  }
+  .flow-group-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+  }
 
   /* BOTTOM */
   .bottom {
@@ -586,8 +987,7 @@
     }
     .center {
       order: 0;
-      padding-top: 32px;
-      top: 4px;
+      padding-top: 8px;
       overflow: visible;
     }
     .panel:first-child .feed { padding-right: 4px; }
@@ -647,7 +1047,12 @@
     .bubble.decision  { text-align: left; }
 
     /* Center gutter — full labels on regular phones, 58px column */
-    .arrows { padding: 0 2px; gap: 8px; max-height: calc(100dvh - 220px); }
+    .arrows { padding: 0 2px; gap: 6px; }
+    .flow-group { padding: 6px 4px 8px; }
+    .flow-group-title { font-size: 8px; }
+    .bwrap.sent .chat-wallet-bwrap,
+    .bwrap.recv .chat-wallet-bwrap { width: 100%; max-width: 100%; }
+    .bubble.chat-wallet-bubble .chat-wallet-card { font-size: 9px; padding: 7px 8px; }
     .arrow-chip  { font-size: 8px; padding: 3px 4px; border-radius: 6px; line-height: 1.25; }
     .arrow-label { display: block; font-size: 7px; text-align: center; line-height: 1.2; color: #999; }
 
@@ -690,6 +1095,25 @@
     /* Offer body — stack image above details on very small screens */
     .offer-body  { gap: 8px; }
     .offer-img   { width: 48px; height: 48px; }
+
+    .wallet-btn {
+      width: 36px;
+      height: 36px;
+      min-width: 36px;
+      min-height: 36px;
+      font-size: 16px;
+      border-radius: 10px;
+    }
+    .wallet-pop {
+      padding: 12px;
+      font-size: 10px;
+    }
+    .wallet-ext {
+      min-width: 36px;
+      min-height: 36px;
+      padding: 10px;
+    }
+    .wallet-ext-icon { width: 14px; height: 14px; }
   }
 
   /* iPhone SE — stay side-by-side, just tighter */
@@ -732,6 +1156,8 @@
     .status-txt { font-size: 8px; line-height: 1.4; }
 
     .prompt-input { font-size: 16px; height: 36px; }
+
+    .wallet-addr-text { font-size: 8px; }
   }
 </style>
 </head>
@@ -779,6 +1205,13 @@
         <div class="panel-name"><span class="name-long">Buyer Agent</span><span class="name-short">Buyer</span></div>
         <div class="panel-sub">acts on your behalf</div>
       </div>
+      <div class="wallet-wrap" id="wallet-wrap-buyer" data-wallet-role="buyer">
+        <button type="button" class="wallet-btn" aria-label="Buyer wallet" title="Wallet">&#x1F4B3;</button>
+        <div class="wallet-pop" id="wallet-pop-buyer">
+          <div class="wallet-pop-title">Base Sepolia</div>
+          <div class="wallet-loading">Tap wallet to load…</div>
+        </div>
+      </div>
       <div class="dot" id="dot-buyer"></div>
       <div class="port-tag">client</div>
     </div>
@@ -798,6 +1231,13 @@
       <div class="panel-meta">
         <div class="panel-name"><span class="name-long">Nike Seller Agent</span><span class="name-short">Nike</span></div>
         <div class="panel-sub">vendor · nike.com</div>
+      </div>
+      <div class="wallet-wrap" id="wallet-wrap-seller" data-wallet-role="seller">
+        <button type="button" class="wallet-btn" aria-label="Seller wallet" title="Wallet">&#x1F4B3;</button>
+        <div class="wallet-pop" id="wallet-pop-seller">
+          <div class="wallet-pop-title">Base Sepolia</div>
+          <div class="wallet-loading">Tap wallet to load…</div>
+        </div>
       </div>
       <div class="dot" id="dot-seller"></div>
       <div class="port-tag">nike.com</div>
@@ -837,9 +1277,10 @@
 </div>
 
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script>
 const delay = ms => new Promise(r => setTimeout(r, ms));
-const DEMO_BUILD = '2026-05-23l';
+const DEMO_BUILD = '2026-05-30f';
 
 function isMobileLayout() {
   return window.matchMedia('(max-width: 680px)').matches;
@@ -849,12 +1290,21 @@ function isSmallPhoneLayout() {
   return window.matchMedia('(max-width: 390px)').matches;
 }
 
+function shortArrowSublabel(sublabel) {
+  if (!sublabel) return null;
+  return String(sublabel)
+    .replace(/buyer\s*→\s*seller/gi, 'B→S')
+    .replace(/seller\s*→\s*buyer/gi, 'S→B')
+    .replace(/turn\s+(\d+)\s*—\s*/gi, 't$1 · ');
+}
+
 function compactArrowText(label, sublabel) {
+  sublabel = shortArrowSublabel(sublabel);
   if (!isSmallPhoneLayout()) return { label, sublabel };
-  const turnSub = sublabel && String(sublabel).match(/^turn\s+(\d+)/i);
-  if (turnSub) return { label: 't' + turnSub[1], sublabel: sublabel.replace(/^turn\s+\d+\s*—\s*/, '') || null };
+  const turnSub = sublabel && String(sublabel).match(/^t(\d+)/i);
+  if (turnSub) return { label: 't' + turnSub[1], sublabel: sublabel.replace(/^t\d+\s*·\s*/, '') || 'B→S' };
   const turnMatch = String(label).match(/^turn\s+(\d+)/i);
-  if (turnMatch) return { label: 't' + turnMatch[1], sublabel: null };
+  if (turnMatch) return { label: 't' + turnMatch[1], sublabel: 'B→S' };
   const offerMatch = String(label).match(/^(\d+)\s+offer/i);
   if (offerMatch) return { label: offerMatch[1] + ' off', sublabel: 'S→B' };
   const short = {
@@ -866,14 +1316,114 @@ function compactArrowText(label, sublabel) {
     'session/cancel': 'cancel',
     clarification: 'ask',
     'no offer': 'none',
+    'commerce/pay': 'pay',
+    'payment required': 'due',
+    'payment proof': 'proof',
+    settled: 'done',
     pay: 'pay',
   };
   let l = short[label] || String(label).replace(/^session\//, '').replace(/ .*/, '');
   if (l.length > 8) l = l.slice(0, 7) + '…';
-  const sub = sublabel
-    ? sublabel.replace('buyer → seller', 'B→S').replace('seller → buyer', 'S→B')
-    : null;
-  return { label: l, sublabel: sub };
+  return { label: l, sublabel };
+}
+
+function lastBubbleWrap(feedId) {
+  const feed = document.getElementById(feedId);
+  if (!feed) return null;
+  const wraps = feed.querySelectorAll('.bwrap');
+  return wraps.length ? wraps[wraps.length - 1] : null;
+}
+
+function shortProtocolLabel(label) {
+  if (!label) return label;
+  return String(label)
+    .replace(/buyer\s*→\s*seller/gi, 'B → S')
+    .replace(/seller\s*→\s*buyer/gi, 'S → B');
+}
+
+/** Scroll so the active chat bubble stays in view (does not jump to center labels). */
+function softScrollToBubble(bubbleWrap) {
+  if (!bubbleWrap) return;
+  requestAnimationFrame(() => {
+    const r = bubbleWrap.getBoundingClientRect();
+    const vh = window.innerHeight;
+    if (r.top < 120 || r.bottom > vh - 100) {
+      window.scrollTo({
+        top: window.scrollY + r.top - vh * 0.32,
+        behavior: 'smooth',
+      });
+    }
+  });
+}
+
+/** Target Y for x402 box: top of blabel row (e.g. commerce/pay quote). */
+function flowAlignTargetTop(bubbleWrap) {
+  const label = bubbleWrap && bubbleWrap.querySelector('.blabel');
+  return label
+    ? label.getBoundingClientRect().top
+    : bubbleWrap.getBoundingClientRect().top;
+}
+
+/** Margin so flow-group top lines up with a chat bubble (arrows column vs feed). */
+function measureFlowGroupMarginTop(bubbleWrap, flowKind) {
+  const arrows = document.getElementById('arrows');
+  const acp = document.querySelector('.flow-group-acp');
+  if (!arrows || !bubbleWrap) return 8;
+
+  if (flowKind === 'x402') {
+    const targetTop = flowAlignTargetTop(bubbleWrap);
+    if (acp) {
+      const acpBottom = acp.getBoundingClientRect().bottom;
+      const flexGap = 8;
+      const pullUp = 22;
+      return Math.max(4, Math.round(targetTop - acpBottom - flexGap - pullUp));
+    }
+    return Math.max(8, Math.round(targetTop - arrows.getBoundingClientRect().top));
+  }
+
+  const stage = document.querySelector('.stage');
+  if (!stage) return 8;
+  const stageTop = stage.getBoundingClientRect().top;
+  const bubbleTop = bubbleWrap.getBoundingClientRect().top - stageTop;
+  const arrowsTop = arrows.getBoundingClientRect().top - stageTop;
+  return Math.max(0, Math.round(bubbleTop - arrowsTop - 40));
+}
+
+function applyFlowGroupMargin(flowKind, bubbleWrap) {
+  const group = document.querySelector('.flow-group-' + flowKind);
+  if (!group || !bubbleWrap) return;
+  group.style.transition = 'none';
+  group.style.marginTop = measureFlowGroupMarginTop(bubbleWrap, flowKind) + 'px';
+  void group.offsetHeight;
+  if (flowKind === 'x402') {
+    const pullUp = 22;
+    const desiredTop = flowAlignTargetTop(bubbleWrap) - pullUp;
+    const delta = group.getBoundingClientRect().top - desiredTop;
+    if (Math.abs(delta) > 1) {
+      const margin = parseFloat(group.style.marginTop) || 0;
+      group.style.marginTop = Math.max(4, Math.round(margin - delta)) + 'px';
+    }
+  }
+  void group.offsetHeight;
+  group.style.transition = '';
+}
+
+function waitForBubbleLayout(bubbleWrap) {
+  return new Promise(resolve => {
+    const tick = () => {
+      if (bubbleWrap.classList.contains('show')) {
+        requestAnimationFrame(() => requestAnimationFrame(resolve));
+      } else {
+        requestAnimationFrame(tick);
+      }
+    };
+    requestAnimationFrame(tick);
+  });
+}
+
+function alignFlowGroupToBubble(flowKind, bubbleWrap) {
+  applyFlowGroupMargin(flowKind, bubbleWrap);
+  softScrollToBubble(bubbleWrap);
 }
 
 function scrollToLatest() {
@@ -887,6 +1437,534 @@ const SELLER = (location.hostname === 'localhost' || location.hostname === '127.
   : 'https://acp-demo-production.up.railway.app';
 
 let sellerCatalogCount = 0;  // filled from GET / health check before handshake
+
+// --- Wallet popovers (live RPC + optional Basescan via seller API) ---
+const _walletCache = { buyer: null, seller: null };
+const _walletLoading = { buyer: false, seller: false };
+const _walletPayHint = { buyer: '', seller: '' };
+
+function setWalletPayHint(buyerText, sellerText) {
+  _walletPayHint.buyer = buyerText || '';
+  _walletPayHint.seller = sellerText || '';
+  ['buyer', 'seller'].forEach(role => {
+    if (document.getElementById('wallet-wrap-' + role)?.classList.contains('open')) {
+      renderWalletPop(role, _walletCache[role]);
+    }
+  });
+}
+
+function openPaymentWallets() {
+  ['buyer', 'seller'].forEach(role => {
+    const wrap = document.getElementById('wallet-wrap-' + role);
+    if (!wrap) return;
+    wrap.classList.add('open', 'payment-active');
+    _walletCache[role] = null;
+    fetchWallet(role);
+  });
+}
+
+async function fetchWalletFresh(role) {
+  _walletCache[role] = null;
+  _walletLoading[role] = false;
+  await fetchWallet(role);
+}
+
+async function fetchWalletData(role) {
+  const r = await fetch(SELLER + '/wallet/' + role);
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+  return data;
+}
+
+async function snapshotWalletBalances(includeFull = false) {
+  const snap = {};
+  for (const role of ['buyer', 'seller']) {
+    const data = await fetchWalletData(role);
+    snap[role] = {
+      usdcRaw: data.balances?.USDC?.raw || '0',
+      ethRaw: data.balances?.ETH?.raw || '0',
+    };
+    if (includeFull) snap[role].full = data;
+  }
+  return snap;
+}
+
+const POPOVER_WALLET_MAX_TXS = 3;
+
+function walletTxListForDisplay(role, data, opts) {
+  const paymentTxHash = opts?.paymentTxHash || null;
+  const usdcPaid = opts?.usdcPaid || null;
+  const maxTxs = opts?.maxTxs ?? POPOVER_WALLET_MAX_TXS;
+  const all = data?.txs || [];
+  if (paymentTxHash) {
+    const h = paymentTxHash.toLowerCase();
+    const match = all.find(t => (t.hash || '').toLowerCase() === h);
+    if (match) return [match];
+    return [{
+      hash: paymentTxHash,
+      direction: role === 'buyer' ? 'out' : 'in',
+      amount: usdcPaid || '—',
+      asset: 'USDC',
+      explorer: `https://sepolia.basescan.org/tx/${paymentTxHash}`,
+      timestamp: 'settlement',
+    }];
+  }
+  return all.slice(0, maxTxs);
+}
+
+function formatWalletPayHint(usdcLine, ethGas) {
+  const lines = [];
+  if (usdcLine) lines.push(usdcLine);
+  const g = ethGas?.formatted;
+  lines.push(g ? `Facilitator gas: ${g} ETH` : 'Facilitator gas: (pending)');
+  return lines.join('\n');
+}
+
+function facilitatorGasLine(ethGas) {
+  if (!ethGas?.formatted) return 'facilitator gas: (loading…)';
+  return `facilitator gas: ${ethGas.formatted} ETH`;
+}
+
+function resolveTxHash(rcpt, payResult) {
+  if (rcpt?.txHash) return rcpt.txHash;
+  const settle = payResult?.settle || {};
+  for (const k of ['transaction', 'transactionHash', 'transaction_hash', 'txHash', 'tx_hash']) {
+    const v = settle[k];
+    if (typeof v === 'string' && v.startsWith('0x')) return v;
+  }
+  const url = rcpt?.explorer || '';
+  const m = url.match(/\/tx\/(0x[a-fA-F0-9]+)/);
+  return m ? m[1] : null;
+}
+
+function explorerTxUrl(rcpt) {
+  if (rcpt?.explorer) return rcpt.explorer;
+  const h = rcpt?.txHash;
+  return h ? `https://sepolia.basescan.org/tx/${h}` : null;
+}
+
+async function ensureReceiptGas(rcpt, payResult) {
+  if (rcpt?.ethGas?.formatted) return rcpt.ethGas;
+  const hash = resolveTxHash(rcpt, payResult);
+  if (hash) rcpt.txHash = hash;
+  if (!hash) return null;
+  try {
+    const r = await fetch(SELLER + '/demo/tx-fee?tx=' + encodeURIComponent(hash));
+    if (r.ok) {
+      const g = await r.json();
+      if (g.formatted) {
+        rcpt.ethGas = g;
+        return g;
+      }
+    }
+  } catch (e) { /* retry via wallet poll path */ }
+  return null;
+}
+
+function buildReceiptPayload(offer, payResult, walletBefore, walletAfter) {
+  return {
+    offer: offer ? {
+      id: offer.id,
+      name: offer.name,
+      price: offer.price,
+      currency: offer.currency,
+    } : null,
+    receipt: payResult.receipt || {},
+    wallets: {
+      before: walletBefore,
+      after: {
+        buyer: walletAfter?.buyer?.full || null,
+        seller: walletAfter?.seller?.full || null,
+      },
+    },
+  };
+}
+
+function downloadReceiptPdfClient(payload) {
+  if (!window.jspdf?.jsPDF) throw new Error('PDF library not loaded');
+  const { jsPDF } = window.jspdf;
+  const rcpt = payload.receipt || {};
+  const offer = payload.offer || {};
+  const doc = new jsPDF();
+  let y = 14;
+  const line = (t) => { doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.text(String(t), 14, y); y += 7; };
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.text('ACP Demo - Payment Receipt', 14, y);
+  y += 10;
+  line(`Item: ${offer.name || offer.id || '-'}`);
+  line(`Catalog: $${offer.price ?? rcpt.catalogUsd ?? '-'}`);
+  line(`USDC paid: ${rcpt.usdcPaid || '-'}`);
+  line(`Facilitator gas: ${rcpt.ethGas?.formatted || '-'} ETH`);
+  line(`Tx: ${rcpt.txHash || '-'}`);
+  if (rcpt.explorer) line(`Verify: ${rcpt.explorer}`);
+  const slug = (offer.id || 'payment').replace(/[^a-z0-9_-]+/gi, '-');
+  doc.save(`acp-receipt-${slug}.pdf`);
+}
+
+async function downloadReceiptPdf(payload, payResult) {
+  await ensureReceiptGas(payload.receipt, payResult);
+  const slug = (payload.offer?.id || 'payment').replace(/[^a-z0-9_-]+/gi, '-');
+  for (const path of ['/demo/receipt.pdf', '/demo/receipt']) {
+    try {
+      const r = await fetch(SELLER + path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (r.ok) {
+        const blob = await r.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `acp-receipt-${slug}.pdf`;
+        a.rel = 'noopener';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        return;
+      }
+    } catch (e) { /* try client fallback */ }
+  }
+  downloadReceiptPdfClient(payload);
+}
+
+function addRichBubble(feedId, side, label, fillBubble) {
+  const feed = document.getElementById(feedId);
+  const wrap = document.createElement('div');
+  wrap.className = 'bwrap ' + side;
+  if (label) {
+    const lb = document.createElement('div');
+    lb.className = 'blabel';
+    lb.textContent = shortProtocolLabel(label);
+    wrap.appendChild(lb);
+  }
+  const b = document.createElement('div');
+  const base = side === 'sent' ? 'out' : side === 'recv' ? 'inc' : 'sys';
+  b.className = 'bubble ' + base;
+  fillBubble(b);
+  wrap.appendChild(b);
+  feed.appendChild(wrap);
+  requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.add('show')));
+  scrollToLatest();
+}
+
+function appendVerifyLink(bubbleEl, rcpt) {
+  const url = explorerTxUrl(rcpt);
+  if (!url) return;
+  const a = document.createElement('a');
+  a.className = 'tx-verify-link';
+  a.href = url;
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  a.textContent = 'Verify transaction';
+  bubbleEl.appendChild(a);
+}
+
+function appendWalletDownloadBtn(cardEl, payload, payResult) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'wallet-dl-btn';
+  btn.textContent = 'Download receipt (PDF)';
+  btn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    btn.disabled = true;
+    btn.textContent = 'Generating PDF…';
+    try {
+      await downloadReceiptPdf(payload, payResult);
+    } catch (err) {
+      alert('Could not download receipt: ' + (err.message || err));
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Download receipt (PDF)';
+    }
+  });
+  cardEl.appendChild(btn);
+}
+
+function buildWalletPopHtml(role, data, payHint, opts) {
+  const o = typeof opts === 'number' ? { maxTxs: opts } : (opts || {});
+  const compact = !!o.compact;
+  const histTitle = o.histTitle || (o.paymentTxHash ? 'This payment' : 'Recent transactions');
+  const eth = data.balances?.ETH;
+  const usdc = data.balances?.USDC;
+  const ethStr = eth ? `${eth.formatted} ${eth.symbol}` : '—';
+  const usdcStr = usdc ? `${usdc.formatted} ${usdc.symbol}` : '—';
+  const v = data.verify || {};
+  const addrUrl = v.address || data.explorer;
+  const ethUrl = v.eth || addrUrl;
+  const usdcUrl = v.usdc || (data.usdcContract && data.address
+    ? `https://sepolia.basescan.org/token/${data.usdcContract}?a=${data.address}`
+    : null);
+  const roleLabel = data.role || role;
+  let html = '';
+  if (compact) {
+    html = `
+    <div class="wallet-pop-head-row">
+      <span class="wallet-pop-title">Base Sepolia · ${roleLabel}</span>
+      <span class="wallet-addr-actions">
+        <a href="${addrUrl || '#'}" class="wallet-addr-link" target="_blank" rel="noopener noreferrer" data-wallet-open="1" title="${data.address || ''}">Wallet Address</a>
+        ${walletExtLink(addrUrl, 'View on Basescan')}
+      </span>
+    </div>`;
+  } else {
+    html = `
+    <div class="wallet-pop-title">Base Sepolia · ${roleLabel}</div>
+    <div class="wallet-addr-row">
+      <div class="wallet-addr-text">
+        <a href="${addrUrl || '#'}" target="_blank" rel="noopener noreferrer" data-wallet-open="1" title="${data.address || ''}">${data.address || '—'}</a>
+      </div>
+      ${walletExtLink(addrUrl, 'View address on Basescan')}
+    </div>`;
+  }
+  const usdcOnly = compact && (o.paymentTxHash || o.usdcOnly);
+  if (usdcOnly) {
+    html += `
+    <div class="wallet-bal-row">
+      <span>USDC</span>
+      <span class="wallet-bal-val"><span>${usdcStr}</span>${walletExtLink(usdcUrl, 'Verify USDC on Basescan')}</span>
+    </div>
+    <div class="wallet-muted wallet-usdc-only-note">x402 payment · USDC only (facilitator pays ETH gas)</div>`;
+  } else {
+    html += `
+    <div class="wallet-bal-row">
+      <span>ETH</span>
+      <span class="wallet-bal-val"><span>${ethStr}</span>${walletExtLink(ethUrl, 'Verify ETH on Basescan')}</span>
+    </div>
+    <div class="wallet-bal-row">
+      <span>USDC</span>
+      <span class="wallet-bal-val"><span>${usdcStr}</span>${walletExtLink(usdcUrl, 'Verify USDC on Basescan')}</span>
+    </div>`;
+  }
+  if (payHint) {
+    const hintClass = payHint.includes('✓') ? 'ok' : (payHint.includes('…') || payHint.includes('pending') ? 'pending' : '');
+    html += `<div class="wallet-pay-hint ${hintClass}">${payHint.replace(/\n/g, '<br>')}</div>`;
+  }
+  if (!compact && data.errors?.length) {
+    html += `<div class="wallet-err">${data.errors.join('; ')}</div>`;
+  }
+  if (!compact && data.notices?.length) {
+    html += `<div class="wallet-muted">${data.notices.join(' ')}</div>`;
+  }
+  html += `<div class="wallet-hist-title">${histTitle}</div>`;
+  const txs = walletTxListForDisplay(role, data, o);
+  if (!txs.length) {
+    html += `<div class="wallet-muted">No indexed txs yet.</div>`;
+  } else {
+    for (const tx of txs) {
+      const sign = tx.direction === 'in' ? '+' : tx.direction === 'out' ? '−' : '';
+      const txUrl = tx.explorer || (tx.hash ? `https://sepolia.basescan.org/tx/${tx.hash}` : null);
+      const hashPart = txUrl
+        ? `<a href="${txUrl}" target="_blank" rel="noopener noreferrer" data-wallet-open="1">${shortAddr(tx.hash)}</a>`
+        : shortAddr(tx.hash);
+      html += `<div class="wallet-tx wallet-tx-${tx.direction || 'other'}">
+        <div class="wallet-tx-head">
+          <span class="wallet-tx-dir">${sign}${tx.amount} ${tx.asset} · ${tx.direction || '?'}</span>
+          ${walletExtLink(txUrl, 'View transaction on Basescan')}
+        </div>
+        <div class="wallet-tx-meta">
+          <span class="wallet-muted">${tx.timestamp || ''} ${hashPart}</span>
+        </div>
+      </div>`;
+    }
+  }
+  return html;
+}
+
+function addChatWalletBubble(feedId, role, data, payHint, paymentTxHash, usdcPaid, receiptPayload, payResult) {
+  if (!data?.address) {
+    addBubble(feedId, 'mid', `wallet · ${role}`, 'Wallet data unavailable');
+    return null;
+  }
+  const isSeller = feedId === 'feed-seller';
+  const side = isSeller ? 'sent' : 'recv';
+  const feed = document.getElementById(feedId);
+  const wrap = document.createElement('div');
+  wrap.className = 'bwrap ' + side + ' chat-wallet-bwrap';
+  const lb = document.createElement('div');
+  lb.className = 'blabel';
+  lb.innerHTML = `<span class="chat-wallet-label"><span class="chat-wallet-icon" aria-hidden="true">&#x1F4B3;</span> wallet · ${role}</span>`;
+  wrap.appendChild(lb);
+  const b = document.createElement('div');
+  b.className = 'bubble inc chat-wallet-bubble';
+  const card = document.createElement('div');
+  card.className = 'wallet-pop chat-wallet-card';
+  card.innerHTML = buildWalletPopHtml(role, data, payHint, {
+    compact: true,
+    paymentTxHash,
+    usdcPaid,
+    usdcOnly: true,
+    histTitle: 'This payment',
+  });
+  if (receiptPayload) appendWalletDownloadBtn(card, receiptPayload, payResult);
+  card.addEventListener('click', onWalletExplorerClick);
+  b.appendChild(card);
+  wrap.appendChild(b);
+  feed.appendChild(wrap);
+  requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.add('show')));
+  softScrollToBubble(wrap);
+  return wrap;
+}
+
+async function pollWalletsUntilChange(before, maxMs = 90000) {
+  const start = Date.now();
+  while (Date.now() - start < maxMs) {
+    await new Promise(r => setTimeout(r, 2500));
+    _walletCache.buyer = null;
+    _walletCache.seller = null;
+    await Promise.all(['buyer', 'seller'].map(r => fetchWallet(r)));
+    const b = _walletCache.buyer?.balances?.USDC?.raw;
+    const s = _walletCache.seller?.balances?.USDC?.raw;
+    if (b !== before.buyer?.usdcRaw || s !== before.seller?.usdcRaw) return true;
+  }
+  return false;
+}
+
+function shortAddr(a) {
+  if (!a || a.length < 12) return a || '—';
+  return a.slice(0, 6) + '…' + a.slice(-4);
+}
+
+const WALLET_EXT_ICON = '<svg class="wallet-ext-icon" viewBox="0 0 12 12" aria-hidden="true"><path d="M8.5 1.5H10.5V3.5M10.5 1.5L5.5 6.5M4.5 2.5H2.5C1.95 2.5 1.5 2.95 1.5 3.5V9.5C1.5 10.05 1.95 10.5 2.5 10.5H8.5C9.05 10.5 9.5 10.05 9.5 9.5V7.5" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+function walletExtLink(url, ariaLabel) {
+  if (!url || url === '#') return '';
+  const safe = String(url).replace(/"/g, '%22');
+  const label = String(ariaLabel || 'View on Basescan').replace(/"/g, '');
+  return `<a class="wallet-ext" href="${safe}" target="_blank" rel="noopener noreferrer" data-wallet-open="1" aria-label="${label}" title="${label}">${WALLET_EXT_ICON}</a>`;
+}
+
+/** Pin popover under the wallet button (viewport coords) — avoids feed/center covering links */
+function pinWalletPopover(wrap) {
+  const pop = wrap?.querySelector('.wallet-pop');
+  const btn = wrap?.querySelector('.wallet-btn');
+  if (!pop || !btn || !wrap.classList.contains('open')) return;
+  pop.style.display = 'block';
+  const gap = 6;
+  const pad = 8;
+  const r = btn.getBoundingClientRect();
+  const maxW = Math.min(300, window.innerWidth - pad * 2);
+  pop.style.width = maxW + 'px';
+  const maxH = Math.max(120, Math.min(320, window.innerHeight - r.bottom - gap - pad));
+  pop.style.maxHeight = maxH + 'px';
+  pop.style.top = (r.bottom + gap) + 'px';
+  const isSeller = wrap.id === 'wallet-wrap-seller';
+  pop.style.right = 'auto';
+  if (isSeller) {
+    let left = r.right - maxW;
+    if (left < pad) left = pad;
+    if (left + maxW > window.innerWidth - pad) left = window.innerWidth - maxW - pad;
+    pop.style.left = left + 'px';
+  } else {
+    let left = r.left;
+    if (left + maxW > window.innerWidth - pad) left = window.innerWidth - maxW - pad;
+    if (left < pad) left = pad;
+    pop.style.left = left + 'px';
+  }
+}
+
+function onWalletExplorerClick(e) {
+  const a = e.target.closest('a[href]');
+  if (!a || !a.closest('.wallet-pop, .chat-wallet-card')) return;
+  const href = a.getAttribute('href');
+  if (!href || href === '#') return;
+  e.preventDefault();
+  e.stopPropagation();
+  window.open(href, '_blank', 'noopener,noreferrer');
+}
+
+function renderWalletPop(role, data, errMsg) {
+  const pop = document.getElementById('wallet-pop-' + role);
+  if (!pop) return;
+  if (errMsg) {
+    pop.innerHTML = `<div class="wallet-pop-title">Base Sepolia</div><div class="wallet-err">${errMsg}</div>`;
+    return;
+  }
+  if (data.error && !data.address) {
+    pop.innerHTML = `<div class="wallet-pop-title">Wallet</div><div class="wallet-err">${data.error}</div>`;
+    return;
+  }
+  pop.innerHTML = buildWalletPopHtml(role, data, _walletPayHint[role], {
+    maxTxs: POPOVER_WALLET_MAX_TXS,
+    histTitle: 'Recent transactions (last 3)',
+  });
+  const wrap = document.getElementById('wallet-wrap-' + role);
+  if (wrap?.classList.contains('open')) {
+    requestAnimationFrame(() => pinWalletPopover(wrap));
+  }
+}
+
+async function fetchWallet(role, force = false) {
+  if (_walletCache[role] && !force) {
+    renderWalletPop(role, _walletCache[role]);
+    return;
+  }
+  if (_walletLoading[role]) return;
+  _walletLoading[role] = true;
+  const pop = document.getElementById('wallet-pop-' + role);
+  if (pop) pop.innerHTML = '<div class="wallet-loading">Loading from chain…</div>';
+  try {
+    const r = await fetch(SELLER + '/wallet/' + role, { method: 'GET' });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+    _walletCache[role] = data;
+    renderWalletPop(role, data);
+  } catch (e) {
+    renderWalletPop(role, null, e.message || 'Failed to load wallet');
+  } finally {
+    _walletLoading[role] = false;
+  }
+}
+
+function closeAllWalletPops() {
+  document.querySelectorAll('.wallet-wrap.open').forEach(w => {
+    w.classList.remove('open');
+    const pop = w.querySelector('.wallet-pop');
+    if (pop) pop.style.display = '';
+  });
+}
+
+function initWalletWidgets() {
+  ['buyer', 'seller'].forEach(role => {
+    const wrap = document.getElementById('wallet-wrap-' + role);
+    if (!wrap) return;
+    const pop = document.getElementById('wallet-pop-' + role);
+    if (pop) pop.addEventListener('click', onWalletExplorerClick);
+    const btn = wrap.querySelector('.wallet-btn');
+    if (btn) {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const wasOpen = wrap.classList.contains('open');
+        document.querySelectorAll('.wallet-wrap.open').forEach(w => {
+          if (w !== wrap) {
+            w.classList.remove('open');
+            const p = w.querySelector('.wallet-pop');
+            if (p) p.style.display = '';
+          }
+        });
+        if (wasOpen) {
+          wrap.classList.remove('open');
+          if (pop) pop.style.display = '';
+          return;
+        }
+        wrap.classList.add('open');
+        fetchWallet(role);
+      });
+    }
+  });
+  const reposition = () => {
+    document.querySelectorAll('.wallet-wrap.open').forEach(pinWalletPopover);
+  };
+  window.addEventListener('resize', reposition);
+  window.addEventListener('scroll', reposition, true);
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('.wallet-wrap')) return;
+    closeAllWalletPops();
+  });
+}
+
+document.addEventListener('DOMContentLoaded', initWalletWidgets);
 
 // JSON-RPC to seller — timeout + retry for mobile networks / Railway cold start
 async function sellerFetch(body, { signal, timeoutMs = 90000, retries = 2 } = {}) {
@@ -932,10 +2010,38 @@ refreshSellerHealth();
 // This is what the human configures ONCE before the agent runs.
 // After this, no human is in the loop — the agent acts on these preferences.
 const BUYER_PROFILE = {
-  budget:        150,                               // max spend in USD
-  initialIntent: "I want comfortable running shoes" // deliberately no budget —
-  // the seller will ask back, demonstrating multi-turn agentic negotiation
+  budget:        150,                               // only if no amount found in the prompt text
+  initialIntent: "I want comfortable running shoes" // add "at $250" in prompt to search ≤ $250
 };
+
+/** Match budget in buyer text (same patterns as seller extract_budget). */
+function extractBudgetFromText(text) {
+  if (!text) return null;
+  const t = String(text).toLowerCase();
+  const patterns = [
+    /\$\s*(\d+(?:\.\d+)?)/,
+    /budget\s+(?:of\s+)?(\d+(?:\.\d+)?)/,
+    /under\s+\$?\s*(\d+(?:\.\d+)?)/,
+    /at\s+\$?\s*(\d+(?:\.\d+)?)/,
+    /max\s+\$?\s*(\d+(?:\.\d+)?)/,
+    /(\d+(?:\.\d+)?)\s*dollars?/,
+    /spend\s+(?:up\s+to\s+)?\$?\s*(\d+)/,
+  ];
+  for (const re of patterns) {
+    const m = t.match(re);
+    if (m) return Number(m[1]);
+  }
+  return null;
+}
+
+/** Seller parse first, then prompt text — never $150 if user said $250. */
+function resolveBudget(parsedIntent, promptText) {
+  const fromSeller = parsedIntent?.max_price ?? parsedIntent?.maxPrice;
+  if (fromSeller != null && fromSeller !== '') return Number(fromSeller);
+  const fromText = extractBudgetFromText(promptText);
+  if (fromText != null) return fromText;
+  return BUYER_PROFILE.budget;
+}
 // ─────────────────────────────────────────────────────────────────────────────
 
 document.getElementById('demo-build').textContent = 'build ' + DEMO_BUILD;
@@ -955,7 +2061,7 @@ function addBubble(feedId, side, label, text, extraClass = '') {
   if (label) {
     const lb = document.createElement('div');
     lb.className = 'blabel';
-    lb.textContent = label;
+    lb.textContent = shortProtocolLabel(label);
     wrap.appendChild(lb);
   }
   const b = document.createElement('div');
@@ -965,7 +2071,7 @@ function addBubble(feedId, side, label, text, extraClass = '') {
   wrap.appendChild(b);
   feed.appendChild(wrap);
   requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.add('show')));
-  scrollToLatest();
+  return wrap;
 }
 
 function shortName(name, max = 26) {
@@ -1000,7 +2106,7 @@ function getCommerceCategories(commerce) {
   return [];
 }
 
-function addCapsBubble(feedId, info, canLoad, sessCaps, itemCount, categories, isSeller = false, commerce = {}) {
+function addCapsBubble(feedId, info, canLoad, sessCaps, itemCount, categories, isSeller = false, commerce = {}, payment = {}) {
   const feed = document.getElementById(feedId);
   const wrap = document.createElement('div');
   wrap.className = 'bwrap ' + (isSeller ? 'sent' : 'recv');
@@ -1019,9 +2125,11 @@ function addCapsBubble(feedId, info, canLoad, sessCaps, itemCount, categories, i
   const summary = `${info.name} v${info.version}
 canSell: ${canSell}  ·  canCreateSession: ${canLoad}  ·  ${itemCount} items`;
 
+  const x402On = payment?.x402 === true;
   const detail = `sessionMethods: ${sessCaps.join(', ') || '—'}
 categories: ${categories.join(', ')}
-inventory: ${itemCount} Nike products`;
+inventory: ${itemCount} Nike products
+payment: x402 ${x402On ? 'USDC · Base Sepolia' : 'off'}`;
 
   b.innerHTML = `<span class="caps-summary">${summary}</span><span class="caps-toggle" onclick="this.parentNode.querySelector('.caps-detail').classList.toggle('open');this.textContent=this.textContent.includes('▾')?'▸ show details':'▾ hide details'"> ▾ show details</span><div class="caps-detail">${detail}</div>`;
   wrap.appendChild(b);
@@ -1075,9 +2183,57 @@ function addOfferCard(feedId, offer) {
   scrollToLatest();
 }
 
-function addArrow(direction, label, sublabel) {
-  ({ label, sublabel } = compactArrowText(label, sublabel));
+const FLOW_GROUP_META = {
+  acp: { badge: 'ACP', title: 'Agent Client Protocol' },
+  x402: { badge: 'x402', title: 'Payment settlement' },
+};
+
+let _flowGroupBody = null;
+
+function beginFlowGroup(kind, alignBubble) {
+  const meta = FLOW_GROUP_META[kind];
+  if (!meta) return null;
+  _flowGroupBody = null;
   const c = document.getElementById('arrows');
+  const group = document.createElement('div');
+  group.className = 'flow-group flow-group-' + kind;
+  group.setAttribute('data-flow', kind);
+  const head = document.createElement('div');
+  head.className = 'flow-group-head';
+  head.innerHTML = `
+    <span class="flow-group-badge">${meta.badge}</span>
+    <div class="flow-group-titles">
+      <div class="flow-group-title">${meta.title}</div>
+    </div>`;
+  const body = document.createElement('div');
+  body.className = 'flow-group-body';
+  group.appendChild(head);
+  group.appendChild(body);
+  if (kind === 'x402' && alignBubble) {
+    group.style.visibility = 'hidden';
+    group.style.marginTop = '0px';
+  }
+  c.appendChild(group);
+  _flowGroupBody = body;
+  if (alignBubble && kind === 'x402') {
+    waitForBubbleLayout(alignBubble).then(() => {
+      applyFlowGroupMargin('x402', alignBubble);
+      group.style.visibility = '';
+      softScrollToBubble(alignBubble);
+    });
+  } else if (alignBubble) {
+    waitForBubbleLayout(alignBubble).then(() => alignFlowGroupToBubble(kind, alignBubble));
+  }
+  return group;
+}
+
+function endFlowGroup() {
+  _flowGroupBody = null;
+}
+
+function addArrow(direction, label, sublabel, syncBubble) {
+  ({ label, sublabel } = compactArrowText(label, sublabel));
+  const parent = _flowGroupBody || document.getElementById('arrows');
   const row = document.createElement('div');
   row.className = 'arrow-row ' + (direction === 'right' ? 'to-right' : 'to-left');
   const chip = document.createElement('div');
@@ -1091,10 +2247,7 @@ function addArrow(direction, label, sublabel) {
     lbl.textContent = sublabel;
     row.appendChild(lbl);
   }
-  c.appendChild(row);
-  requestAnimationFrame(() => {
-    row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-  });
+  parent.appendChild(row);
 }
 
 function setDot(id, state) {
@@ -1328,11 +2481,10 @@ async function showOffers(res, promptText) {
   const intent      = res.parsedIntent || {};
   const offers      = res.offers || (res.offer ? [res.offer] : []);
   const claudeTag   = res.usedClaude ? ' · claude haiku' : ' · regex';
-  const budget      = BUYER_PROFILE.budget;
   const intentQuery = intent.query || promptText;
+  const budget = resolveBudget(intent, promptText);
 
-  // Compact intent summary
-  const iLines = [`"${intentQuery}"`, `budget: $${budget}`];
+  const iLines = [`"${intentQuery}"`, `budget: ≤ $${budget} (catalog search)`];
   addBubble('feed-seller', 'mid', `intent resolved${claudeTag}`, iLines.join('\n'));
   await delay(700);
 
@@ -1355,7 +2507,8 @@ offers.map((o, i) => {
   return `${i + 1}. ${shortName(o.name, 24)} · $${o.price.toFixed(0)}${pct}`;
 }).join('\n'));
   await delay(900);
-  addArrow('left', `${offers.length} offer${offers.length > 1 ? 's' : ''}`, 'seller → buyer');
+  addArrow('left', `${offers.length} offer${offers.length > 1 ? 's' : ''}`, 'seller → buyer', lastBubbleWrap('feed-seller'));
+  scrollToLatest();
   await delay(1300);
 
   // Agent evaluates: best intent fit within budget (not cheapest price)
@@ -1431,12 +2584,14 @@ offers.map((o, i) => {
     ? `you chose: ${shortName(chosenOffer.name, 24)}`
     : pick.reason;
 
+  const demoUsdc = (chosenOffer.price / 10000).toFixed(4);
   addBubble('feed-buyer', 'recv', 'agent decision',
-    decisionLines.join('\n') + '\n\n' + finalLine, 'decision');
+    decisionLines.join('\n') + '\n\n' + finalLine
+    + `\n\nsettlement: ~${demoUsdc} USDC on-chain (demo: 1 USDC = $10,000 catalog)`, 'decision');
 
   setDot('dot-buyer', 'on');
   setPip(3, 'done');
-  setStatus('Offer selected — click Next to proceed to payment.');
+  setStatus(`Offer selected — ~${demoUsdc} USDC due. Click Next for x402 payment.`);
   setBtn('Next: Payment');
   step++;
   busy = false;
@@ -1478,12 +2633,15 @@ async function nextStep() {
 
     if (sellerCatalogCount === 0) await refreshSellerHealth();
 
-    addBubble('feed-buyer', 'sent', 'buyer  →  seller   |   initialize',
+    const initBubble = addBubble('feed-buyer', 'sent', 'buyer  →  seller   |   initialize',
 `protocolVersion: 1
 canBuy: true
 preferredCurrencies: USD`);
-    await delay(1000);
-    addArrow('right', 'initialize', 'buyer → seller');
+    await delay(400);
+    beginFlowGroup('acp', initBubble);
+    await delay(400);
+    addArrow('right', 'initialize', 'buyer → seller', initBubble);
+    await delay(600);
     await delay(1400);
 
     let result;
@@ -1529,12 +2687,13 @@ preferredCurrencies: USD`);
 protocolVersion: ${result.result.protocolVersion} agreed`);
     await delay(1200);
 
-    addCapsBubble('feed-seller', info, canLoad, sessCaps, itemCount, categories, true, commerce);
+    const payment = sellerCaps.payment || {};
+    addCapsBubble('feed-seller', info, canLoad, sessCaps, itemCount, categories, true, commerce, payment);
     await delay(1000);
-    addArrow('left', 'capabilities', 'seller → buyer');
+    addArrow('left', 'capabilities', 'seller → buyer', lastBubbleWrap('feed-seller'));
     await delay(1400);
 
-    addCapsBubble('feed-buyer', info, canLoad, sessCaps, itemCount, categories, false, commerce);
+    addCapsBubble('feed-buyer', info, canLoad, sessCaps, itemCount, categories, false, commerce, payment);
     await delay(1000);
 
     addBubble('feed-buyer', 'mid', '', 'handshake complete — session allowed');
@@ -1554,11 +2713,11 @@ protocolVersion: ${result.result.protocolVersion} agreed`);
     setStatus('Creating session context with seller...');
     setDot('dot-buyer', 'working');
 
-    addBubble('feed-buyer', 'sent', 'buyer  →  seller   |   session/new',
+    const sessBubble = addBubble('feed-buyer', 'sent', 'buyer  →  seller   |   session/new',
 `buyerId: buyer-agent-v2.0.0
 cwd: /demo`);
-    await delay(1000);
-    addArrow('right', 'session/new', 'buyer → seller');
+    await delay(600);
+    addArrow('right', 'session/new', 'buyer → seller', sessBubble);
     await delay(1400);
 
     addBubble('feed-seller', 'recv', 'seller received  |  session/new',
@@ -1592,7 +2751,7 @@ allocating state storage`);
 `sessionId: ${activeSession}
 status: active`);
     await delay(1000);
-    addArrow('left', 'session ready', 'seller → buyer');
+    addArrow('left', 'session ready', 'seller → buyer', lastBubbleWrap('feed-buyer'));
     await delay(1400);
 
     addBubble('feed-buyer', 'recv', 'buyer received  |  session/new',
@@ -1636,12 +2795,12 @@ stored — will be sent with all requests`);
 
       showPrompt(text, `turn ${turnId} — sending…`, true);
 
-      addBubble('feed-buyer', 'sent', 'buyer  →  seller   |   session/prompt',
+      const promptBubble = addBubble('feed-buyer', 'sent', 'buyer  →  seller   |   session/prompt',
 `"${text}"`);
       await delay(900);
       if (promptTurnAborted) return null;
 
-      addArrow('right', 'session/prompt', `turn ${turnId} — buyer → seller`);
+      addArrow('right', 'session/prompt', `turn ${turnId} — buyer → seller`, promptBubble);
       await delay(1300);
       if (promptTurnAborted) return null;
 
@@ -1709,7 +2868,7 @@ stored — will be sent with all requests`);
 
 "${res1.agentMessage}"`);
       await delay(900);
-      addArrow('left', 'clarification', 'seller → buyer');
+      addArrow('left', 'clarification', 'seller → buyer', lastBubbleWrap('feed-seller'));
       await delay(1300);
 
       addBubble('feed-buyer', 'recv', 'seller asks  |  buyer agent processing',
@@ -1718,7 +2877,10 @@ res1.agentMessage);
 
       // Buyer agent formulates its budget response from BUYER_PROFILE
       // Human can edit this in the prompt box before the countdown fires
-      const agentBudgetReply = `My budget is $${BUYER_PROFILE.budget}`;
+      const budgetInTurn1 = extractBudgetFromText(turn1Text);
+      const agentBudgetReply = budgetInTurn1 != null
+        ? `My budget is $${budgetInTurn1}`
+        : `My budget is $${BUYER_PROFILE.budget}`;
       showPrompt(agentBudgetReply, 'buyer agent reply (auto)', true);
       setStatus(`Buyer agent responding with budget in 5s — click prompt to take control`);
       setDot('dot-buyer', 'on');
@@ -1769,27 +2931,152 @@ res1.agentMessage);
     }
   }
 
-  // ── STEP 4 — Payment placeholder ──────────────────────────────────────────
+  // ── STEP 4 — x402 USDC payment (Base Sepolia) ─────────────────────────────
   else if (step === 4) {
     if (!pendingOffer) { busy = false; setBtn('Next: Payment'); return; }
     setPip(4, 'active');
     litStep(4);
-    setStatus('Initiating payment between agents...');
+    setStatus('x402 payment — opening agent wallets…');
+    openPaymentWallets();
+    const walletBefore = await snapshotWalletBalances(true).catch(() => ({}));
 
-    addBubble('feed-buyer', 'sent', 'buyer  →  seller   |   commerce/pay',
+    const payQuoteBubble = addBubble('feed-buyer', 'sent', 'buyer  →  seller   |   commerce/pay (quote)',
 `sessionId: ${activeSession}
-amount: $${pendingOffer.price.toFixed(2)} ${pendingOffer.currency}
-method: stripe  [phase 2]`);
-    await delay(1000);
-    addArrow('right', 'pay', 'buyer → seller');
-    await delay(1400);
+offer: ${pendingOffer.name}
+catalog: $${pendingOffer.price.toFixed(2)} ${pendingOffer.currency}`);
+    await waitForBubbleLayout(payQuoteBubble);
+    beginFlowGroup('x402', payQuoteBubble);
+    await delay(300);
+    addArrow('right', 'commerce/pay', 'buyer → seller', payQuoteBubble);
+    await delay(500);
 
-    addBubble('feed-seller', 'mid', '', 'stripe integration — phase 2');
+    let quote, payResult;
+    try {
+      const q = await sellerFetch({
+        jsonrpc: '2.0', id: Date.now(), method: 'commerce/pay',
+        params: { sessionId: activeSession, offerId: pendingOffer.id, offer: pendingOffer }
+      });
+      if (q.error) throw new Error(q.error.message);
+      quote = q.result;
+    } catch (e) {
+      addErrBubble('feed-buyer', 'Quote failed: ' + sellerErrorMsg(e));
+      busy = false; setBtn('Retry Payment'); return;
+    }
+
+    const fx = quote.fx || {};
+    const usdcDue = fx.usdc || '—';
+    const balOk = quote.balanceCheck?.sufficient !== false;
+
+    const payReqBubble = addBubble('feed-seller', 'recv', 'seller  →  buyer   |   payment required (x402)',
+`scheme: exact · Base Sepolia
+payTo: seller wallet
+due: ${usdcDue} USDC
+catalog: $${fx.catalogUsd || pendingOffer.price} (${fx.demoRate || 'demo rate'})
+balance ok: ${balOk ? 'yes' : 'NO — insufficient USDC'}`);
+    await delay(900);
+    addArrow('left', 'payment required', 'seller → buyer', payReqBubble);
+
+    setWalletPayHint(
+      `Due: ${usdcDue} USDC ($${fx.catalogUsd} demo)\n${balOk ? 'Ready to pay' : 'Insufficient USDC'}`,
+      `Expect: +${usdcDue} USDC`
+    );
+
+    if (!balOk) {
+      addErrBubble('feed-buyer', 'Buyer USDC balance too low for this offer.');
+      busy = false; setBtn('Retry Payment'); return;
+    }
+
+    setStatus('Signing & settling USDC via x402 facilitator…');
+    const proofBubble = addBubble('feed-buyer', 'sent', 'buyer  →  seller   |   payment proof',
+`method: x402 exact · USDC
+amount: ${usdcDue} USDC`);
+    await delay(700);
+    addArrow('right', 'payment proof', 'buyer → seller', proofBubble);
+
+    try {
+      const r = await fetch(SELLER + '/demo/x402/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: activeSession,
+          offerId: pendingOffer.id,
+          offer: pendingOffer,
+        }),
+      });
+      payResult = await r.json();
+      if (!r.ok) throw new Error(payResult.error || payResult.message || `HTTP ${r.status}`);
+    } catch (e) {
+      addErrBubble('feed-buyer', 'Payment failed: ' + (e.message || e));
+      busy = false; setBtn('Retry Payment'); return;
+    }
+
+    if (payResult.status !== 'paid') {
+      addErrBubble('feed-seller', payResult.error || 'Settlement failed');
+      busy = false; setBtn('Retry Payment'); return;
+    }
+
+    addBubble('feed-seller', 'mid', '', 'facilitator · verify ✓\nfacilitator · settle ✓');
     await delay(600);
-    addBubble('feed-buyer', 'mid', '', 'payment execution — phase 2');
+
+    let rcpt = payResult.receipt || {};
+    await ensureReceiptGas(rcpt, payResult);
+    const txHash = resolveTxHash(rcpt, payResult);
+    if (txHash) {
+      rcpt.txHash = txHash;
+      rcpt.explorer = explorerTxUrl(rcpt);
+    }
+    payResult.receipt = rcpt;
+
+    addRichBubble('feed-seller', 'sent', 'seller  →  buyer   |   paid · fulfillment', (b) => {
+      const pre = document.createElement('div');
+      pre.style.whiteSpace = 'pre-wrap';
+      pre.textContent = [
+        'status: paid',
+        `usdc: ${rcpt.usdcPaid || usdcDue}`,
+        facilitatorGasLine(rcpt.ethGas),
+        txHash ? `tx: ${shortAddr(txHash)}` : 'tx: —',
+      ].join('\n');
+      b.appendChild(pre);
+      appendVerifyLink(b, rcpt);
+    });
+    await delay(800);
+    addArrow('left', 'settled', 'seller → buyer', lastBubbleWrap('feed-seller'));
+
+    setStatus('Refreshing wallets from chain…');
+    setWalletPayHint('Settling… polling chain', 'Awaiting credit…');
+    await pollWalletsUntilChange(walletBefore);
+    _walletCache.buyer = null;
+    _walletCache.seller = null;
+    await Promise.all(['buyer', 'seller'].map(r => fetchWallet(r)));
+
+    let walletAfter = {};
+    try {
+      walletAfter = await snapshotWalletBalances(true);
+    } catch (e) {
+      walletAfter = {
+        buyer: { full: _walletCache.buyer },
+        seller: { full: _walletCache.seller },
+      };
+    }
+
+    await ensureReceiptGas(rcpt, payResult);
+    payResult.receipt = rcpt;
+
+    const buyerSnap = walletAfter.buyer?.full || _walletCache.buyer;
+    const sellerSnap = walletAfter.seller?.full || _walletCache.seller;
+    const buyerPayHint = formatWalletPayHint(`Paid ${rcpt.usdcPaid || usdcDue} USDC`, rcpt.ethGas);
+    const sellerPayHint = formatWalletPayHint(`Received +${rcpt.usdcPaid || usdcDue} USDC`, rcpt.ethGas);
+
+    const receiptPayload = buildReceiptPayload(pendingOffer, payResult, walletBefore, walletAfter);
+    addChatWalletBubble('feed-buyer', 'buyer', buyerSnap, buyerPayHint, rcpt.txHash, rcpt.usdcPaid, receiptPayload, payResult);
+    addChatWalletBubble('feed-seller', 'seller', sellerSnap, sellerPayHint, rcpt.txHash, rcpt.usdcPaid, receiptPayload, payResult);
+    await delay(400);
+
+    setWalletPayHint(buyerPayHint, sellerPayHint);
+    await Promise.all(['buyer', 'seller'].map(r => fetchWallet(r, true)));
+
     setPip(4, 'done');
-    setPip(5, 'done');
-    setStatus('Phase 1 complete — two real agents communicated end to end with sessions. Payment in Phase 2.');
+    setStatus('Payment complete — USDC settled on Base Sepolia. Wallets stay open until Reset.');
     document.getElementById('next-btn').style.display = 'none';
     document.getElementById('reset-btn').style.display = '';
     busy = false;
@@ -1807,6 +3094,11 @@ function resetDemo() {
   clearFeed('feed-buyer');
   clearFeed('feed-seller');
   document.getElementById('arrows').innerHTML = '';
+  endFlowGroup();
+  document.querySelectorAll('.flow-group-acp, .flow-group-x402').forEach(el => {
+    el.style.marginTop = '';
+    el.style.visibility = '';
+  });
   addBubble('feed-buyer', 'mid', '', 'waiting to start');
   addBubble('feed-seller', 'mid', '', 'waiting for connection');
   for (let i = 0; i < 6; i++) setPip(i, '');
@@ -1819,6 +3111,8 @@ function resetDemo() {
   document.getElementById('prompt-label').textContent = 'prompt';
   document.getElementById('prompt-input').className = 'prompt-input';
   step = 0; sellerCaps = null; activeSession = null; pendingOffer = null; autoFireTimer = null;
+  _walletPayHint.buyer = ''; _walletPayHint.seller = '';
+  document.querySelectorAll('.wallet-wrap.payment-active').forEach(w => w.classList.remove('payment-active'));
   promptInFlight = false; promptTurnAborted = false; activePromptController = null;
   const btn = document.getElementById('next-btn');
   btn.textContent = 'Start';

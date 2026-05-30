@@ -28,14 +28,20 @@ Note on session/load in this demo:
 import re
 import os
 import json
+import asyncio
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
 from session_manager import session_manager
 from search import catalog_search   # modular search — swap backend here
-
+from payments.commerce_pay import handle_commerce_pay
+from payments.wallets import AgentRole, wallet_status
+from payments.wallet_api import build_wallet_response
+from payments import x402_service
+from payments.chain import fetch_tx_fee_eth
+from payments.receipt_pdf import build_receipt_pdf
 # --------------------------------------------------------------------------
 # Anthropic client — used for natural language intent parsing.
 # Falls back silently to regex if the key is missing or the call fails.
@@ -80,12 +86,96 @@ async def health():
         "session":         True,
         "catalogCount":    catalog_search.count(),
         "catalogCategories": list(summary["categories"].keys()),
+        "wallets": {
+            "buyer":  wallet_status(AgentRole.BUYER),
+            "seller": wallet_status(AgentRole.SELLER),
+        },
     })
+
+
+# --------------------------------------------------------------------------
+# Wallet info — live Base Sepolia balances + Basescan history (no private keys)
+# --------------------------------------------------------------------------
+@app.get("/wallet/buyer")
+async def wallet_buyer():
+    try:
+        return JSONResponse(build_wallet_response(AgentRole.BUYER))
+    except Exception as e:
+        return JSONResponse({"role": "buyer", "error": str(e)}, status_code=503)
+
+
+@app.get("/wallet/seller")
+async def wallet_seller():
+    try:
+        return JSONResponse(build_wallet_response(AgentRole.SELLER))
+    except Exception as e:
+        return JSONResponse({"role": "seller", "error": str(e)}, status_code=503)
 
 
 # --------------------------------------------------------------------------
 # Single JSON-RPC endpoint — all ACP messages arrive here
 # --------------------------------------------------------------------------
+@app.get("/demo/tx-fee")
+async def demo_tx_fee(tx: str = ""):
+    """Settlement tx fee (facilitator gas) — polled after settle if receipt not ready yet."""
+    if not tx or not tx.startswith("0x"):
+        return JSONResponse({"error": "tx query param required"}, status_code=400)
+    gas = await asyncio.to_thread(fetch_tx_fee_eth, tx)
+    if not gas:
+        return JSONResponse({"error": "fee unavailable"}, status_code=404)
+    return JSONResponse(gas)
+
+
+async def _build_receipt_pdf_response(body: dict) -> Response:
+    try:
+        pdf_bytes = await asyncio.to_thread(build_receipt_pdf, body)
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+    offer_id = (body.get("offer") or {}).get("id") or "payment"
+    filename = f"acp-receipt-{offer_id}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@app.post("/demo/receipt.pdf")
+@app.post("/demo/receipt")
+async def demo_receipt_pdf(request: Request):
+    """Downloadable PDF receipt for demo UI."""
+    body = await request.json()
+    return await _build_receipt_pdf_response(body)
+
+
+@app.post("/demo/x402/execute")
+async def demo_x402_execute(request: Request):
+    """Demo UI: quote + sign + settle in one call when DEMO_SERVER_SIGN=true."""
+    body = await request.json()
+    session_id = body.get("sessionId")
+    offer = body.get("offer") or {}
+    offer_id = body.get("offerId") or offer.get("id")
+    if not offer_id:
+        return JSONResponse({"error": "offerId required"}, status_code=400)
+    product = catalog_search.get(offer_id)
+    if product is None:
+        return JSONResponse({"error": f"Unknown offer: {offer_id}"}, status_code=404)
+    catalog_usd = float(offer.get("price") or product["price"])
+    offer_name = offer.get("name") or product.get("name", "")
+    try:
+        result = await x402_service.execute_payment(catalog_usd, offer_id, offer_name)
+        if session_id and session_manager.exists(session_id):
+            session_manager.add_history(session_id, "buyer", "commerce/pay", body)
+            session_manager.add_history(session_id, "seller", "commerce/pay.receipt", result)
+            sess = session_manager.get(session_id)
+            if sess is not None:
+                paid = sess.setdefault("context", {}).setdefault("paidOffers", {})
+                paid[offer_id] = result
+        return JSONResponse(result)
+    except Exception as e:
+        return JSONResponse({"status": "error", "error": str(e)}, status_code=500)
+
+
 @app.post("/")
 async def handle_jsonrpc(request: Request):
     body   = await request.json()
@@ -103,6 +193,7 @@ async def handle_jsonrpc(request: Request):
     elif method == "session/cancel":   return JSONResponse(handle_session_cancel(id_, params))
     elif method == "session/prompt":   return JSONResponse(handle_session_prompt(id_, params))
     elif method == "commerce/request": return JSONResponse(handle_commerce_request(id_, params))
+    elif method == "commerce/pay":     return JSONResponse(await _handle_commerce_pay_rpc(id_, params))
     else:
         return JSONResponse({
             "jsonrpc": "2.0", "id": id_,
@@ -152,10 +243,9 @@ def handle_initialize(id_, params):
                     "acceptedCurrencies": ["USD"],
                     "negotiation":        False,
                 },
-                # Payment capabilities (Phase 2 will enable stripe)
                 "payment": {
                     "stripe": False,
-                    "x402":   False,
+                    "x402":   True,
                 },
                 # MCP tool connections (Phase 3+)
                 "mcpCapabilities": {
@@ -386,6 +476,7 @@ def claude_parse_intent(text: str, history: list) -> dict:
 
         parsed = json.loads(raw)
         parsed["used_claude"] = True
+        parsed = _apply_regex_budget_override(text, parsed)
         print(f"  [Claude] intent='{parsed.get('intent','')[:50]}' "
               f"max_price={parsed.get('max_price')} "
               f"needs_clarification={parsed.get('needs_clarification')}")
@@ -393,6 +484,15 @@ def claude_parse_intent(text: str, history: list) -> dict:
     except Exception as e:
         print(f"  [Claude] Error: {e} — falling back to regex")
         return _regex_fallback(text)
+
+
+def _apply_regex_budget_override(text: str, parsed: dict) -> dict:
+    """If the message contains a dollar amount, use it (Claude sometimes omits max_price)."""
+    budget = extract_budget(text)
+    if budget is not None:
+        parsed["max_price"] = budget
+        parsed["needs_clarification"] = False
+    return parsed
 
 
 def _regex_fallback(text: str) -> dict:
@@ -428,6 +528,7 @@ def extract_budget(text: str) -> float | None:
         r'\$\s*(\d+(?:\.\d+)?)',               # $200 or $ 200
         r'budget\s+(?:of\s+)?(\d+(?:\.\d+)?)', # budget of 200
         r'under\s+\$?\s*(\d+(?:\.\d+)?)',       # under $200
+        r'at\s+\$?\s*(\d+(?:\.\d+)?)',           # at 250 dollars
         r'max\s+\$?\s*(\d+(?:\.\d+)?)',         # max $200
         r'(\d+(?:\.\d+)?)\s*dollars?',          # 200 dollars
         r'spend\s+(?:up\s+to\s+)?\$?\s*(\d+)', # spend up to $200
@@ -665,6 +766,34 @@ def _build_offers(id_, session_id: str, query: str, max_price: float, raw_text: 
 
 
 # --------------------------------------------------------------------------
+# HANDLER: commerce/pay — x402 USDC settlement (quote or pay+settle)
+# --------------------------------------------------------------------------
+async def _handle_commerce_pay_rpc(id_, params):
+    session_id = params.get("sessionId")
+    if not session_id or not session_manager.exists(session_id):
+        return {
+            "jsonrpc": "2.0", "id": id_,
+            "error": {"code": -32000, "message": "Valid sessionId required."},
+        }
+
+    out = await handle_commerce_pay(params, catalog_search.get)
+    if "error" in out:
+        return {"jsonrpc": "2.0", "id": id_, "error": out["error"]}
+
+    result = out["result"]
+    role = "buyer" if params.get("payment") else "seller"
+    session_manager.add_history(session_id, role, "commerce/pay", params)
+    session_manager.add_history(session_id, "seller", "commerce/pay.response", result)
+    if result.get("status") == "paid":
+        sess = session_manager.get(session_id)
+        if sess is not None:
+            paid = sess.setdefault("context", {}).setdefault("paidOffers", {})
+            paid[result.get("offerId", "")] = result
+
+    return {"jsonrpc": "2.0", "id": id_, "result": result}
+
+
+# --------------------------------------------------------------------------
 # HANDLER: commerce/request
 # Buyer sends intent — now requires a valid sessionId.
 # We store the exchange in session history for future replay.
@@ -709,7 +838,9 @@ def handle_commerce_request(id_, params):
         }
 
     offer = {
+        "id":               item,
         "item":             item,
+        "name":             product.get("name", item),
         "description":      product["description"],
         "price":            our_price,
         "currency":         product["currency"],

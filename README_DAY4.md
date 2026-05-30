@@ -259,3 +259,4 @@ ANTHROPIC_API_KEY=sk-ant-...
 | [README_DAY2.md](./README_DAY2.md) | Session layer, session_manager.py |
 | [README_DAY3.md](./README_DAY3.md) | session/prompt, keyword intent, UI polish |
 | [README_DAY4.md](./README_DAY4.md) | Catalog, search, Claude, multi-turn, agent pick |
+| [README_DAY5.md](./README_DAY5.md) | x402 USDC payment, wallets, commerce/pay, receipt PDF |
