@@ -458,7 +458,9 @@
   }
   .chat-wallet-card .wallet-dl-btn:hover { background: #222; }
   .chat-wallet-card .wallet-dl-btn:disabled { opacity: 0.6; cursor: wait; }
-  .chat-wallet-card .wallet-pop-title { margin-bottom: 3px; }
+  .chat-wallet-card .wallet-pop-head-row { flex-wrap: wrap; gap: 4px; margin-bottom: 4px; }
+  .chat-wallet-card .wallet-pop-title { margin-bottom: 0; flex-shrink: 1; min-width: 0; }
+  .chat-wallet-card .wallet-addr-actions { flex-shrink: 0; }
   .chat-wallet-card .wallet-addr-row { margin-bottom: 3px; gap: 4px; }
   .chat-wallet-card .wallet-addr-text { font-size: 9px; line-height: 1.3; }
   .chat-wallet-card .wallet-bal-row { padding: 2px 0; gap: 4px; }
@@ -988,7 +990,14 @@
     .center {
       order: 0;
       padding-top: 8px;
-      overflow: visible;
+      overflow: hidden;
+      max-width: 100%;
+      z-index: 1;
+      align-self: stretch;
+    }
+    .panel {
+      position: relative;
+      z-index: 2;
     }
     .panel:first-child .feed { padding-right: 4px; }
     .panel:last-child  .feed { padding-left: 4px; }
@@ -1046,13 +1055,85 @@
     .offer-mini-badge { font-size: 6px; top: -7px; left: 4px; padding: 1px 4px; }
     .bubble.decision  { text-align: left; }
 
-    /* Center gutter — full labels on regular phones, 58px column */
-    .arrows { padding: 0 2px; gap: 6px; }
-    .flow-group { padding: 6px 4px 8px; }
-    .flow-group-title { font-size: 8px; }
+    /* Center gutter — badge-only protocol labels; titles hidden (column too narrow) */
+    .arrows { padding: 0 1px; gap: 6px; width: 100%; overflow: hidden; }
+    .flow-group {
+      padding: 4px 2px 6px;
+      margin-bottom: 2px;
+      overflow: hidden;
+      max-width: 100%;
+    }
+    .flow-group-head {
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+      margin-bottom: 4px;
+      padding-bottom: 3px;
+      text-align: center;
+    }
+    .flow-group-titles { display: none; }
+    .flow-group-badge { font-size: 7px; padding: 2px 5px; }
+    .flow-group-body { gap: 5px; }
     .bwrap.sent .chat-wallet-bwrap,
-    .bwrap.recv .chat-wallet-bwrap { width: 100%; max-width: 100%; }
-    .bubble.chat-wallet-bubble .chat-wallet-card { font-size: 9px; padding: 7px 8px; }
+    .bwrap.recv .chat-wallet-bwrap {
+      width: auto;
+      max-width: 92%;
+    }
+    .bubble.chat-wallet-bubble .chat-wallet-card {
+      font-size: 8px;
+      padding: 5px 7px;
+      line-height: 1.25;
+    }
+    .chat-wallet-card .wallet-pop-head-row {
+      margin-bottom: 2px;
+      gap: 4px;
+      flex-wrap: nowrap;
+    }
+    .chat-wallet-card .wallet-pop-title {
+      font-size: 8px;
+      margin-bottom: 0;
+      letter-spacing: 0.04em;
+    }
+    .chat-wallet-card .wallet-addr-link { font-size: 7px; }
+    .chat-wallet-card .wallet-usdc-only-note { display: none; }
+    .chat-wallet-card .wallet-bal-row {
+      padding: 0;
+      border-bottom: none;
+      margin-bottom: 1px;
+    }
+    .chat-wallet-card .wallet-bal-val { font-size: 9px; }
+    .chat-wallet-card .wallet-pay-hint {
+      margin-top: 2px;
+      padding: 3px 5px;
+      font-size: 7px;
+      line-height: 1.25;
+    }
+    .chat-wallet-card .wallet-hist-title { display: none; }
+    .chat-wallet-card .wallet-tx {
+      padding: 0;
+      border-bottom: none;
+    }
+    .chat-wallet-card .wallet-tx-head {
+      margin-bottom: 0;
+      gap: 3px;
+    }
+    .chat-wallet-card .wallet-tx-dir { font-size: 8px; line-height: 1.25; }
+    .chat-wallet-card .wallet-tx-meta { display: none; }
+    .chat-wallet-card .wallet-ext {
+      min-width: 16px;
+      min-height: 16px;
+      padding: 2px;
+      margin: 0;
+    }
+    .chat-wallet-card .wallet-ext-icon { width: 10px; height: 10px; }
+    .chat-wallet-card .wallet-dl-btn {
+      margin-top: 4px;
+      padding: 5px 6px;
+      font-size: 8px;
+      border-radius: 5px;
+    }
+    .chat-wallet-label { font-size: 7px; }
+    .chat-wallet-icon { font-size: 10px; }
     .arrow-chip  { font-size: 8px; padding: 3px 4px; border-radius: 6px; line-height: 1.25; }
     .arrow-label { display: block; font-size: 7px; text-align: center; line-height: 1.2; color: #999; }
 
@@ -1116,6 +1197,101 @@
     .wallet-ext-icon { width: 14px; height: 14px; }
   }
 
+  /* PAYMENT METHOD PICKER */
+  .pay-pick-wrap {
+    padding: 4px 0;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.4s, transform 0.4s;
+  }
+  .pay-pick-wrap.show { opacity: 1; transform: translateY(0); }
+  .pay-pick-label {
+    font-size: 9px;
+    color: #aaaaaa;
+    letter-spacing: 0.02em;
+    margin-bottom: 6px;
+    padding-left: 2px;
+  }
+  .pay-pick-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .pay-pick-card {
+    border: 1px solid var(--border-hi);
+    border-radius: 8px;
+    padding: 7px 10px 7px;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    position: relative;
+    background: var(--surface);
+    text-align: left;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .pay-pick-card:hover:not(.faded) { border-color: rgba(0,0,0,0.3); box-shadow: 0 1px 4px rgba(0,0,0,0.07); }
+  .pay-pick-card.agent-pick { border: 2px solid #000; }
+  .pay-pick-card.human-pick { border: 2px solid #000; background: var(--card); }
+  .pay-pick-card.faded { opacity: 0.3; pointer-events: none; }
+  .pay-pick-badge {
+    position: absolute;
+    top: -8px; left: 8px;
+    font-size: 8px;
+    background: #000;
+    color: #fff;
+    padding: 2px 6px;
+    border-radius: 10px;
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+  }
+  .pay-pick-badge.human { background: #555; }
+  .pay-pick-icon { font-size: 14px; line-height: 1; flex-shrink: 0; }
+  .pay-pick-text { display: flex; flex-direction: column; }
+  .pay-pick-name { font-size: 10px; font-weight: 500; color: var(--text); line-height: 1.3; }
+  .pay-pick-sub  { font-size: 8px; color: var(--muted); margin-top: 1px; }
+
+  /* WALLET TABS — buyer popover */
+  .wallet-tab-bar {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 8px;
+  }
+  .wallet-tab-btn {
+    flex: 1;
+    font-family: var(--mono);
+    font-size: 9px;
+    padding: 4px 6px;
+    border: 1px solid var(--border-hi);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    text-align: center;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .wallet-tab-btn.active { background: #000; color: #fff; border-color: #000; }
+
+  /* Stripe flow group */
+  .flow-group-stripe {
+    border-color: rgba(0, 0, 0, 0.28);
+    background: var(--surface);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+  }
+  .flow-group-stripe .flow-group-badge { background: #635bff; color: #fff; }
+
+  @media (max-width: 680px) {
+    .pay-pick-grid  { gap: 5px; }
+    .pay-pick-card  { padding: 5px 6px; gap: 4px; }
+    .pay-pick-icon  { font-size: 12px; }
+    .pay-pick-name  { font-size: 8px; }
+    .pay-pick-sub   { font-size: 7px; }
+    .pay-pick-badge { font-size: 6px; top: -6px; left: 5px; padding: 1px 4px; }
+    .wallet-tab-btn { font-size: 8px; padding: 3px 4px; }
+  }
+
   /* iPhone SE — stay side-by-side, just tighter */
   @media (max-width: 390px) {
     .header {
@@ -1134,10 +1310,18 @@
       column-gap: 4px;
       padding: 6px 4px;
     }
-    .center { padding-top: 28px; top: 2px; }
-    .wire { top: 28px; }
-    .arrows { gap: 5px; }
-    .arrow-chip { font-size: 6.5px; padding: 2px 3px; }
+    .center { padding-top: 6px; }
+    .wire { top: 24px; }
+    .arrows { gap: 4px; padding: 0; }
+    .flow-group { padding: 3px 1px 5px; }
+    .flow-group-head {
+      margin-bottom: 2px;
+      padding-bottom: 2px;
+      border-bottom-width: 0;
+    }
+    .flow-group-badge { font-size: 6px; padding: 2px 3px; letter-spacing: 0.04em; }
+    .flow-group-body { gap: 4px; }
+    .arrow-chip { font-size: 6.5px; padding: 2px 2px; border-radius: 5px; }
     .arrow-label { font-size: 5.5px; }
 
     .panel-head  { padding: 6px 6px; gap: 4px; }
@@ -1158,6 +1342,15 @@
     .prompt-input { font-size: 16px; height: 36px; }
 
     .wallet-addr-text { font-size: 8px; }
+
+    .bubble.chat-wallet-bubble .chat-wallet-card { padding: 4px 6px; font-size: 7px; }
+    .chat-wallet-card .wallet-pop-title { font-size: 7px; }
+    .chat-wallet-card .wallet-bal-val { font-size: 8px; }
+    .chat-wallet-card .wallet-pay-hint { font-size: 6.5px; padding: 2px 4px; }
+    .chat-wallet-card .wallet-tx-dir { font-size: 7px; }
+    .chat-wallet-card .wallet-dl-btn { padding: 4px 5px; font-size: 7px; margin-top: 3px; }
+    .bwrap.sent .chat-wallet-bwrap,
+    .bwrap.recv .chat-wallet-bwrap { max-width: 90%; }
   }
 </style>
 </head>
@@ -1280,7 +1473,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script>
 const delay = ms => new Promise(r => setTimeout(r, ms));
-const DEMO_BUILD = '2026-05-30f';
+const DEMO_BUILD = '2026-05-30h';
 
 function isMobileLayout() {
   return window.matchMedia('(max-width: 680px)').matches;
@@ -1366,21 +1559,28 @@ function flowAlignTargetTop(bubbleWrap) {
 
 /** Margin so flow-group top lines up with a chat bubble (arrows column vs feed). */
 function measureFlowGroupMarginTop(bubbleWrap, flowKind) {
+  if (isMobileLayout()) {
+    return (flowKind === 'x402' || flowKind === 'stripe') ? 6 : 0;
+  }
   const arrows = document.getElementById('arrows');
   const acp = document.querySelector('.flow-group-acp');
   if (!arrows || !bubbleWrap) return 8;
 
-  if (flowKind === 'x402') {
+  // Payment flow groups (x402, stripe): align with the first payment bubble,
+  // measuring from the bottom of the previous group — not from the arrows container top.
+  if (flowKind === 'x402' || flowKind === 'stripe') {
     const targetTop = flowAlignTargetTop(bubbleWrap);
-    if (acp) {
-      const acpBottom = acp.getBoundingClientRect().bottom;
+    const prevGroup = acp || null;
+    if (prevGroup) {
+      const prevBottom = prevGroup.getBoundingClientRect().bottom;
       const flexGap = 8;
       const pullUp = 22;
-      return Math.max(4, Math.round(targetTop - acpBottom - flexGap - pullUp));
+      return Math.max(4, Math.round(targetTop - prevBottom - flexGap - pullUp));
     }
     return Math.max(8, Math.round(targetTop - arrows.getBoundingClientRect().top));
   }
 
+  // ACP group: align relative to arrows container top
   const stage = document.querySelector('.stage');
   if (!stage) return 8;
   const stageTop = stage.getBoundingClientRect().top;
@@ -1395,7 +1595,11 @@ function applyFlowGroupMargin(flowKind, bubbleWrap) {
   group.style.transition = 'none';
   group.style.marginTop = measureFlowGroupMarginTop(bubbleWrap, flowKind) + 'px';
   void group.offsetHeight;
-  if (flowKind === 'x402') {
+  if (isMobileLayout()) {
+    group.style.transition = '';
+    return;
+  }
+  if (flowKind === 'x402' || flowKind === 'stripe') {
     const pullUp = 22;
     const desiredTop = flowAlignTargetTop(bubbleWrap) - pullUp;
     const delta = group.getBoundingClientRect().top - desiredTop;
@@ -1432,7 +1636,7 @@ function scrollToLatest() {
   });
 }
 // Auto-pick seller: localhost only when demo is opened locally (never on phone Netlify)
-const SELLER = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+const SELLER = (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:')
   ? 'http://localhost:8002'
   : 'https://acp-demo-production.up.railway.app';
 
@@ -1662,11 +1866,11 @@ function appendVerifyLink(bubbleEl, rcpt) {
   bubbleEl.appendChild(a);
 }
 
-function appendWalletDownloadBtn(cardEl, payload, payResult) {
+function appendWalletDownloadBtn(cardEl, payload, payResult, shortLabel) {
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.className = 'wallet-dl-btn';
-  btn.textContent = 'Download receipt (PDF)';
+  btn.textContent = shortLabel ? 'Receipt (PDF)' : 'Download receipt (PDF)';
   btn.addEventListener('click', async (e) => {
     e.stopPropagation();
     btn.disabled = true;
@@ -1677,7 +1881,7 @@ function appendWalletDownloadBtn(cardEl, payload, payResult) {
       alert('Could not download receipt: ' + (err.message || err));
     } finally {
       btn.disabled = false;
-      btn.textContent = 'Download receipt (PDF)';
+      btn.textContent = shortLabel ? 'Receipt (PDF)' : 'Download receipt (PDF)';
     }
   });
   cardEl.appendChild(btn);
@@ -1686,6 +1890,7 @@ function appendWalletDownloadBtn(cardEl, payload, payResult) {
 function buildWalletPopHtml(role, data, payHint, opts) {
   const o = typeof opts === 'number' ? { maxTxs: opts } : (opts || {});
   const compact = !!o.compact;
+  const mobileChat = !!o.mobileChat;
   const histTitle = o.histTitle || (o.paymentTxHash ? 'This payment' : 'Recent transactions');
   const eth = data.balances?.ETH;
   const usdc = data.balances?.USDC;
@@ -1699,7 +1904,19 @@ function buildWalletPopHtml(role, data, payHint, opts) {
     : null);
   const roleLabel = data.role || role;
   let html = '';
-  if (compact) {
+  if (mobileChat) {
+    html = `
+    <div class="wallet-pop-head-row wallet-chat-head">
+      <span class="wallet-pop-title">${roleLabel} · Base Sepolia</span>
+      <span class="wallet-addr-actions">
+        <a href="${addrUrl || '#'}" class="wallet-addr-link" target="_blank" rel="noopener noreferrer" data-wallet-open="1">Address</a>
+        ${walletExtLink(addrUrl, 'Basescan')}
+      </span>
+    </div>
+    <div class="wallet-bal-row wallet-chat-bal">
+      <span class="wallet-bal-val"><span>${usdcStr}</span>${walletExtLink(usdcUrl, 'USDC')}</span>
+    </div>`;
+  } else if (compact) {
     html = `
     <div class="wallet-pop-head-row">
       <span class="wallet-pop-title">Base Sepolia · ${roleLabel}</span>
@@ -1718,16 +1935,17 @@ function buildWalletPopHtml(role, data, payHint, opts) {
       ${walletExtLink(addrUrl, 'View address on Basescan')}
     </div>`;
   }
-  const usdcOnly = compact && (o.paymentTxHash || o.usdcOnly);
-  if (usdcOnly) {
-    html += `
+  const usdcOnly = compact && !mobileChat && (o.paymentTxHash || o.usdcOnly);
+  if (!mobileChat) {
+    if (usdcOnly) {
+      html += `
     <div class="wallet-bal-row">
       <span>USDC</span>
       <span class="wallet-bal-val"><span>${usdcStr}</span>${walletExtLink(usdcUrl, 'Verify USDC on Basescan')}</span>
     </div>
     <div class="wallet-muted wallet-usdc-only-note">x402 payment · USDC only (facilitator pays ETH gas)</div>`;
-  } else {
-    html += `
+    } else if (!compact) {
+      html += `
     <div class="wallet-bal-row">
       <span>ETH</span>
       <span class="wallet-bal-val"><span>${ethStr}</span>${walletExtLink(ethUrl, 'Verify ETH on Basescan')}</span>
@@ -1736,18 +1954,24 @@ function buildWalletPopHtml(role, data, payHint, opts) {
       <span>USDC</span>
       <span class="wallet-bal-val"><span>${usdcStr}</span>${walletExtLink(usdcUrl, 'Verify USDC on Basescan')}</span>
     </div>`;
+    }
   }
   if (payHint) {
     const hintClass = payHint.includes('✓') ? 'ok' : (payHint.includes('…') || payHint.includes('pending') ? 'pending' : '');
-    html += `<div class="wallet-pay-hint ${hintClass}">${payHint.replace(/\n/g, '<br>')}</div>`;
+    const hintHtml = mobileChat
+      ? payHint.replace(/\n+/g, ' · ').replace(/Facilitator gas: \(pending\)/i, 'gas pending').replace(/Facilitator gas: /i, 'gas ')
+      : payHint.replace(/\n/g, '<br>');
+    html += `<div class="wallet-pay-hint ${hintClass}">${hintHtml}</div>`;
   }
-  if (!compact && data.errors?.length) {
+  if (!compact && !mobileChat && data.errors?.length) {
     html += `<div class="wallet-err">${data.errors.join('; ')}</div>`;
   }
-  if (!compact && data.notices?.length) {
+  if (!compact && !mobileChat && data.notices?.length) {
     html += `<div class="wallet-muted">${data.notices.join(' ')}</div>`;
   }
-  html += `<div class="wallet-hist-title">${histTitle}</div>`;
+  if (!mobileChat) {
+    html += `<div class="wallet-hist-title">${histTitle}</div>`;
+  }
   const txs = walletTxListForDisplay(role, data, o);
   if (!txs.length) {
     html += `<div class="wallet-muted">No indexed txs yet.</div>`;
@@ -1760,12 +1984,12 @@ function buildWalletPopHtml(role, data, payHint, opts) {
         : shortAddr(tx.hash);
       html += `<div class="wallet-tx wallet-tx-${tx.direction || 'other'}">
         <div class="wallet-tx-head">
-          <span class="wallet-tx-dir">${sign}${tx.amount} ${tx.asset} · ${tx.direction || '?'}</span>
+          <span class="wallet-tx-dir">${sign}${tx.amount} ${tx.asset}${mobileChat ? '' : ' · ' + (tx.direction || '?')}</span>
           ${walletExtLink(txUrl, 'View transaction on Basescan')}
-        </div>
+        </div>${mobileChat ? '' : `
         <div class="wallet-tx-meta">
           <span class="wallet-muted">${tx.timestamp || ''} ${hashPart}</span>
-        </div>
+        </div>`}
       </div>`;
     }
   }
@@ -1792,12 +2016,13 @@ function addChatWalletBubble(feedId, role, data, payHint, paymentTxHash, usdcPai
   card.className = 'wallet-pop chat-wallet-card';
   card.innerHTML = buildWalletPopHtml(role, data, payHint, {
     compact: true,
+    mobileChat: isMobileLayout(),
     paymentTxHash,
     usdcPaid,
     usdcOnly: true,
     histTitle: 'This payment',
   });
-  if (receiptPayload) appendWalletDownloadBtn(card, receiptPayload, payResult);
+  if (receiptPayload) appendWalletDownloadBtn(card, receiptPayload, payResult, isMobileLayout());
   card.addEventListener('click', onWalletExplorerClick);
   b.appendChild(card);
   wrap.appendChild(b);
@@ -1885,10 +2110,11 @@ function renderWalletPop(role, data, errMsg) {
     pop.innerHTML = `<div class="wallet-pop-title">Wallet</div><div class="wallet-err">${data.error}</div>`;
     return;
   }
-  pop.innerHTML = buildWalletPopHtml(role, data, _walletPayHint[role], {
+  const cryptoHtml = buildWalletPopHtml(role, data, _walletPayHint[role], {
     maxTxs: POPOVER_WALLET_MAX_TXS,
     histTitle: 'Recent transactions (last 3)',
   });
+  buildWalletTabPop(pop, cryptoHtml, role);
   const wrap = document.getElementById('wallet-wrap-' + role);
   if (wrap?.classList.contains('open')) {
     requestAnimationFrame(() => pinWalletPopover(wrap));
@@ -1965,6 +2191,346 @@ function initWalletWidgets() {
 }
 
 document.addEventListener('DOMContentLoaded', initWalletWidgets);
+
+// ── Fiat wallet (Stripe test mode) ───────────────────────────────────────────
+const _fiatWalletCache = { buyer: { data: null, loading: false }, seller: { data: null, loading: false } };
+
+async function fetchFiatWalletData(role) {
+  const r = await fetch(SELLER + '/wallet/' + role + '/fiat');
+  const d = await r.json();
+  if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`);
+  return d;
+}
+
+function buildFiatWalletHtml(data, role) {
+  if (!data || !data.configured) {
+    const hint = role === 'seller'
+      ? 'Set STRIPE_SELLER_ACCOUNT_ID=acct_… in local.env'
+      : 'Set STRIPE_SECRET_KEY=sk_test_… in local.env';
+    return `<div class="wallet-pop-title">Stripe · ${role}</div><div class="wallet-err">Not configured</div><div class="wallet-muted" style="margin-top:4px;font-size:9px">${hint}</div>`;
+  }
+
+  const payHint = _fiatWalletPayHint[role] || '';
+  const hintHtml = payHint
+    ? `<div class="wallet-pay-hint ${payHint.includes('✓') ? 'ok' : 'pending'}">${payHint}</div>`
+    : '';
+
+  if (role === 'buyer') {
+    const card  = data.card || {};
+    const brand = (card.brand || 'visa').charAt(0).toUpperCase() + (card.brand || 'visa').slice(1);
+    let html = `
+      <div class="wallet-pop-title">Stripe test · buyer</div>
+      <div class="wallet-bal-row">
+        <span>${brand} ···${card.last4 || '4242'}</span>
+        <span class="wallet-bal-val">test card</span>
+      </div>
+      ${hintHtml}`;
+    const charges = data.recentCharges || [];
+    html += `<div class="wallet-hist-title">${charges.length ? 'Recent charges' : 'No charges yet'}</div>`;
+    for (const ch of charges.slice(0, 3)) {
+      const amt     = ((ch.amountCents || 0) / 100).toFixed(2);
+      const piShort = ch.paymentIntentId ? ch.paymentIntentId.slice(0, 22) + '…' : '—';
+      const piUrl   = ch.paymentIntentId ? `https://dashboard.stripe.com/test/payments/${ch.paymentIntentId}` : null;
+      const extLnk  = piUrl ? walletExtLink(piUrl, 'View on Stripe Dashboard') : '';
+      html += `<div class="wallet-tx wallet-tx-out">
+        <div class="wallet-tx-head">
+          <span class="wallet-tx-dir">−$${amt} ${ch.currency || 'USD'}</span>
+          ${extLnk}
+        </div>
+        <div class="wallet-tx-meta"><span class="wallet-muted">${ch.status} · ${piShort}</span></div>
+      </div>`;
+    }
+    if (data.errors?.length) html += `<div class="wallet-err">${data.errors.join('; ')}</div>`;
+    return html;
+  }
+
+  // Seller: own account charges (preferred) or Connect transfers
+  const sellerTitle = data.sellerAccountConfigured ? 'Stripe · seller' : 'Stripe Connect · seller';
+  const acctLabel   = data.sellerAccountConfigured ? 'test mode' : (data.sellerAccountId || '—').slice(0, 14) + '…';
+  let html = `
+    <div class="wallet-pop-title">${sellerTitle}</div>
+    <div class="wallet-bal-row">
+      <span>${data.sellerAccountConfigured ? 'Own account' : 'Connected'}</span>
+      <span class="wallet-bal-val" style="font-size:9px">${acctLabel}</span>
+    </div>
+    ${hintHtml}`;
+
+  const charges   = data.recentCharges  || [];
+  const transfers = data.recentTransfers || [];
+  const items     = charges.length ? charges : transfers;
+  const isCharge  = charges.length > 0;
+
+  html += `<div class="wallet-hist-title">${items.length ? (isCharge ? 'Received payments' : 'Transfers received') : 'No transactions yet'}</div>`;
+  for (const item of items.slice(0, 3)) {
+    const amt    = ((item.amountCents || 0) / 100).toFixed(2);
+    const idShort = (item.id || '').slice(0, 20) + '…';
+    const url    = isCharge && item.paymentIntentId
+      ? `https://dashboard.stripe.com/test/payments/${item.paymentIntentId}`
+      : item.id ? `https://dashboard.stripe.com/test/connect/transfers/${item.id}` : null;
+    const extLnk = url ? walletExtLink(url, 'View on Stripe') : '';
+    html += `<div class="wallet-tx wallet-tx-in">
+      <div class="wallet-tx-head">
+        <span class="wallet-tx-dir">+$${amt} ${item.currency || 'USD'}</span>
+        ${extLnk}
+      </div>
+      <div class="wallet-tx-meta"><span class="wallet-muted">${item.status || ''} · ${idShort}</span></div>
+    </div>`;
+  }
+  if (data.errors?.length) html += `<div class="wallet-err">${data.errors.join('; ')}</div>`;
+  return html;
+}
+
+function buildWalletTabPop(pop, cryptoHtml, role) {
+  const tabId = 'wtab-crypto-' + role;
+  const fiatId = 'wtab-fiat-' + role;
+  const existingBar = pop.querySelector('.wallet-tab-bar');
+
+  if (existingBar) {
+    const cryptoDiv = pop.querySelector('#' + tabId);
+    if (cryptoDiv) cryptoDiv.innerHTML = cryptoHtml;
+    return;
+  }
+
+  pop.innerHTML = `
+    <div class="wallet-tab-bar">
+      <button class="wallet-tab-btn active" data-tab="crypto">&#x1FA99; Crypto</button>
+      <button class="wallet-tab-btn" data-tab="fiat">&#x1F4B3; Fiat</button>
+    </div>
+    <div id="${tabId}">${cryptoHtml}</div>
+    <div id="${fiatId}" style="display:none"><div class="wallet-loading">Loading Stripe…</div></div>`;
+
+  const cache = _fiatWalletCache[role];
+
+  pop.querySelectorAll('.wallet-tab-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const tab = btn.dataset.tab;
+      pop.querySelectorAll('.wallet-tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+      const cryptoDiv = pop.querySelector('#' + tabId);
+      const fiatDiv   = pop.querySelector('#' + fiatId);
+      if (cryptoDiv) cryptoDiv.style.display = tab === 'crypto' ? '' : 'none';
+      if (fiatDiv)   fiatDiv.style.display   = tab === 'fiat'   ? '' : 'none';
+      if (tab === 'fiat') {
+        if (cache.data) {
+          if (fiatDiv) fiatDiv.innerHTML = buildFiatWalletHtml(cache.data, role);
+        } else if (!cache.loading) {
+          cache.loading = true;
+          if (fiatDiv) fiatDiv.innerHTML = '<div class="wallet-loading">Loading Stripe…</div>';
+          try {
+            cache.data = await fetchFiatWalletData(role);
+            if (fiatDiv) fiatDiv.innerHTML = buildFiatWalletHtml(cache.data, role);
+          } catch (err) {
+            if (fiatDiv) fiatDiv.innerHTML = `<div class="wallet-err">${err.message}</div>`;
+          } finally {
+            cache.loading = false;
+          }
+        }
+      }
+    });
+  });
+}
+
+// ── Payment method picker ────────────────────────────────────────────────────
+function addPaymentPicker(feedId) {
+  return new Promise(resolve => {
+    const feed = document.getElementById(feedId);
+    const wrap = document.createElement('div');
+    wrap.className = 'pay-pick-wrap';
+
+    const lbl = document.createElement('div');
+    lbl.className = 'pay-pick-label';
+    lbl.textContent = 'choose payment method — tap a card or agent picks Crypto';
+    wrap.appendChild(lbl);
+
+    const grid = document.createElement('div');
+    grid.className = 'pay-pick-grid';
+
+    const methods = [
+      { id: 'crypto', icon: '&#x1FA99;', name: 'Crypto',  sub: 'USDC · Base Sepolia',       agentPick: true },
+      { id: 'fiat',   icon: '&#x1F4B3;', name: 'Fiat',    sub: 'Visa ···4242 · Stripe test', agentPick: false },
+    ];
+
+    let done = false, remaining = 4;
+
+    methods.forEach(m => {
+      const card = document.createElement('div');
+      card.className = 'pay-pick-card' + (m.agentPick ? ' agent-pick' : '');
+      card.dataset.method = m.id;
+      card.innerHTML = (m.agentPick ? '<div class="pay-pick-badge">agent pick</div>' : '')
+        + `<span class="pay-pick-icon">${m.icon}</span>`
+        + `<span class="pay-pick-text"><span class="pay-pick-name">${m.name}</span><span class="pay-pick-sub">${m.sub}</span></span>`;
+
+      card.addEventListener('click', () => {
+        if (done) return;
+        done = true;
+        clearInterval(timer);
+        pill.style.display = 'none';
+        promptWrap.classList.remove('visible');
+        if (field) field.style.display = '';
+
+        grid.querySelectorAll('.pay-pick-card').forEach(c => { c.classList.remove('agent-pick', 'human-pick', 'faded'); c.querySelector('.pay-pick-badge')?.remove(); });
+        card.classList.add('human-pick');
+        const badge = document.createElement('div');
+        badge.className = 'pay-pick-badge human';
+        badge.textContent = 'your pick';
+        card.prepend(badge);
+        grid.querySelectorAll('.pay-pick-card').forEach(c => { if (c !== card) c.classList.add('faded'); });
+        resolve(m.id);
+      });
+
+      grid.appendChild(card);
+    });
+
+    wrap.appendChild(grid);
+    feed.appendChild(wrap);
+    requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.add('show')));
+    scrollToLatest();
+
+    const pill       = document.getElementById('countdown-pill');
+    const promptWrap = document.getElementById('prompt-wrap');
+    const field      = document.querySelector('.prompt-field');
+    pill.style.display = '';
+    pill.style.animation = '';
+    pill.textContent = `agent picks Crypto in ${remaining}s — tap a card to choose`;
+    promptWrap.classList.add('visible');
+    if (field) field.style.display = 'none';
+    document.getElementById('prompt-label').textContent = '';
+
+    const timer = setInterval(() => {
+      if (done) return;
+      remaining--;
+      if (remaining <= 0) {
+        if (!done) {
+          done = true;
+          clearInterval(timer);
+          pill.style.display = 'none';
+          promptWrap.classList.remove('visible');
+          if (field) field.style.display = '';
+          resolve('crypto');
+        }
+      } else {
+        pill.textContent = `agent picks Crypto in ${remaining}s — tap a card to choose`;
+      }
+    }, 1000);
+  });
+}
+
+// ── Fiat wallet pay-hint state (mirrors _walletPayHint for crypto) ────────────
+const _fiatWalletPayHint = { buyer: '', seller: '' };
+
+function setFiatWalletPayHint(buyerText, sellerText) {
+  _fiatWalletPayHint.buyer  = buyerText  || '';
+  _fiatWalletPayHint.seller = sellerText || '';
+}
+
+// ── Fiat receipt card in chat — mirrors addChatWalletBubble ─────────────────
+function addFiatReceiptBubble(feedId, rcpt, offer, receiptPayload) {
+  const isSeller = feedId === 'feed-seller';
+  const side     = isSeller ? 'sent' : 'recv';
+  const feed     = document.getElementById(feedId);
+  const wrap     = document.createElement('div');
+  wrap.className = 'bwrap ' + side + ' chat-wallet-bwrap';
+
+  const lb = document.createElement('div');
+  lb.className = 'blabel';
+  lb.innerHTML = `<span class="chat-wallet-label"><span class="chat-wallet-icon" aria-hidden="true">&#x1F4B3;</span> wallet · ${isSeller ? 'seller' : 'buyer'}</span>`;
+  wrap.appendChild(lb);
+
+  const b = document.createElement('div');
+  b.className = 'bubble inc chat-wallet-bubble';
+  const card = document.createElement('div');
+  card.className = 'wallet-pop chat-wallet-card';
+  card.addEventListener('click', onWalletExplorerClick);
+
+  const amtUsd    = ((rcpt.amountCents || 0) / 100).toFixed(2);
+  const brand     = (rcpt.card?.brand || 'visa').charAt(0).toUpperCase() + (rcpt.card?.brand || 'visa').slice(1);
+  const last4     = rcpt.card?.last4 || '4242';
+  const isMobile  = isMobileLayout();
+
+  // Header: title + verify link
+  const verifyUrl   = isSeller
+    ? (rcpt.transferDashboardUrl || rcpt.sellerDashboardUrl || rcpt.dashboardUrl)
+    : rcpt.dashboardUrl;
+  const verifyLabel = isSeller
+    ? (rcpt.sellerPaymentIntentId ? 'Verify on Stripe' : 'Verify transfer')
+    : 'Verify on Stripe';
+  const extLink     = verifyUrl ? walletExtLink(verifyUrl, verifyLabel) : '';
+  // On mobile: icon only (no text) to avoid collision with title
+  const addrLink    = (verifyUrl && !isMobile)
+    ? `<a href="${verifyUrl}" class="wallet-addr-link" target="_blank" rel="noopener noreferrer" data-wallet-open="1">${verifyLabel}</a>`
+    : '';
+
+  // Title: short on mobile to make room for the icon link
+  const titleStr = isMobile
+    ? `Stripe · ${isSeller ? 'seller' : 'buyer'}`
+    : `Stripe test · ${isSeller ? 'received' : 'charged'}`;
+
+  let html = `
+    <div class="wallet-pop-head-row">
+      <span class="wallet-pop-title">${titleStr}</span>
+      <span class="wallet-addr-actions">${addrLink}${extLink}</span>
+    </div>`;
+
+  // Balance row: amount charged / received
+  if (isSeller) {
+    const acctLabel = rcpt.sellerAccountId
+      ? rcpt.sellerAccountId.slice(0, isMobile ? 12 : 16) + '…'
+      : (isMobile ? 'seller acct' : 'connected acct');
+    html += `
+    <div class="wallet-bal-row">
+      <span>${acctLabel}</span>
+      <span class="wallet-bal-val"><span>+$${amtUsd} USD</span></span>
+    </div>`;
+  } else {
+    html += `
+    <div class="wallet-bal-row">
+      <span>${brand} ···${last4}</span>
+      <span class="wallet-bal-val"><span>−$${amtUsd} USD</span></span>
+    </div>`;
+  }
+
+  // Pay hint
+  const hintSeller = isMobile
+    ? `✓ +$${amtUsd} USD received`
+    : `✓ Received +$${amtUsd} USD${rcpt.connectEnabled ? ' via Connect' : ''}`;
+  const hintBuyer = isMobile
+    ? `✓ $${amtUsd} charged · ${brand} ···${last4}`
+    : `✓ Charged $${amtUsd} USD · ${brand} ···${last4}`;
+  html += `<div class="wallet-pay-hint ok">${isSeller ? hintSeller : hintBuyer}</div>`;
+
+  // Transaction row — desktop only
+  if (!isMobile) {
+    const txId    = isSeller ? (rcpt.sellerPaymentIntentId || rcpt.transferId || rcpt.paymentIntentId) : rcpt.paymentIntentId;
+    const txLabel = isSeller ? (rcpt.sellerPaymentIntentId ? 'pi (seller)' : rcpt.transferId ? 'tr' : 'pi') : 'pi';
+    const txShort = txId ? txId.slice(0, 24) + '…' : '—';
+    const txLink  = verifyUrl ? walletExtLink(verifyUrl, verifyLabel) : '';
+    html += `
+    <div class="wallet-hist-title">This payment</div>
+    <div class="wallet-tx wallet-tx-${isSeller ? 'in' : 'out'}">
+      <div class="wallet-tx-head">
+        <span class="wallet-tx-dir">${isSeller ? '+' : '−'}$${amtUsd} USD</span>
+        ${txLink}
+      </div>
+      <div class="wallet-tx-meta">
+        <span class="wallet-muted">${txLabel}: ${txShort}</span>
+      </div>
+    </div>`;
+  }
+
+  card.innerHTML = html;
+
+  // PDF download button (mirrors appendWalletDownloadBtn)
+  if (receiptPayload) {
+    appendWalletDownloadBtn(card, receiptPayload, null, isMobile);
+  }
+
+  b.appendChild(card);
+  wrap.appendChild(b);
+  feed.appendChild(wrap);
+  requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.add('show')));
+  softScrollToBubble(wrap);
+  return wrap;
+}
 
 // JSON-RPC to seller — timeout + retry for mobile networks / Railway cold start
 async function sellerFetch(body, { signal, timeoutMs = 90000, retries = 2 } = {}) {
@@ -2046,7 +2612,7 @@ function resolveBudget(parsedIntent, promptText) {
 
 document.getElementById('demo-build').textContent = 'build ' + DEMO_BUILD;
 
-let step = 0, busy = false, sellerCaps = null, activeSession = null, pendingOffer = null;
+let step = 0, busy = false, sellerCaps = null, activeSession = null, pendingOffer = null, chosenPaymentMethod = null;
 let autoFireTimer = null;
 let promptInFlight = false;
 let promptTurnAborted = false;
@@ -2122,14 +2688,19 @@ function addCapsBubble(feedId, info, canLoad, sessCaps, itemCount, categories, i
   b.className = 'bubble ' + (isSeller ? 'out' : 'inc') + ' caps-bubble';
 
   const canSell = commerce?.canSell !== false;
+  const x402On      = payment?.x402          === true;
+  const stripeOn    = payment?.stripe        === true;
+  const connectOn   = payment?.stripeConnect === true;
+  const payStr = [x402On && 'x402', stripeOn && (connectOn ? 'Stripe Connect' : 'Stripe')].filter(Boolean).join(' + ') || 'none';
   const summary = `${info.name} v${info.version}
-canSell: ${canSell}  ·  canCreateSession: ${canLoad}  ·  ${itemCount} items`;
+canSell: ${canSell}  ·  canCreateSession: ${canLoad}  ·  ${itemCount} items
+payment: ${payStr}`;
 
-  const x402On = payment?.x402 === true;
+  const stripeDetail = stripeOn ? `Stripe test mode${connectOn ? ' · Connect (seller acct configured)' : ' · no seller account (charge to platform)'}` : null;
   const detail = `sessionMethods: ${sessCaps.join(', ') || '—'}
 categories: ${categories.join(', ')}
 inventory: ${itemCount} Nike products
-payment: x402 ${x402On ? 'USDC · Base Sepolia' : 'off'}`;
+payment methods: ${[x402On && 'x402 USDC · Base Sepolia', stripeDetail].filter(Boolean).join(', ') || 'none'}`;
 
   b.innerHTML = `<span class="caps-summary">${summary}</span><span class="caps-toggle" onclick="this.parentNode.querySelector('.caps-detail').classList.toggle('open');this.textContent=this.textContent.includes('▾')?'▸ show details':'▾ hide details'"> ▾ show details</span><div class="caps-detail">${detail}</div>`;
   wrap.appendChild(b);
@@ -2184,8 +2755,9 @@ function addOfferCard(feedId, offer) {
 }
 
 const FLOW_GROUP_META = {
-  acp: { badge: 'ACP', title: 'Agent Client Protocol' },
-  x402: { badge: 'x402', title: 'Payment settlement' },
+  acp:    { badge: 'ACP',    title: 'Agent Client Protocol' },
+  x402:   { badge: 'x402',   title: 'Crypto settlement · USDC' },
+  stripe: { badge: 'Stripe', title: 'Fiat settlement · Stripe test' },
 };
 
 let _flowGroupBody = null;
@@ -2198,10 +2770,11 @@ function beginFlowGroup(kind, alignBubble) {
   const group = document.createElement('div');
   group.className = 'flow-group flow-group-' + kind;
   group.setAttribute('data-flow', kind);
+  group.setAttribute('aria-label', meta.title);
   const head = document.createElement('div');
   head.className = 'flow-group-head';
   head.innerHTML = `
-    <span class="flow-group-badge">${meta.badge}</span>
+    <span class="flow-group-badge" title="${meta.title}">${meta.badge}</span>
     <div class="flow-group-titles">
       <div class="flow-group-title">${meta.title}</div>
     </div>`;
@@ -2209,15 +2782,16 @@ function beginFlowGroup(kind, alignBubble) {
   body.className = 'flow-group-body';
   group.appendChild(head);
   group.appendChild(body);
-  if (kind === 'x402' && alignBubble) {
+  const isPaymentGroup = kind === 'x402' || kind === 'stripe';
+  if (isPaymentGroup && alignBubble) {
     group.style.visibility = 'hidden';
     group.style.marginTop = '0px';
   }
   c.appendChild(group);
   _flowGroupBody = body;
-  if (alignBubble && kind === 'x402') {
+  if (isPaymentGroup && alignBubble) {
     waitForBubbleLayout(alignBubble).then(() => {
-      applyFlowGroupMargin('x402', alignBubble);
+      applyFlowGroupMargin(kind, alignBubble);
       group.style.visibility = '';
       softScrollToBubble(alignBubble);
     });
@@ -2587,11 +3161,11 @@ offers.map((o, i) => {
   const demoUsdc = (chosenOffer.price / 10000).toFixed(4);
   addBubble('feed-buyer', 'recv', 'agent decision',
     decisionLines.join('\n') + '\n\n' + finalLine
-    + `\n\nsettlement: ~${demoUsdc} USDC on-chain (demo: 1 USDC = $10,000 catalog)`, 'decision');
+    + `\n\npayment: choose Fiat ($${chosenOffer.price.toFixed(2)} USD) or Crypto (~${demoUsdc} USDC)`, 'decision');
 
   setDot('dot-buyer', 'on');
   setPip(3, 'done');
-  setStatus(`Offer selected — ~${demoUsdc} USDC due. Click Next for x402 payment.`);
+  setStatus(`Offer selected — $${chosenOffer.price.toFixed(2)} USD. Click Next to choose payment method.`);
   setBtn('Next: Payment');
   step++;
   busy = false;
@@ -2636,7 +3210,7 @@ async function nextStep() {
     const initBubble = addBubble('feed-buyer', 'sent', 'buyer  →  seller   |   initialize',
 `protocolVersion: 1
 canBuy: true
-preferredCurrencies: USD`);
+preferredCurrencies: USD/USDC`);
     await delay(400);
     beginFlowGroup('acp', initBubble);
     await delay(400);
@@ -2931,11 +3505,166 @@ res1.agentMessage);
     }
   }
 
-  // ── STEP 4 — x402 USDC payment (Base Sepolia) ─────────────────────────────
+  // ── STEP 4 — Payment (Fiat via Stripe or Crypto via x402) ────────────────
   else if (step === 4) {
     if (!pendingOffer) { busy = false; setBtn('Next: Payment'); return; }
     setPip(4, 'active');
     litStep(4);
+
+    // ── Payment method picker — add to BOTH feeds to keep column heights balanced
+    setStatus('Agent choosing payment method…');
+    addBubble('feed-buyer', 'mid', '', 'selecting payment method…');
+    addBubble('feed-seller', 'mid', '', 'awaiting payment method…');
+    await delay(500);
+    const payMethod = await addPaymentPicker('feed-buyer');
+    chosenPaymentMethod = payMethod;
+    const methodLabel = payMethod === 'fiat' ? 'Fiat · Stripe test' : 'Crypto · USDC';
+    addBubble('feed-seller', 'mid', '', `method confirmed: ${methodLabel}`);
+    await delay(300);
+
+    // ══════════════════════════════════════════════════════════════════════
+    // ── FIAT PATH — Stripe test mode ──────────────────────────────────────
+    // ══════════════════════════════════════════════════════════════════════
+    if (payMethod === 'fiat') {
+      setStatus('Stripe test mode — charging Visa ···4242…');
+      openPaymentWallets();
+
+      const payQuoteBubble = addBubble('feed-buyer', 'sent', 'buyer  →  seller   |   commerce/pay (Stripe)',
+`sessionId: ${activeSession}
+offer: ${pendingOffer.name}
+method: fiat · Visa ···4242
+catalog: $${pendingOffer.price.toFixed(2)} USD`);
+      await waitForBubbleLayout(payQuoteBubble);
+      beginFlowGroup('stripe', payQuoteBubble);
+      await delay(300);
+      addArrow('right', 'commerce/pay', 'buyer → seller', payQuoteBubble);
+      await delay(500);
+
+      const payReqBubble = addBubble('feed-seller', 'recv', 'seller  →  buyer   |   payment required (Stripe)',
+`amount: $${pendingOffer.price.toFixed(2)} USD
+provider: Stripe test mode
+card: Visa ···4242
+paymentMethod: pm_card_visa`);
+      await delay(250);
+      addArrow('left', 'payment required', 'seller → buyer', payReqBubble);
+      await delay(600);
+
+      setStatus('Charging test card via Stripe…');
+      const proofBubble = addBubble('feed-buyer', 'sent', 'buyer  →  seller   |   payment proof',
+`method: Stripe · Visa ···4242
+amount: $${pendingOffer.price.toFixed(2)} USD`);
+      await delay(250);
+      addArrow('right', 'payment proof', 'buyer → seller', proofBubble);
+
+      let stripeResult;
+      try {
+        const r = await fetch(SELLER + '/demo/stripe/execute', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: activeSession,
+            offerId: pendingOffer.id,
+            offer: pendingOffer,
+          }),
+        });
+        stripeResult = await r.json();
+        if (!r.ok) throw new Error(stripeResult.error || stripeResult.message || `HTTP ${r.status}`);
+      } catch (e) {
+        addErrBubble('feed-buyer', 'Stripe payment failed: ' + (e.message || e));
+        busy = false; setBtn('Retry Payment'); return;
+      }
+
+      if (stripeResult.status !== 'paid') {
+        addErrBubble('feed-seller', stripeResult.error || 'Stripe charge failed');
+        busy = false; setBtn('Retry Payment'); return;
+      }
+
+      const rcptS = stripeResult.receipt || {};
+      const amtUsd = ((rcptS.amountCents || 0) / 100).toFixed(2);
+
+      addBubble('feed-seller', 'mid', '', 'Stripe · charge succeeded ✓');
+      await delay(400);
+
+      addRichBubble('feed-seller', 'sent', 'seller  →  buyer   |   paid · fulfillment (Stripe)', (b) => {
+        const pre = document.createElement('div');
+        pre.style.whiteSpace = 'pre-wrap';
+        pre.textContent = [
+          'status: paid',
+          `amount: $${amtUsd} ${(rcptS.currency || 'usd').toUpperCase()}`,
+          `provider: Stripe test mode`,
+          `card: ${rcptS.card?.brand || 'visa'} ···${rcptS.card?.last4 || '4242'}`,
+          `paymentIntentId: ${rcptS.paymentIntentId || '—'}`,
+        ].join('\n');
+        b.appendChild(pre);
+      });
+      await delay(250);
+      addArrow('left', 'settled', 'seller → buyer', lastBubbleWrap('feed-seller'));
+
+      // Set fiat pay hint (mirrors setWalletPayHint for crypto)
+      const sellerNote = rcptS.connectEnabled
+        ? ' via Connect'
+        : rcptS.sellerAccountConfigured
+          ? ' · seller account'
+          : ' (platform only)';
+      setFiatWalletPayHint(
+        `✓ Charged $${amtUsd} USD · Visa ···${rcptS.card?.last4 || '4242'}`,
+        `✓ Received +$${amtUsd} USD${sellerNote}`
+      );
+      if (rcptS.connectError) {
+        addBubble('feed-seller', 'mid', '',
+          `Connect unavailable — charge settled to platform account\n(${rcptS.connectError.split(':').slice(-1)[0].trim()})`);
+        await delay(400);
+      }
+
+      // Refresh fiat wallet caches → populate open tabs
+      _fiatWalletCache.buyer.data  = null; _fiatWalletCache.buyer.loading  = false;
+      _fiatWalletCache.seller.data = null; _fiatWalletCache.seller.loading = false;
+      try {
+        [_fiatWalletCache.buyer.data, _fiatWalletCache.seller.data] = await Promise.all([
+          fetchFiatWalletData('buyer'),
+          fetchFiatWalletData('seller'),
+        ]);
+      } catch (e) { /* ignore */ }
+      const buyerFiatDiv  = document.querySelector('#wtab-fiat-buyer');
+      const sellerFiatDiv = document.querySelector('#wtab-fiat-seller');
+      if (buyerFiatDiv  && _fiatWalletCache.buyer.data)  buyerFiatDiv.innerHTML  = buildFiatWalletHtml(_fiatWalletCache.buyer.data,  'buyer');
+      if (sellerFiatDiv && _fiatWalletCache.seller.data) sellerFiatDiv.innerHTML = buildFiatWalletHtml(_fiatWalletCache.seller.data, 'seller');
+
+      // Build receipt payload for PDF download
+      const fiatReceiptPayload = {
+        offer: pendingOffer ? { id: pendingOffer.id, name: pendingOffer.name, price: pendingOffer.price, currency: pendingOffer.currency } : null,
+        receipt: rcptS,
+        wallets: {},
+      };
+
+      addFiatReceiptBubble('feed-buyer',  rcptS, pendingOffer, fiatReceiptPayload);
+      addFiatReceiptBubble('feed-seller', rcptS, pendingOffer, fiatReceiptPayload);
+      await delay(400);
+
+      // Auto-open both wallet popovers on the Fiat tab so the user sees the balance update
+      for (const role of ['buyer', 'seller']) {
+        const wrap = document.getElementById('wallet-wrap-' + role);
+        if (!wrap) continue;
+        wrap.classList.add('open', 'payment-active');
+        // Trigger a crypto fetch (builds the tab structure if not yet built)
+        await fetchWallet(role);
+        // Then switch to the Fiat tab
+        const fiatBtn = wrap.querySelector('.wallet-tab-btn[data-tab="fiat"]');
+        if (fiatBtn) fiatBtn.click();
+        requestAnimationFrame(() => pinWalletPopover(wrap));
+      }
+
+      setPip(4, 'done');
+      setStatus(`Payment complete — $${amtUsd} USD charged via Stripe${rcptS.connectEnabled ? ' Connect' : ' test mode'}. Open wallets → Fiat tab to see the balance update.`);
+      document.getElementById('next-btn').style.display = 'none';
+      document.getElementById('reset-btn').style.display = '';
+      busy = false;
+      return;
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // ── CRYPTO PATH — x402 USDC on Base Sepolia ───────────────────────────
+    // ══════════════════════════════════════════════════════════════════════
     setStatus('x402 payment — opening agent wallets…');
     openPaymentWallets();
     const walletBefore = await snapshotWalletBalances(true).catch(() => ({}));
@@ -2943,6 +3672,7 @@ res1.agentMessage);
     const payQuoteBubble = addBubble('feed-buyer', 'sent', 'buyer  →  seller   |   commerce/pay (quote)',
 `sessionId: ${activeSession}
 offer: ${pendingOffer.name}
+method: crypto · USDC
 catalog: $${pendingOffer.price.toFixed(2)} ${pendingOffer.currency}`);
     await waitForBubbleLayout(payQuoteBubble);
     beginFlowGroup('x402', payQuoteBubble);
@@ -2973,7 +3703,7 @@ payTo: seller wallet
 due: ${usdcDue} USDC
 catalog: $${fx.catalogUsd || pendingOffer.price} (${fx.demoRate || 'demo rate'})
 balance ok: ${balOk ? 'yes' : 'NO — insufficient USDC'}`);
-    await delay(900);
+    await delay(250);
     addArrow('left', 'payment required', 'seller → buyer', payReqBubble);
 
     setWalletPayHint(
@@ -2990,7 +3720,7 @@ balance ok: ${balOk ? 'yes' : 'NO — insufficient USDC'}`);
     const proofBubble = addBubble('feed-buyer', 'sent', 'buyer  →  seller   |   payment proof',
 `method: x402 exact · USDC
 amount: ${usdcDue} USDC`);
-    await delay(700);
+    await delay(250);
     addArrow('right', 'payment proof', 'buyer → seller', proofBubble);
 
     try {
@@ -3039,7 +3769,7 @@ amount: ${usdcDue} USDC`);
       b.appendChild(pre);
       appendVerifyLink(b, rcpt);
     });
-    await delay(800);
+    await delay(250);
     addArrow('left', 'settled', 'seller → buyer', lastBubbleWrap('feed-seller'));
 
     setStatus('Refreshing wallets from chain…');
@@ -3062,9 +3792,9 @@ amount: ${usdcDue} USDC`);
     await ensureReceiptGas(rcpt, payResult);
     payResult.receipt = rcpt;
 
-    const buyerSnap = walletAfter.buyer?.full || _walletCache.buyer;
-    const sellerSnap = walletAfter.seller?.full || _walletCache.seller;
-    const buyerPayHint = formatWalletPayHint(`Paid ${rcpt.usdcPaid || usdcDue} USDC`, rcpt.ethGas);
+    const buyerSnap   = walletAfter.buyer?.full  || _walletCache.buyer;
+    const sellerSnap  = walletAfter.seller?.full || _walletCache.seller;
+    const buyerPayHint  = formatWalletPayHint(`Paid ${rcpt.usdcPaid || usdcDue} USDC`, rcpt.ethGas);
     const sellerPayHint = formatWalletPayHint(`Received +${rcpt.usdcPaid || usdcDue} USDC`, rcpt.ethGas);
 
     const receiptPayload = buildReceiptPayload(pendingOffer, payResult, walletBefore, walletAfter);
@@ -3110,8 +3840,11 @@ function resetDemo() {
   document.getElementById('prompt-input').value = '';
   document.getElementById('prompt-label').textContent = 'prompt';
   document.getElementById('prompt-input').className = 'prompt-input';
-  step = 0; sellerCaps = null; activeSession = null; pendingOffer = null; autoFireTimer = null;
+  step = 0; sellerCaps = null; activeSession = null; pendingOffer = null; chosenPaymentMethod = null; autoFireTimer = null;
+  _fiatWalletCache.buyer.data = null; _fiatWalletCache.buyer.loading = false;
+  _fiatWalletCache.seller.data = null; _fiatWalletCache.seller.loading = false;
   _walletPayHint.buyer = ''; _walletPayHint.seller = '';
+  _fiatWalletPayHint.buyer = ''; _fiatWalletPayHint.seller = '';
   document.querySelectorAll('.wallet-wrap.payment-active').forEach(w => w.classList.remove('payment-active'));
   promptInFlight = false; promptTurnAborted = false; activePromptController = null;
   const btn = document.getElementById('next-btn');

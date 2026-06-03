@@ -91,6 +91,23 @@ def get_basescan_api_key() -> str | None:
     return key.strip() if key else None
 
 
+def get_stripe_secret_key() -> str | None:
+    key = env("STRIPE_SECRET_KEY")
+    return key.strip() if key else None
+
+
+def get_stripe_seller_secret_key() -> str | None:
+    """Secret key for the seller's own Stripe account (sk_test_51Te1Np...)."""
+    key = env("STRIPE_SELLER_SECRET_KEY")
+    return key.strip() if key and key.strip().startswith("sk_test_") else None
+
+
+def get_stripe_seller_account_id() -> str | None:
+    """Stripe Connect account ID for the seller (acct_...). Optional but recommended."""
+    val = env("STRIPE_SELLER_ACCOUNT_ID")
+    return val.strip() if val and val.strip().startswith("acct_") else None
+
+
 def is_testnet() -> bool:
     net = get_network()
     if env("X402_ALLOW_MAINNET", "").lower() in ("1", "true", "yes"):

@@ -1,10 +1,10 @@
 """
-ACP commerce/pay — x402 settlement for a selected catalog offer.
+ACP commerce/pay — routes to x402 (crypto) or Stripe (fiat) based on payment_method param.
 """
 
 from __future__ import annotations
 
-from payments import x402_service
+from payments import stripe_service, x402_service
 from payments.chain import fetch_eth_balance, fetch_usdc_balance
 from payments.wallets import get_buyer_address
 
@@ -12,16 +12,17 @@ from payments.wallets import get_buyer_address
 async def handle_commerce_pay(params: dict, catalog_lookup) -> dict:
     """
     params: sessionId, offerId, offer? (optional inline offer),
-            payment? (x402 PaymentPayload dict)
+            payment_method? ("crypto" | "fiat", default "crypto"),
+            payment? (x402 PaymentPayload dict — crypto path only)
     catalog_lookup(offer_id) -> product dict with price, name, id
     """
-    session_id = params.get("sessionId")
     offer_inline = params.get("offer") or {}
     offer_id = (
         params.get("offerId")
         or offer_inline.get("id")
         or offer_inline.get("item")
     )
+    payment_method = (params.get("payment_method") or "crypto").lower()
     payment = params.get("payment")
 
     if not offer_id:
@@ -34,6 +35,22 @@ async def handle_commerce_pay(params: dict, catalog_lookup) -> dict:
     catalog_usd = float(offer_inline.get("price") or product.get("price", 0))
     offer_name = offer_inline.get("name") or product.get("name", "")
 
+    # ── Fiat path (Stripe) ────────────────────────────────────────────────────
+    if payment_method == "fiat":
+        if params.get("execute") or params.get("demoExecute"):
+            try:
+                receipt = await stripe_service.execute_payment(catalog_usd, offer_id, offer_name)
+                return {"result": receipt}
+            except Exception as e:
+                return _err(str(e))
+
+        try:
+            quote = await stripe_service.build_quote(catalog_usd, offer_id, offer_name)
+            return {"result": quote}
+        except Exception as e:
+            return _err(str(e))
+
+    # ── Crypto path (x402 / USDC) ─────────────────────────────────────────────
     if params.get("execute") or params.get("demoExecute"):
         try:
             receipt = await x402_service.execute_payment(

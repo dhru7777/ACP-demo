@@ -38,7 +38,16 @@ from session_manager import session_manager
 from search import catalog_search   # modular search — swap backend here
 from payments.commerce_pay import handle_commerce_pay
 from payments.wallets import AgentRole, wallet_status
-from payments.wallet_api import build_wallet_response
+from payments.config import get_stripe_seller_account_id
+from payments.wallet_api import (
+    build_fiat_seller_wallet_response,
+    build_fiat_wallet_response,
+    build_wallet_response,
+)
+
+
+def _stripe_connect_enabled() -> bool:
+    return get_stripe_seller_account_id() is not None
 from payments import x402_service
 from payments.chain import fetch_tx_fee_eth
 from payments.receipt_pdf import build_receipt_pdf
@@ -104,6 +113,22 @@ async def wallet_buyer():
         return JSONResponse({"role": "buyer", "error": str(e)}, status_code=503)
 
 
+@app.get("/wallet/buyer/fiat")
+async def wallet_buyer_fiat():
+    try:
+        return JSONResponse(await build_fiat_wallet_response())
+    except Exception as e:
+        return JSONResponse({"role": "buyer", "provider": "stripe", "error": str(e)}, status_code=503)
+
+
+@app.get("/wallet/seller/fiat")
+async def wallet_seller_fiat():
+    try:
+        return JSONResponse(await build_fiat_seller_wallet_response())
+    except Exception as e:
+        return JSONResponse({"role": "seller", "provider": "stripe", "error": str(e)}, status_code=503)
+
+
 @app.get("/wallet/seller")
 async def wallet_seller():
     try:
@@ -167,6 +192,62 @@ async def demo_x402_execute(request: Request):
         if session_id and session_manager.exists(session_id):
             session_manager.add_history(session_id, "buyer", "commerce/pay", body)
             session_manager.add_history(session_id, "seller", "commerce/pay.receipt", result)
+            sess = session_manager.get(session_id)
+            if sess is not None:
+                paid = sess.setdefault("context", {}).setdefault("paidOffers", {})
+                paid[offer_id] = result
+        return JSONResponse(result)
+    except Exception as e:
+        return JSONResponse({"status": "error", "error": str(e)}, status_code=500)
+
+
+@app.get("/demo/stripe/verify-connect")
+async def demo_stripe_verify_connect():
+    """Diagnose whether STRIPE_SELLER_ACCOUNT_ID belongs to this platform key."""
+    import stripe as _stripe_lib
+    from payments.config import get_stripe_secret_key, get_stripe_seller_account_id
+    key = get_stripe_secret_key()
+    seller_id = get_stripe_seller_account_id()
+    if not key:
+        return JSONResponse({"ok": False, "error": "STRIPE_SECRET_KEY not set"}, status_code=400)
+    _stripe_lib.api_key = key
+    if not seller_id:
+        return JSONResponse({"ok": False, "error": "STRIPE_SELLER_ACCOUNT_ID not set"}, status_code=400)
+    try:
+        acct = await asyncio.to_thread(lambda: _stripe_lib.Account.retrieve(seller_id))
+        return JSONResponse({
+            "ok": True,
+            "accountId": acct.id,
+            "type": acct.type,
+            "chargesEnabled": acct.charges_enabled,
+            "payoutsEnabled": acct.payouts_enabled,
+            "country": acct.country,
+        })
+    except Exception as e:
+        return JSONResponse({"ok": False, "accountId": seller_id, "error": str(e)}, status_code=400)
+
+
+@app.post("/demo/stripe/execute")
+async def demo_stripe_execute(request: Request):
+    """Demo UI: charge test card via Stripe in one call."""
+    from payments import stripe_service
+
+    body = await request.json()
+    session_id = body.get("sessionId")
+    offer = body.get("offer") or {}
+    offer_id = body.get("offerId") or offer.get("id")
+    if not offer_id:
+        return JSONResponse({"error": "offerId required"}, status_code=400)
+    product = catalog_search.get(offer_id)
+    if product is None:
+        return JSONResponse({"error": f"Unknown offer: {offer_id}"}, status_code=404)
+    catalog_usd = float(offer.get("price") or product["price"])
+    offer_name = offer.get("name") or product.get("name", "")
+    try:
+        result = await stripe_service.execute_payment(catalog_usd, offer_id, offer_name)
+        if session_id and session_manager.exists(session_id):
+            session_manager.add_history(session_id, "buyer", "commerce/pay.fiat", body)
+            session_manager.add_history(session_id, "seller", "commerce/pay.fiat.receipt", result)
             sess = session_manager.get(session_id)
             if sess is not None:
                 paid = sess.setdefault("context", {}).setdefault("paidOffers", {})
@@ -244,8 +325,9 @@ def handle_initialize(id_, params):
                     "negotiation":        False,
                 },
                 "payment": {
-                    "stripe": False,
-                    "x402":   True,
+                    "stripe":        True,
+                    "stripeConnect": bool(_stripe_connect_enabled()),
+                    "x402":          True,
                 },
                 # MCP tool connections (Phase 3+)
                 "mcpCapabilities": {
