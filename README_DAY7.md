@@ -225,6 +225,7 @@ acp-demo/
 
 | File | Story beat |
 |------|------------|
+| [README.md](./README.md) | Project overview + quick start |
 | [Readme_Day1.md](./Readme_Day1.md) | Handshake, first offer |
 | [README_DAY2.md](./README_DAY2.md) | Sessions |
 | [README_DAY3.md](./README_DAY3.md) | Natural language |
