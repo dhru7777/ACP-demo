@@ -250,9 +250,9 @@
   .agent-profile-pop .profile-kv-tip {
     display: none;
     margin-top: 3px;
-    padding: 4px 6px;
-    font-size: 8px;
-    line-height: 1.4;
+    padding: 5px 7px;
+    font-size: 9px;
+    line-height: 1.45;
     color: var(--muted);
     background: #fff;
     border: 1px solid var(--border);
@@ -283,9 +283,9 @@
   .agent-profile-pop .profile-verify-tip {
     display: none;
     margin-top: 3px;
-    padding: 4px 6px;
-    font-size: 8px;
-    line-height: 1.4;
+    padding: 5px 7px;
+    font-size: 9px;
+    line-height: 1.45;
     color: var(--muted);
     background: #fff;
     border: 1px solid var(--border);
@@ -1674,7 +1674,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script>
 const delay = ms => new Promise(r => setTimeout(r, ms));
-const DEMO_BUILD = '2026-06-07g';
+const DEMO_BUILD = '2026-06-07h';
 
 function isMobileLayout() {
   return window.matchMedia('(max-width: 680px)').matches;
@@ -2379,33 +2379,33 @@ function pinAgentProfilePopover(wrap) {
 }
 
 const PROFILE_FIELD_HELP = {
-  agentId: 'Token number on the identity registry.',
-  chain: 'Network this agent was minted on.',
-  globalId: 'Chain + registry + token, combined.',
-  owner: 'Wallet that controls the identity.',
-  agentWallet: 'Wallet listed for payments.',
-  x402: 'Supports USDC x402 payments.',
-  healthScore: 'Overall score (0–100).',
-  popularity: 'Stars, watches, and attention.',
-  freshness: 'How new or recently updated.',
-  metadata: 'How complete the registration is.',
-  quality: 'On-chain vs off-chain match.',
-  activity: 'Recent usage signals.',
-  walletScore: 'Wallet trust signals.',
-  integrity: 'Live service vs metadata-only.',
-  discoverability: 'How easy to find and call.',
-  stars: 'Favorites on 8004scan.',
-  watchers: 'Users following updates.',
-  verified: 'Publisher verified badge.',
-  publisher: 'Who registered on 8004scan.',
+  agentId: 'On-chain token ID for this agent’s identity NFT (e.g. #6832). Uniquely identifies the seller on this chain’s registry.',
+  chain: 'Blockchain where the identity was minted. Here it is Base Sepolia — the same network used for USDC x402 payments.',
+  globalId: 'Cross-chain ID combining network, registry contract, and token number. Indexers use it to look up the same agent everywhere.',
+  owner: 'Wallet that controls the identity NFT and can update registration. Not always the same wallet that receives payments.',
+  agentWallet: 'Wallet declared in ERC-8004 for commerce and x402 payTo. In demos it may differ from SELLER_PAYTO in server env.',
+  x402: 'Whether the registration file lists USDC x402 support. Read from on-chain metadata — not a live payment test.',
+  healthScore: '8004scan composite trust score (0–100). Higher means a more complete, active, and consistent profile.',
+  popularity: 'Score from stars, watchers, and profile attention (0–100). Measures visibility, not whether payments are safe.',
+  freshness: 'How recently the agent or its metadata was updated (0–100). Stale or unchanged profiles score lower.',
+  metadata: 'Completeness of name, image, services, and IPFS registration JSON (0–100). Gaps in the file lower this score.',
+  quality: 'How well on-chain data matches off-chain registration (0–100). Catches broken IPFS links or wrong URLs.',
+  activity: 'Recent interaction and commerce signals indexed by 8004scan (0–100). Quiet agents score lower here.',
+  walletScore: 'Trust signals for declared wallets — linkage, history, verification (0–100). Separate from payment success.',
+  integrity: 'Whether the live service URL responds and matches registration (0–100). Confirms the agent is reachable, not just listed.',
+  discoverability: 'How findable this agent is via search and service endpoints (0–100). Matters for agent-to-agent discovery.',
+  stars: 'Users who starred this agent on 8004scan. A social signal — separate from the algorithmic rank scores above.',
+  watchers: 'Accounts following this agent for updates on 8004scan. More watchers usually means more ongoing attention.',
+  verified: 'Whether 8004scan verified the publisher who listed this agent. Extra confidence in who submitted the profile.',
+  publisher: 'Wallet or account that registered this listing on 8004scan. Can differ from the on-chain NFT owner.',
 };
 
 const PROFILE_VERIFY_HELP = {
-  '8004scan profile': 'Indexer profile page.',
-  'Basescan NFT (on-chain ID)': 'NFT on block explorer.',
-  'Identity Registry contract': 'Registry contract on chain.',
-  'Registration JSON (IPFS)': 'Official metadata JSON on IPFS.',
-  'ACP service endpoint': 'Live ACP service URL.',
+  '8004scan profile': 'Indexer page with scores, services, and social signals. Start here for a quick audit before paying this agent.',
+  'Basescan NFT (on-chain ID)': 'The identity NFT on Basescan — owner, token URI, and contract history. On-chain source of truth for the ID.',
+  'Identity Registry contract': 'ERC-8004 registry on Base Sepolia where agent identities are minted. Every agent ID lives in this contract.',
+  'Registration JSON (IPFS)': 'Canonical metadata at agentURI — name, services, x402 flag, image. Content-addressed; any edit changes the hash.',
+  'ACP service endpoint': 'Live seller URL for ACP handshake and commerce. Open it to confirm it matches what is in the registration file.',
 };
 
 function escHtml(s) {
