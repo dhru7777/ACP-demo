@@ -224,7 +224,7 @@
     font-family: var(--mono);
     line-height: 1;
     padding: 0;
-    cursor: help;
+    cursor: pointer;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -260,8 +260,8 @@
     word-break: break-word;
     overflow-wrap: anywhere;
   }
-  .agent-profile-pop .profile-kv:has(.profile-info-btn:hover) .profile-kv-tip,
-  .agent-profile-pop .profile-kv:has(.profile-info-btn:focus-visible) .profile-kv-tip,
+  .agent-profile-pop .profile-kv:not(.help-dismissed):has(.profile-info-btn:hover) .profile-kv-tip,
+  .agent-profile-pop .profile-kv:not(.help-dismissed):has(.profile-info-btn:focus-visible) .profile-kv-tip,
   .agent-profile-pop .profile-kv.is-open .profile-kv-tip {
     display: block;
   }
@@ -293,8 +293,8 @@
     word-break: break-word;
     overflow-wrap: anywhere;
   }
-  .agent-profile-pop .profile-verify-row:has(.profile-info-btn:hover) .profile-verify-tip,
-  .agent-profile-pop .profile-verify-row:has(.profile-info-btn:focus-visible) .profile-verify-tip,
+  .agent-profile-pop .profile-verify-row:not(.help-dismissed):has(.profile-info-btn:hover) .profile-verify-tip,
+  .agent-profile-pop .profile-verify-row:not(.help-dismissed):has(.profile-info-btn:focus-visible) .profile-verify-tip,
   .agent-profile-pop .profile-verify-row.is-open .profile-verify-tip {
     display: block;
   }
@@ -1674,7 +1674,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script>
 const delay = ms => new Promise(r => setTimeout(r, ms));
-const DEMO_BUILD = '2026-06-07h';
+const DEMO_BUILD = '2026-06-07i';
 
 function isMobileLayout() {
   return window.matchMedia('(max-width: 680px)').matches;
@@ -2441,14 +2441,23 @@ function profileVerifyRow(label, url) {
 
 function wireProfileFieldHelp(pop) {
   pop.querySelectorAll('.profile-info-btn').forEach(btn => {
+    const row = btn.closest('.profile-kv, .profile-verify-row');
+    if (!row) return;
+
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const row = btn.closest('.profile-kv, .profile-verify-row');
-      if (!row) return;
       const wasOpen = row.classList.contains('is-open');
       pop.querySelectorAll('.profile-kv.is-open, .profile-verify-row.is-open').forEach(r => r.classList.remove('is-open'));
-      if (!wasOpen) row.classList.add('is-open');
+      if (!wasOpen) {
+        row.classList.remove('help-dismissed');
+        row.classList.add('is-open');
+      } else {
+        row.classList.remove('is-open');
+        row.classList.add('help-dismissed');
+      }
     });
+
+    row.addEventListener('mouseleave', () => row.classList.remove('help-dismissed'));
   });
 }
 
