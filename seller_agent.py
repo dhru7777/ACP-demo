@@ -51,6 +51,7 @@ def _stripe_connect_enabled() -> bool:
 from payments import x402_service
 from payments.chain import fetch_tx_fee_eth
 from payments.receipt_pdf import build_receipt_pdf
+from trust.identity_api import build_agent_identity_response, identity_status
 # --------------------------------------------------------------------------
 # Anthropic client — used for natural language intent parsing.
 # Falls back silently to regex if the key is missing or the call fails.
@@ -99,6 +100,7 @@ async def health():
             "buyer":  wallet_status(AgentRole.BUYER),
             "seller": wallet_status(AgentRole.SELLER),
         },
+        "erc8004": identity_status(),
     })
 
 
@@ -135,6 +137,21 @@ async def wallet_seller():
         return JSONResponse(build_wallet_response(AgentRole.SELLER))
     except Exception as e:
         return JSONResponse({"role": "seller", "error": str(e)}, status_code=503)
+
+
+# --------------------------------------------------------------------------
+# ERC-8004 agent identity — live 8004scan + on-chain verification links
+# --------------------------------------------------------------------------
+@app.get("/agent/erc8004")
+async def agent_erc8004(request: Request):
+    try:
+        service_url = str(request.base_url).rstrip("/")
+        data = await asyncio.to_thread(build_agent_identity_response, service_url)
+        if not data.get("configured"):
+            return JSONResponse(data, status_code=503)
+        return JSONResponse(data)
+    except Exception as e:
+        return JSONResponse({"configured": False, "error": str(e)}, status_code=503)
 
 
 # --------------------------------------------------------------------------

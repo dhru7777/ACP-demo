@@ -114,6 +114,196 @@
     color: var(--muted);
   }
 
+  /* Seller header — ERC-8004 profile + wallet */
+  .panel-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .agent-profile-wrap {
+    position: relative;
+    flex-shrink: 0;
+    z-index: 2;
+  }
+  .agent-profile-wrap.open { z-index: 10; }
+  .profile-btn {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    min-height: 28px;
+    border: 1px solid rgba(10, 122, 47, 0.45);
+    border-radius: 8px;
+    background: #f6fff8;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1;
+    color: #0a7a2f;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .profile-btn:hover,
+  .agent-profile-wrap.open .profile-btn {
+    border-color: #0a7a2f;
+    background: var(--surface);
+  }
+  .agent-profile-pop {
+    width: min(280px, calc(100vw - 24px)) !important;
+    max-height: min(360px, 60vh);
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  .agent-profile-pop .wallet-tab-bar.profile-tab-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+    margin-bottom: 6px;
+  }
+  .agent-profile-pop .wallet-tab-bar.profile-tab-bar .wallet-tab-btn {
+    flex: none;
+    width: 100%;
+    min-width: 0;
+    padding: 4px 2px;
+    font-size: 8px;
+  }
+  .agent-profile-pop .profile-tab-panel {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 8px;
+    background: #fafafa;
+    min-height: 88px;
+  }
+  .agent-profile-pop .profile-check-ok { color: #0a7a2f; }
+  .agent-profile-pop .profile-check-bad { color: #9a3412; }
+  .agent-profile-pop .profile-kv {
+    padding: 2px 0;
+    font-size: 9px;
+    line-height: 1.35;
+  }
+  .agent-profile-pop .profile-kv-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .agent-profile-pop .profile-kv-label-wrap,
+  .agent-profile-pop .profile-verify-label-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    min-width: 0;
+  }
+  .agent-profile-pop .profile-kv-label,
+  .agent-profile-pop .profile-verify-label {
+    font-size: 9px;
+    color: var(--muted);
+    line-height: 1.3;
+  }
+  .agent-profile-pop .profile-verify-label {
+    color: var(--text);
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+  .agent-profile-pop .profile-info-btn {
+    width: 9px;
+    height: 9px;
+    min-width: 9px;
+    min-height: 9px;
+    border: 0.5px solid var(--border-hi);
+    border-radius: 50%;
+    background: transparent;
+    color: var(--muted);
+    font-size: 6px;
+    font-weight: 600;
+    font-style: italic;
+    font-family: var(--mono);
+    line-height: 1;
+    padding: 0;
+    cursor: help;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    vertical-align: middle;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .agent-profile-pop .profile-info-btn:hover,
+  .agent-profile-pop .profile-info-btn:focus-visible,
+  .agent-profile-pop .profile-kv.is-open .profile-info-btn,
+  .agent-profile-pop .profile-verify-row.is-open .profile-info-btn {
+    color: var(--text);
+    border-color: var(--muted);
+    outline: none;
+  }
+  .agent-profile-pop .profile-kv-val {
+    color: var(--text);
+    text-align: right;
+    word-break: break-all;
+    min-width: 0;
+  }
+  .agent-profile-pop .profile-kv-tip {
+    display: none;
+    margin-top: 3px;
+    padding: 4px 6px;
+    font-size: 8px;
+    line-height: 1.4;
+    color: var(--muted);
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+  .agent-profile-pop .profile-kv:has(.profile-info-btn:hover) .profile-kv-tip,
+  .agent-profile-pop .profile-kv:has(.profile-info-btn:focus-visible) .profile-kv-tip,
+  .agent-profile-pop .profile-kv.is-open .profile-kv-tip {
+    display: block;
+  }
+  .agent-profile-pop .profile-verify-row {
+    padding: 3px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .agent-profile-pop .profile-verify-row:last-child { border-bottom: none; }
+  .agent-profile-pop .profile-verify-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+  }
+  .agent-profile-pop .profile-verify-label-wrap {
+    flex: 1;
+    min-width: 0;
+  }
+  .agent-profile-pop .profile-verify-tip {
+    display: none;
+    margin-top: 3px;
+    padding: 4px 6px;
+    font-size: 8px;
+    line-height: 1.4;
+    color: var(--muted);
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+  .agent-profile-pop .profile-verify-row:has(.profile-info-btn:hover) .profile-verify-tip,
+  .agent-profile-pop .profile-verify-row:has(.profile-info-btn:focus-visible) .profile-verify-tip,
+  .agent-profile-pop .profile-verify-row.is-open .profile-verify-tip {
+    display: block;
+  }
+  .agent-profile-pop .profile-source {
+    font-size: 8px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
   /* Wallet popover — live data from GET /wallet/buyer | /wallet/seller */
   .wallet-wrap {
     position: relative;
@@ -1178,7 +1368,8 @@
     .offer-body  { gap: 8px; }
     .offer-img   { width: 48px; height: 48px; }
 
-    .wallet-btn {
+    .wallet-btn,
+    .profile-btn {
       width: 36px;
       height: 36px;
       min-width: 36px;
@@ -1291,6 +1482,7 @@
     .pay-pick-sub   { font-size: 7px; }
     .pay-pick-badge { font-size: 6px; top: -6px; left: 5px; padding: 1px 4px; }
     .wallet-tab-btn { font-size: 8px; padding: 3px 4px; }
+    .agent-profile-pop .wallet-tab-bar.profile-tab-bar .wallet-tab-btn { font-size: 7px; }
   }
 
   /* iPhone SE — stay side-by-side, just tighter */
@@ -1426,11 +1618,19 @@
         <div class="panel-name"><span class="name-long">Nike Seller Agent</span><span class="name-short">Nike</span></div>
         <div class="panel-sub">vendor · nike.com</div>
       </div>
-      <div class="wallet-wrap" id="wallet-wrap-seller" data-wallet-role="seller">
-        <button type="button" class="wallet-btn" aria-label="Seller wallet" title="Wallet">$</button>
-        <div class="wallet-pop" id="wallet-pop-seller">
-          <div class="wallet-pop-title">Base Sepolia</div>
-          <div class="wallet-loading">Tap wallet to load…</div>
+      <div class="panel-actions">
+        <div class="agent-profile-wrap" id="agent-profile-wrap-seller">
+          <button type="button" class="profile-btn" aria-label="Agent profile" title="Profile">◎</button>
+          <div class="wallet-pop agent-profile-pop" id="agent-profile-pop-seller">
+            <div class="wallet-loading">Tap to load profile…</div>
+          </div>
+        </div>
+        <div class="wallet-wrap" id="wallet-wrap-seller" data-wallet-role="seller">
+          <button type="button" class="wallet-btn" aria-label="Seller wallet" title="Wallet">$</button>
+          <div class="wallet-pop" id="wallet-pop-seller">
+            <div class="wallet-pop-title">Base Sepolia</div>
+            <div class="wallet-loading">Tap wallet to load…</div>
+          </div>
         </div>
       </div>
       <div class="dot" id="dot-seller"></div>
@@ -1474,7 +1674,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script>
 const delay = ms => new Promise(r => setTimeout(r, ms));
-const DEMO_BUILD = '2026-05-30h';
+const DEMO_BUILD = '2026-06-07g';
 
 function isMobileLayout() {
   return window.matchMedia('(max-width: 680px)').matches;
@@ -2150,6 +2350,294 @@ function closeAllWalletPops() {
     const pop = w.querySelector('.wallet-pop');
     if (pop) pop.style.display = '';
   });
+  document.querySelectorAll('.agent-profile-wrap.open').forEach(w => {
+    w.classList.remove('open');
+    const pop = w.querySelector('.agent-profile-pop');
+    if (pop) pop.style.display = '';
+  });
+}
+
+// ── ERC-8004 agent profile (seller) — GET /agent/erc8004 ─────────────────────
+let _agentProfileCache = null;
+let _agentProfileLoading = false;
+
+function pinAgentProfilePopover(wrap) {
+  const pop = wrap?.querySelector('.agent-profile-pop');
+  const btn = wrap?.querySelector('.profile-btn');
+  if (!pop || !btn || !wrap.classList.contains('open')) return;
+  pop.style.display = 'block';
+  const gap = 6;
+  const pad = 8;
+  const r = btn.getBoundingClientRect();
+  const maxW = Math.min(280, window.innerWidth - pad * 2);
+  pop.style.width = maxW + 'px';
+  let left = r.right - maxW;
+  if (left < pad) left = pad;
+  if (left + maxW > window.innerWidth - pad) left = window.innerWidth - pad - maxW;
+  pop.style.left = left + 'px';
+  pop.style.top = (r.bottom + gap) + 'px';
+}
+
+const PROFILE_FIELD_HELP = {
+  agentId: 'Token number on the identity registry.',
+  chain: 'Network this agent was minted on.',
+  globalId: 'Chain + registry + token, combined.',
+  owner: 'Wallet that controls the identity.',
+  agentWallet: 'Wallet listed for payments.',
+  x402: 'Supports USDC x402 payments.',
+  healthScore: 'Overall score (0–100).',
+  popularity: 'Stars, watches, and attention.',
+  freshness: 'How new or recently updated.',
+  metadata: 'How complete the registration is.',
+  quality: 'On-chain vs off-chain match.',
+  activity: 'Recent usage signals.',
+  walletScore: 'Wallet trust signals.',
+  integrity: 'Live service vs metadata-only.',
+  discoverability: 'How easy to find and call.',
+  stars: 'Favorites on 8004scan.',
+  watchers: 'Users following updates.',
+  verified: 'Publisher verified badge.',
+  publisher: 'Who registered on 8004scan.',
+};
+
+const PROFILE_VERIFY_HELP = {
+  '8004scan profile': 'Indexer profile page.',
+  'Basescan NFT (on-chain ID)': 'NFT on block explorer.',
+  'Identity Registry contract': 'Registry contract on chain.',
+  'Registration JSON (IPFS)': 'Official metadata JSON on IPFS.',
+  'ACP service endpoint': 'Live ACP service URL.',
+};
+
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function profileInfoBtn(label) {
+  return `<button type="button" class="profile-info-btn" aria-label="About ${escHtml(label)}">i</button>`;
+}
+
+function profileKv(label, value, helpKey, fallback = '—') {
+  const v = value == null || value === '' ? fallback : value;
+  const tip = helpKey && PROFILE_FIELD_HELP[helpKey];
+  const tipHtml = tip ? `<div class="profile-kv-tip">${escHtml(tip)}</div>` : '';
+  const labelHtml = tip
+    ? `<span class="profile-kv-label-wrap"><span class="profile-kv-label">${escHtml(label)}</span>${profileInfoBtn(label)}</span>`
+    : `<span class="profile-kv-label">${escHtml(label)}</span>`;
+  return `<div class="profile-kv"><div class="profile-kv-top">${labelHtml}<span class="profile-kv-val">${escHtml(String(v))}</span></div>${tipHtml}</div>`;
+}
+
+function profileVerifyRow(label, url) {
+  const tip = PROFILE_VERIFY_HELP[label];
+  const tipHtml = tip ? `<div class="profile-verify-tip">${escHtml(tip)}</div>` : '';
+  const labelHtml = tip
+    ? `<span class="profile-verify-label-wrap"><span class="profile-verify-label">${escHtml(label)}</span>${profileInfoBtn(label)}</span>`
+    : `<span class="profile-verify-label">${escHtml(label)}</span>`;
+  return `<div class="profile-verify-row"><div class="profile-verify-top">${labelHtml}${walletExtLink(url, label)}</div>${tipHtml}</div>`;
+}
+
+function wireProfileFieldHelp(pop) {
+  pop.querySelectorAll('.profile-info-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const row = btn.closest('.profile-kv, .profile-verify-row');
+      if (!row) return;
+      const wasOpen = row.classList.contains('is-open');
+      pop.querySelectorAll('.profile-kv.is-open, .profile-verify-row.is-open').forEach(r => r.classList.remove('is-open'));
+      if (!wasOpen) row.classList.add('is-open');
+    });
+  });
+}
+
+/** 8004scan leaderboard dimensions use a 0–100 scale (health_score, popularity, etc.). */
+function profileScore(value, scale = 100) {
+  if (value == null || value === '') return null;
+  const n = Number(value);
+  if (Number.isNaN(n)) return value;
+  const shown = Number.isInteger(n) ? n : (Math.round(n * 100) / 100);
+  return `${shown} / ${scale}`;
+}
+
+function shortAddr(addr) {
+  if (!addr || addr.length < 12) return addr || '—';
+  return addr.slice(0, 6) + '…' + addr.slice(-4);
+}
+
+let _profileActiveTab = 'identity';
+
+const PROFILE_TABS = [
+  { id: 'identity', label: 'ID' },
+  { id: 'ranking', label: 'Rank' },
+  { id: 'feedback', label: 'Feedback' },
+  { id: 'verify', label: 'Verify' },
+];
+
+function buildProfilePanelHtml(tabId, data) {
+  const sec = data.sections || {};
+  const id = sec.identity || {};
+  const rank = sec.ranking || {};
+  const fb = sec.feedback || {};
+  const verifyLinks = (sec.verify && sec.verify.links) || data.verify || [];
+
+  if (tabId === 'identity') {
+    return `
+      ${profileKv('Agent ID', '#' + (id.agentId ?? data.agentId), 'agentId')}
+      ${profileKv('Chain', id.chainLabel || data.chainLabel, 'chain')}
+      ${profileKv('Global ID', id.globalId || data.globalId, 'globalId')}
+      ${profileKv('Owner', shortAddr(id.owner), 'owner')}
+      ${profileKv('Agent wallet', shortAddr(id.agentWallet), 'agentWallet')}
+      ${profileKv('x402', id.x402Support != null ? (id.x402Support ? 'yes' : 'no') : '—', 'x402')}`;
+  }
+  if (tabId === 'ranking') {
+    if (rank.healthScore == null && rank.popularity == null) {
+      return '<div class="wallet-muted">No ranking data from 8004scan yet.</div>';
+    }
+    return [
+      profileKv('Health score', profileScore(rank.healthScore), 'healthScore'),
+      profileKv('Popularity', profileScore(rank.popularity), 'popularity'),
+      profileKv('Freshness', profileScore(rank.freshness), 'freshness'),
+      profileKv('Metadata', profileScore(rank.metadataCompleteness), 'metadata'),
+      profileKv('Quality', profileScore(rank.quality), 'quality'),
+      profileKv('Activity', profileScore(rank.activity), 'activity'),
+      profileKv('Wallet score', profileScore(rank.walletScore), 'walletScore'),
+      profileKv('Integrity', rank.serviceIntegrity, 'integrity'),
+      profileKv('Discoverability', rank.discoverability, 'discoverability'),
+    ].join('');
+  }
+  if (tabId === 'feedback') {
+    return `
+      ${profileKv('Stars', fb.starCount ?? 0, 'stars')}
+      ${profileKv('Watchers', fb.watchCount ?? 0, 'watchers')}
+      ${profileKv('Verified', fb.isVerified ? 'yes' : 'no', 'verified')}
+      ${profileKv('Publisher', fb.ownerUsername || '—', 'publisher')}`;
+  }
+  if (tabId === 'verify') {
+    let body = '';
+    for (const link of verifyLinks) {
+      if (!link.url) continue;
+      body += profileVerifyRow(link.label, link.url);
+    }
+    return body || '<div class="wallet-muted">No verify links available.</div>';
+  }
+  return '';
+}
+
+function wireProfileTabs(pop) {
+  pop.querySelectorAll('[data-profile-tab]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const tab = btn.getAttribute('data-profile-tab');
+      if (!tab) return;
+      _profileActiveTab = tab;
+      pop.querySelectorAll('[data-profile-tab]').forEach(b => {
+        b.classList.toggle('active', b.getAttribute('data-profile-tab') === tab);
+      });
+      pop.querySelectorAll('.profile-tab-panel').forEach(panel => {
+        panel.style.display = panel.getAttribute('data-profile-panel') === tab ? '' : 'none';
+      });
+      const wrap = document.getElementById('agent-profile-wrap-seller');
+      if (wrap?.classList.contains('open')) {
+        requestAnimationFrame(() => pinAgentProfilePopover(wrap));
+      }
+    });
+  });
+}
+
+function buildProfileTabPop(pop, data) {
+  if (_profileActiveTab === 'status') _profileActiveTab = 'verify';
+
+  const tabBar = PROFILE_TABS.map(t => {
+    const active = t.id === _profileActiveTab ? ' active' : '';
+    return `<button type="button" class="wallet-tab-btn${active}" data-profile-tab="${t.id}">${t.label}</button>`;
+  }).join('');
+
+  const panels = PROFILE_TABS.map(t => {
+    const hidden = t.id !== _profileActiveTab ? ' style="display:none"' : '';
+    return `<div class="profile-tab-panel" data-profile-panel="${t.id}"${hidden}>${buildProfilePanelHtml(t.id, data)}</div>`;
+  }).join('');
+
+  const errBlock = (data.errors && data.errors.length)
+    ? `<div class="wallet-err" style="margin-top:6px">${data.errors.join('; ')}</div>`
+    : '';
+
+  pop.innerHTML = `
+    <div class="wallet-pop-head-row">
+      <span class="wallet-pop-title">Profile</span>
+    </div>
+    <div class="wallet-tab-bar profile-tab-bar">${tabBar}</div>
+    ${panels}
+    ${errBlock}`;
+
+  pop.querySelectorAll('a[data-wallet-open]').forEach(a => {
+    a.addEventListener('click', onWalletExplorerClick);
+  });
+  wireProfileTabs(pop);
+  wireProfileFieldHelp(pop);
+}
+
+function renderAgentProfilePop(data, errMsg) {
+  const pop = document.getElementById('agent-profile-pop-seller');
+  if (!pop) return;
+  if (errMsg) {
+    pop.innerHTML = `<div class="wallet-pop-title">Profile</div><div class="wallet-err">${errMsg}</div>`;
+    return;
+  }
+  if (!data || !data.configured) {
+    pop.innerHTML = `<div class="wallet-pop-title">Profile</div><div class="wallet-muted">Agent identity not configured on seller.</div>`;
+    return;
+  }
+
+  buildProfileTabPop(pop, data);
+  const wrap = document.getElementById('agent-profile-wrap-seller');
+  if (wrap?.classList.contains('open')) {
+    requestAnimationFrame(() => pinAgentProfilePopover(wrap));
+  }
+}
+
+async function fetchAgentProfile(force = false) {
+  if (_agentProfileCache && !force) {
+    renderAgentProfilePop(_agentProfileCache);
+    return;
+  }
+  if (_agentProfileLoading) return;
+  _agentProfileLoading = true;
+  const pop = document.getElementById('agent-profile-pop-seller');
+  if (pop) pop.innerHTML = '<div class="wallet-loading">Loading profile…</div>';
+  try {
+    const r = await fetch(SELLER + '/agent/erc8004', { method: 'GET' });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+    _agentProfileCache = data;
+    renderAgentProfilePop(data);
+  } catch (e) {
+    renderAgentProfilePop(null, e.message || 'Failed to load agent identity');
+  } finally {
+    _agentProfileLoading = false;
+  }
+}
+
+function initAgentProfileWidget() {
+  const wrap = document.getElementById('agent-profile-wrap-seller');
+  if (!wrap) return;
+  const pop = wrap.querySelector('.agent-profile-pop');
+  if (pop) pop.addEventListener('click', onWalletExplorerClick);
+  const btn = wrap.querySelector('.profile-btn');
+  if (!btn) return;
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const wasOpen = wrap.classList.contains('open');
+    closeAllWalletPops();
+    if (wasOpen) {
+      wrap.classList.remove('open');
+      if (pop) pop.style.display = '';
+      return;
+    }
+    wrap.classList.add('open');
+    fetchAgentProfile();
+  });
 }
 
 function initWalletWidgets() {
@@ -2163,13 +2651,7 @@ function initWalletWidgets() {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const wasOpen = wrap.classList.contains('open');
-        document.querySelectorAll('.wallet-wrap.open').forEach(w => {
-          if (w !== wrap) {
-            w.classList.remove('open');
-            const p = w.querySelector('.wallet-pop');
-            if (p) p.style.display = '';
-          }
-        });
+        closeAllWalletPops();
         if (wasOpen) {
           wrap.classList.remove('open');
           if (pop) pop.style.display = '';
@@ -2182,6 +2664,8 @@ function initWalletWidgets() {
   });
   const reposition = () => {
     document.querySelectorAll('.wallet-wrap.open').forEach(pinWalletPopover);
+    const pw = document.getElementById('agent-profile-wrap-seller');
+    if (pw?.classList.contains('open')) pinAgentProfilePopover(pw);
   };
   window.addEventListener('resize', reposition);
   window.addEventListener('scroll', reposition, true);
@@ -2191,7 +2675,10 @@ function initWalletWidgets() {
   });
 }
 
-document.addEventListener('DOMContentLoaded', initWalletWidgets);
+document.addEventListener('DOMContentLoaded', () => {
+  initWalletWidgets();
+  initAgentProfileWidget();
+});
 
 // ── Fiat wallet (Stripe test mode) ───────────────────────────────────────────
 const _fiatWalletCache = { buyer: { data: null, loading: false }, seller: { data: null, loading: false } };
