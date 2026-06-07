@@ -2129,7 +2129,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script>
 const delay = ms => new Promise(r => setTimeout(r, ms));
-const DEMO_BUILD = '2026-06-07y';
+const DEMO_BUILD = '2026-06-07z';
 
 function isMobileLayout() {
   return window.matchMedia('(max-width: 680px)').matches;
@@ -2914,7 +2914,7 @@ async function startSellerRating() {
 }
 
 async function submitBuyerFeedback(beforeMetrics) {
-  if (_feedbackSubmitted || _feedbackSubmitting || !_lastCryptoPayment) return;
+  if (_feedbackSubmitted || _feedbackSubmitting || !_lastPaymentContext) return;
   _feedbackSubmitting = true;
   clearFeedbackAutoTimer();
   const ratingBar = document.getElementById('rating-inline');
@@ -2937,7 +2937,7 @@ async function submitBuyerFeedback(beforeMetrics) {
         stars,
         comment,
         sessionId: activeSession?.sessionId,
-        payment: _lastCryptoPayment.rcpt,
+        payment: _lastPaymentContext.rcpt,
       }),
     });
     result = await r.json();
@@ -4509,7 +4509,7 @@ const FEEDBACK_COMMENT_SAMPLES = [
   'Fast negotiation, fair price.',
 ];
 
-let _lastCryptoPayment = null;
+let _lastPaymentContext = null;
 let _feedbackSubmitted = false;
 let _feedbackSubmitting = false;
 
@@ -5411,9 +5411,19 @@ amount: $${pendingOffer.price.toFixed(2)} USD`);
       }
 
       setPip(4, 'done');
-      setStatus(`Payment complete — $${amtUsd} USD charged via Stripe${rcptS.connectEnabled ? ' Connect' : ' test mode'}. Open wallets → Fiat tab to see the balance update.`);
+      _lastPaymentContext = {
+        rcpt: { ...rcptS, offerId: rcptS.offerId || stripeResult.offerId || pendingOffer?.id },
+        payResult: stripeResult,
+        offer: pendingOffer,
+        method: 'fiat',
+      };
+      prepareErc8004Walkthrough();
+      setStatus(`Payment complete — $${amtUsd} USD via Stripe. Awaiting seller feedback request…`);
+      await delay(600);
+      await sendSellerRatingRequest();
+      await delay(400);
+      showRateSellerButton();
       document.getElementById('next-btn').style.display = 'none';
-      document.getElementById('reset-btn').style.display = '';
       busy = false;
       return;
     }
@@ -5554,7 +5564,7 @@ amount: ${usdcDue} USDC`);
     const sellerPayHint = formatWalletPayHint(`Received +${rcpt.usdcPaid || usdcDue} USDC`, rcpt.ethGas);
 
     const receiptPayload = buildReceiptPayload(pendingOffer, payResult, walletBefore, walletAfter);
-    _lastCryptoPayment = { rcpt, payResult, offer: pendingOffer };
+    _lastPaymentContext = { rcpt, payResult, offer: pendingOffer, method: 'crypto' };
     _feedbackSubmitted = false;
 
     addChatWalletBubble('feed-buyer', 'buyer', buyerSnap, buyerPayHint, rcpt.txHash, rcpt.usdcPaid, receiptPayload, payResult);
@@ -5611,7 +5621,7 @@ function resetDemo() {
   document.querySelectorAll('.wallet-wrap.payment-active').forEach(w => w.classList.remove('payment-active'));
   promptInFlight = false; promptTurnAborted = false; activePromptController = null;
   _lastPaymentTrust = null;
-  _lastCryptoPayment = null;
+  _lastPaymentContext = null;
   _feedbackSubmitted = false;
   _feedbackSubmitting = false;
   _profileRefreshTimers.forEach(t => clearTimeout(t));

@@ -73,9 +73,17 @@ def _format_delta(before: dict, after: dict) -> dict[str, str]:
     return delta
 
 
+def _payment_feedback_tags(payment_receipt: dict) -> tuple[str, str]:
+    """Tag1 reflects payment rail; tag2 is always ACP commerce."""
+    if payment_receipt.get("paymentIntentId") and not payment_receipt.get("txHash"):
+        return "stripe", "acp-commerce"
+    return "x402", "acp-commerce"
+
+
 def _build_feedback_uri(payment_receipt: dict, comment: str = "") -> str:
+    is_stripe = bool(payment_receipt.get("paymentIntentId")) and not payment_receipt.get("txHash")
     proof = {
-        "type": "acp-x402-payment",
+        "type": "acp-stripe-payment" if is_stripe else "acp-x402-payment",
         "createdAt": datetime.now(timezone.utc).isoformat(),
         "comment": comment or None,
         "offerId": payment_receipt.get("offerId"),
@@ -84,6 +92,10 @@ def _build_feedback_uri(payment_receipt: dict, comment: str = "") -> str:
         "payer": payment_receipt.get("payer"),
         "payTo": payment_receipt.get("payTo"),
         "network": payment_receipt.get("network"),
+        "paymentIntentId": payment_receipt.get("paymentIntentId"),
+        "amountCents": payment_receipt.get("amountCents"),
+        "currency": payment_receipt.get("currency"),
+        "provider": payment_receipt.get("provider"),
     }
     raw = json.dumps(proof, separators=(",", ":")).encode("utf-8")
     b64 = base64.b64encode(raw).decode("ascii")
@@ -156,6 +168,7 @@ def submit_agent_feedback(
 
     endpoint = service_url or ""
     feedback_uri = _build_feedback_uri(payment_receipt, comment=comment)
+    tag1, tag2 = _payment_feedback_tags(payment_receipt)
 
     try:
         tx_result = submit_give_feedback(
@@ -163,8 +176,8 @@ def submit_agent_feedback(
             agent_id=agent_id,
             value=score,
             value_decimals=0,
-            tag1="x402",
-            tag2="acp-commerce",
+            tag1=tag1,
+            tag2=tag2,
             endpoint=endpoint,
             feedback_uri=feedback_uri,
         )
@@ -196,7 +209,7 @@ def submit_agent_feedback(
         "feedbackScore": score,
         "feedbackStars": stars,
         "feedbackComment": comment,
-        "tags": ["x402", "acp-commerce"],
+        "tags": [tag1, tag2],
         "agentId": agent_id,
         "scan8004Url": scan8004_agent_url(chain_id, agent_id),
         "rankingBefore": ranking_before,
