@@ -753,6 +753,23 @@
   }
   .bubble.out a.tx-verify-link { color: #b8d4ff; }
   .bubble.inc a.tx-verify-link { color: #1a56db; }
+  .chat-wallet-card .feedback-on-receipt {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid var(--border);
+  }
+  .chat-wallet-card .feedback-on-receipt-title {
+    font-size: 7px;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+    margin-bottom: 3px;
+  }
+  .chat-wallet-card a.tx-verify-link {
+    display: block;
+    font-size: 8px;
+    margin-top: 3px;
+    color: #1a56db;
+  }
 
   /* OFFER CARD (legacy single-card, kept for reference) */
   .offer-card {
@@ -2129,7 +2146,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script>
 const delay = ms => new Promise(r => setTimeout(r, ms));
-const DEMO_BUILD = '2026-06-07z';
+const DEMO_BUILD = '2026-06-08a';
 
 function isMobileLayout() {
   return window.matchMedia('(max-width: 680px)').matches;
@@ -2973,6 +2990,7 @@ async function submitBuyerFeedback(beforeMetrics) {
   hideRatingBar();
   document.getElementById('reset-btn').style.display = '';
 
+  appendFeedbackToPaymentReceipts(result);
   addBuyerFeedbackAck(result, score);
   const sellerReceipt = addFeedbackResultBubble(result, beforeMetrics, stars, score);
   if (sellerReceipt) {
@@ -2999,25 +3017,14 @@ function addBuyerFeedbackAck(result, score) {
     <div class="feedback-received-label">Submitted on-chain ✓</div>
     <div class="feedback-received-stars">${starStr}</div>
   `;
-  const txUrl = result.feedbackTxHash
-    ? (result.feedbackExplorer || explorerTxUrl({ txHash: result.feedbackTxHash }))
-    : null;
-  if (txUrl) {
-    const a = document.createElement('a');
-    a.className = 'tx-verify-link';
-    a.href = txUrl;
-    a.target = '_blank';
-    a.rel = 'noopener noreferrer';
-    a.textContent = 'Verify your tx';
-    b.appendChild(a);
-  }
+  appendFeedbackVerifyLinks(b, result, { buyerLabels: true });
   b.addEventListener('click', onWalletExplorerClick);
   wrap.appendChild(b);
   feed.appendChild(wrap);
   requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.add('show')));
 }
 
-function appendFeedbackVerifyLinks(bubbleEl, result) {
+function appendFeedbackVerifyLinks(containerEl, result, { buyerLabels = false } = {}) {
   const txUrl = result.feedbackTxHash
     ? (result.feedbackExplorer || explorerTxUrl({ txHash: result.feedbackTxHash }))
     : null;
@@ -3027,8 +3034,8 @@ function appendFeedbackVerifyLinks(bubbleEl, result) {
     a.href = txUrl;
     a.target = '_blank';
     a.rel = 'noopener noreferrer';
-    a.textContent = 'Verify feedback tx';
-    bubbleEl.appendChild(a);
+    a.textContent = buyerLabels ? 'Verify your feedback tx' : 'Verify feedback tx';
+    containerEl.appendChild(a);
   }
   if (result.scan8004Url) {
     const a = document.createElement('a');
@@ -3037,7 +3044,26 @@ function appendFeedbackVerifyLinks(bubbleEl, result) {
     a.target = '_blank';
     a.rel = 'noopener noreferrer';
     a.textContent = 'Verify on 8004scan';
-    bubbleEl.appendChild(a);
+    containerEl.appendChild(a);
+  }
+}
+
+function appendFeedbackToPaymentReceipts(result) {
+  if (!result?.submitted) return;
+  for (const feedId of ['feed-buyer', 'feed-seller']) {
+    const wraps = document.querySelectorAll(`#${feedId} [data-payment-receipt="1"]`);
+    const wrap = wraps.length ? wraps[wraps.length - 1] : null;
+    if (!wrap) continue;
+    const card = wrap.querySelector('.chat-wallet-card');
+    if (!card || card.querySelector('.feedback-on-receipt')) continue;
+    const block = document.createElement('div');
+    block.className = 'feedback-on-receipt';
+    const title = document.createElement('div');
+    title.className = 'feedback-on-receipt-title';
+    title.textContent = 'ERC-8004 feedback';
+    block.appendChild(title);
+    appendFeedbackVerifyLinks(block, result, { buyerLabels: feedId === 'feed-buyer' });
+    card.appendChild(block);
   }
 }
 
@@ -3301,6 +3327,7 @@ function addChatWalletBubble(feedId, role, data, payHint, paymentTxHash, usdcPai
   const feed = document.getElementById(feedId);
   const wrap = document.createElement('div');
   wrap.className = 'bwrap ' + side + ' chat-wallet-bwrap';
+  wrap.dataset.paymentReceipt = '1';
   const lb = document.createElement('div');
   lb.className = 'blabel';
   lb.innerHTML = `<span class="chat-wallet-label"><span class="chat-wallet-icon" aria-hidden="true">&#x1F4B3;</span> ${accountLabel}</span>`;
@@ -3388,7 +3415,7 @@ function pinWalletPopover(wrap) {
 
 function onWalletExplorerClick(e) {
   const a = e.target.closest('a[href]');
-  if (!a || !a.closest('.wallet-pop, .chat-wallet-card')) return;
+  if (!a || !a.closest('.wallet-pop, .chat-wallet-card, .feedback-received-card')) return;
   const href = a.getAttribute('href');
   if (!href || href === '#') return;
   e.preventDefault();
@@ -4170,6 +4197,7 @@ function addFiatReceiptBubble(feedId, rcpt, offer, receiptPayload) {
   const feed     = document.getElementById(feedId);
   const wrap     = document.createElement('div');
   wrap.className = 'bwrap ' + side + ' chat-wallet-bwrap';
+  wrap.dataset.paymentReceipt = '1';
 
   const lb = document.createElement('div');
   lb.className = 'blabel';
