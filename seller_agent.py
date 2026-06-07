@@ -190,6 +190,34 @@ async def demo_receipt_pdf(request: Request):
     return await _build_receipt_pdf_response(body)
 
 
+@app.post("/demo/erc8004/feedback")
+async def demo_erc8004_feedback(request: Request):
+    """Buyer agent submits ERC-8004 giveFeedback after payment (manual demo step)."""
+    from trust.feedback_service import submit_agent_feedback_async
+
+    body = await request.json()
+    score = body.get("score")
+    if score is None:
+        return JSONResponse({"error": "score required (0-100)"}, status_code=400)
+    try:
+        score_int = max(0, min(100, int(score)))
+    except (TypeError, ValueError):
+        return JSONResponse({"error": "invalid score"}, status_code=400)
+
+    payment = body.get("payment") or body.get("receipt") or {}
+    result = await submit_agent_feedback_async(
+        score=score_int,
+        comment=str(body.get("comment") or ""),
+        stars=body.get("stars"),
+        payment_receipt=payment if isinstance(payment, dict) else None,
+    )
+    session_id = body.get("sessionId")
+    if session_id and session_manager.exists(session_id):
+        session_manager.add_history(session_id, "buyer", "erc8004/feedback", body)
+        session_manager.add_history(session_id, "seller", "erc8004/feedback.result", result)
+    return JSONResponse(result)
+
+
 @app.post("/demo/x402/execute")
 async def demo_x402_execute(request: Request):
     """Demo UI: quote + sign + settle in one call when DEMO_SERVER_SIGN=true."""

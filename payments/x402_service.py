@@ -182,6 +182,19 @@ async def execute_payment(
 
         gas = await asyncio.to_thread(fetch_tx_fee_eth, tx_hash)
 
+    receipt = {
+        "catalogUsd": fx.catalog_usd,
+        "usdcPaid": format_usdc_atomic(fx.usdc_atomic),
+        "usdcAtomic": str(fx.usdc_atomic),
+        "payTo": get_seller_address(),
+        "payer": s_data.get("payer") or get_buyer_address(),
+        "txHash": tx_hash,
+        "explorer": explorer,
+        "ethGas": gas,
+        "network": get_network(),
+        "offerId": offer_id,
+    }
+
     return {
         "status": "paid",
         "offerId": offer_id,
@@ -189,15 +202,5 @@ async def execute_payment(
         "fx": fx.to_dict(),
         "verify": v_data,
         "settle": s_data,
-        "receipt": {
-            "catalogUsd": fx.catalog_usd,
-            "usdcPaid": format_usdc_atomic(fx.usdc_atomic),
-            "usdcAtomic": str(fx.usdc_atomic),
-            "payTo": get_seller_address(),
-            "payer": s_data.get("payer") or get_buyer_address(),
-            "txHash": tx_hash,
-            "explorer": explorer,
-            "ethGas": gas,
-            "network": get_network(),
-        },
+        "receipt": receipt,
     }

@@ -1,250 +1,362 @@
 # ACP Demo — Day 7
 
-## Trust, Identity, and the Story So Far
+## ERC-8004 Trust Layer + Agent Profile UI
 
 **Date:** June 7, 2026  
 **Author:** Dheeraj Maske  
-**Thesis:** *Capturing Intent Over Attention in Agentic Payments*
+**Builds on:**
 
-*Read this when you come back after a week. It is the map, not the manual.*
-
----
-
-## The story in one paragraph
-
-You set out to prove that commerce between AI agents needs more than a checkout button — it needs **intent** (what the buyer wants), **session** (a real conversation), **payment** (money that actually moves), and eventually **trust** (proof that the agent on the other side is who it claims to be). Over seven days you built that arc in public: handshake → session → natural-language prompts → a 100-item Nike catalog → real USDC on Base Sepolia → real Stripe test charges → and finally **ERC-8004 identity** on 8004scan with a live profile panel in the demo. The seller is no longer just a Python server on Railway. It is **Attention Agent** — agent `#6832` on Base Sepolia, discoverable, scored, and verifiable.
-
----
-
-## Act I — Two agents learn to talk (Days 1–2)
-
-**Day 1** was the spark. A buyer agent and a seller agent spoke JSON-RPC over HTTP. `initialize` exchanged capabilities. `commerce/request` turned *"I want Air Max 270 under $200"* into a priced offer. The UI on Netlify called Railway. Nothing was fake except the payment step — and that gap was the whole point.
-
-**Day 2** gave the conversation a memory. ACP sessions (`session/new`, `session/load`, `session/resume`, `session/close`) meant every prompt and offer belonged to a `sessionId`. History landed in `session_state.json`. The protocol started to feel like a *relationship*, not a one-shot API call.
-
-→ [Readme_Day1.md](./Readme_Day1.md) · [README_DAY2.md](./README_DAY2.md)
+- [Day 1 — Handshake + Commerce Intent](./Readme_Day1.md)
+- [Day 2 — Session Layer](./README_DAY2.md)
+- [Day 3 — Prompt Turn + NLP Intent](./README_DAY3.md)
+- [Day 4 — Catalog Search + Multi-Turn Agentic Conversation](./README_DAY4.md)
+- [Day 5 — x402 USDC Payment Settlement](./README_DAY5.md)
+- [Day 6 — Stripe Fiat + Dual-Rail Payment Selection](./README_DAY6.md)
 
 ---
 
-## Act II — The buyer finds their voice (Days 3–4)
+## What we implemented today
 
-**Day 3** replaced hardcoded SKUs with **`session/prompt`**. The buyer typed English. The seller parsed intent, searched a catalog, returned an offer card with a shoe image. The boot sequence in `demo.html` was reordered so the story read top-to-bottom: Start → Handshake → Session → Prompt → Payment.
+Day 7 adds a **trust and identity layer** alongside ACP negotiation and dual-rail payment — the seller is no longer anonymous server code; it is a registered ERC-8004 agent on 8004scan.
 
-**Day 4** scaled the shop. One hundred Nike items. Fuzzy search in `search.py` (vector-ready). Claude Haiku parsed intent when `ANTHROPIC_API_KEY` was set; regex held the line otherwise. Multi-turn negotiation arrived: *"What's your budget?"* → buyer auto-reply → offer. The buyer agent picked by **relevance**, not cheapest price. You were no longer demoing a protocol — you were demoing **agentic commerce**.
+1. **`trust/` package** — modular ERC-8004 + 8004scan integration on the seller
+2. **`GET /agent/erc8004`** — public identity, ranking, feedback, and verify links
+3. **Auto-discovery** — agent ID resolved from public service URL via 8004scan (no hardcoded `ERC8004_AGENT_ID` required)
+4. **◎ Profile panel** — seller header popover with four tabs: ID · Rank · Feedback · Verify
+5. **ⓘ field help** — click-to-toggle tooltips on each label (hover preview when not dismissed)
+6. **8004scan + IPFS fixes** — profile URLs use chain slug (`base-sepolia/6832`); `agentURI` opens via IPFS gateway
+7. **Post-x402 ERC-8004 feedback** — after crypto settle, buyer submits `giveFeedback()` on Reputation Registry; rank before/after shown on receipt
 
-→ [README_DAY3.md](./README_DAY3.md) · [README_DAY4.md](./README_DAY4.md)
-
----
-
-## Act III — Money moves (Days 5–6)
-
-**Day 5** closed the loop with **x402**. `commerce/pay` quoted USDC on Base Sepolia. The x402.org facilitator verified and settled on-chain. Wallet popovers showed live ETH/USDC balances and Basescan links. PDF receipts appeared in chat. The center column gained a second protocol box: **ACP** for handshake/session, **x402** for settlement. Session history stored quote, proof, and receipt.
-
-**Day 6** added **choice**. The buyer agent paused before pay and offered two rails: **Crypto (USDC)** or **Fiat (Stripe test card ···4242)**. Wallets split into Crypto and Fiat tabs. Two Stripe accounts (buyer charges, seller receives) proved dual-rail was real, not a label. The center column gained a third box: **Stripe** when fiat won.
-
-→ [README_DAY5.md](./README_DAY5.md) · [README_DAY6.md](./README_DAY6.md)
-
----
-
-## Act IV — Who is this agent? (Day 7)
-
-Payments answer *"did money move?"* Trust answers *"who am I paying, and can I verify that without trusting the UI?"*
-
-### ERC-8004 enters the stage
-
-[EIP-8004](https://eips.ethereum.org/EIPS/eip-8004) separates **identity** (on-chain NFT on the Identity Registry) from **reputation** (indexers, feedback, scores). It does not replace ACP or x402 — it sits beside them:
-
-| Layer | Question it answers |
-|--------|---------------------|
-| **ACP** | Can these agents negotiate and agree on an offer? |
-| **x402 / Stripe** | Did payment complete on the chosen rail? |
-| **ERC-8004** | Is this agent a registered identity with a verifiable profile? |
-
-You registered **Attention Agent** on [8004scan testnet](https://testnet.8004scan.io/agents/base-sepolia/6832):
-
-- **Base Sepolia** — agent ID `6832`
-- **Service** — `https://acp-demo-production.up.railway.app/`
-- **x402** — supported
-- **Registration file** — on IPFS (`agentURI`), the canonical JSON behind the name, description, and services
-
-### What we built in code
-
-A modular **`trust/`** package on the seller:
-
-| File | Role |
-|------|------|
-| `trust/config.py` | Chain, 8004scan API/web URLs, registry addresses |
-| `trust/scan8004.py` | 8004scan API + **auto-discovery** by service URL |
-| `trust/registry_chain.py` | On-chain `ownerOf`, `tokenURI`, `getAgentWallet` |
-| `trust/metadata.py` | Fetch registration JSON (IPFS / HTTPS / data URI) |
-| `trust/identity_api.py` | Builds `GET /agent/erc8004` response |
-
-**Auto-discovery:** You no longer need `ERC8004_AGENT_ID` in env for the happy path. The seller matches its public URL against 8004scan (seller wallet narrows the search). Chain defaults from `X402_NETWORK=eip155:84532`.
-
-**Endpoint:** `GET /agent/erc8004` — identity, ranking, feedback, verify links. Health check `GET /` includes a small `erc8004` block.
-
-### The ◎ profile panel (seller header)
-
-Next to the **$** wallet button on the seller panel, **◎** opens **Profile** — four equal tabs:
-
-| Tab | What you see |
-|-----|----------------|
-| **ID** | Agent ID, chain, global ID, owner, agent wallet, x402 |
-| **Rank** | 8004scan scores (0–100): health, popularity, freshness, metadata, … |
-| **Feedback** | Stars, watchers, verified, publisher |
-| **Verify** | Links to 8004scan, Basescan NFT, registry contract, IPFS JSON, live service |
-
-Each label has a small **ⓘ** icon — hover or tap for a one-line explanation. No wall of text until you ask for it.
-
-**Fixes worth remembering:**
-
-- 8004scan profile URL uses **chain slug** (`base-sepolia/6832`), not numeric `84532/6832` — otherwise you get "Agent Not Found"
-- IPFS `agentURI` opens via a public gateway (`dweb.link`), not raw `ipfs://` in the browser
-
-### Owner vs agent wallet (the confusion you hit)
-
-| Field | Meaning |
-|-------|---------|
-| **Owner** | Wallet that controls the identity NFT (registered on 8004scan) |
-| **Agent wallet** | Wallet ERC-8004 declares for commerce / x402 payTo |
-| **SELLER_PAYTO_ADDRESS** | What your Railway seller actually uses in `commerce/pay` |
-
-All three *can* match; in the demo they often **don't** until you align `setAgentWallet()` on-chain with env. That's an operator task, not a buyer-facing field.
-
-### Why IPFS shows up at all
-
-On-chain storage only holds a pointer: **`agentURI` → ipfs://Qm…** The JSON file holds name, services, x402 flag, image. IPFS is **content-addressed** — the link is tied to the file hash, not your server hostname. 8004scan indexes it; Basescan shows the NFT; the Verify tab lets anyone audit the same JSON.
-
----
-
-## The demo as a stage play
-
-Open `demo.html`. Three columns: **Buyer** | **Protocols** | **Seller**.
-
-```
-Buyer Agent          Center gutter              Seller Agent
-     │                 ACP · handshake              │
-     │                 x402 · USDC                  │  ◎ Profile
-     │                 Stripe · fiat                │  $ Wallet
-     │                                            Attention Agent
-     │  session/prompt ──────────────────────────►│  catalog search
-     │  commerce/pay   ──────────────────────────►│  x402 or Stripe
-```
-
-**Build stamp** in the footer (e.g. `build 2026-06-07g`) — hard refresh after UI changes (`Cmd+Shift+R`).
+**Registered agent:** [Attention Agent #6832 on Base Sepolia](https://testnet.8004scan.io/agents/base-sepolia/6832)
 
 ---
 
 ## Progress arc (Day 1 → Day 7)
 
-| Day | You shipped | Emotional beat |
-|-----|-------------|----------------|
-| **1** | Handshake + offer | *They can talk.* |
-| **2** | Sessions + history | *They remember.* |
-| **3** | `session/prompt` + NLP | *They understand English.* |
-| **4** | 100 items + multi-turn + Claude | *They negotiate.* |
-| **5** | x402 USDC + wallets + PDF | *Crypto money moves.* |
-| **6** | Stripe fiat + payment picker | *Buyer chooses the rail.* |
-| **7** | ERC-8004 + profile + 8004scan | *The agent has a name and a passport.* |
+
+| Day       | Focus                                 | Key additions                                                    |
+| --------- | ------------------------------------- | ---------------------------------------------------------------- |
+| **Day 1** | Handshake + hardcoded commerce        | `initialize`, `commerce/request`                                 |
+| **Day 2** | Session context + history             | `session/new`, `session/load`, `session/resume`, `session/close` |
+| **Day 3** | Natural language prompt turn          | `session/prompt`, `stopReason: end_turn`                         |
+| **Day 4** | Agentic negotiation + catalog search  | Multi-turn, offer selection, Claude Haiku                        |
+| **Day 5** | x402 USDC settlement                  | `commerce/pay`, x402 facilitator, wallet APIs                    |
+| **Day 6** | Fiat payments + payment method choice | Stripe, dual wallets, buyer/seller accounts                      |
+| **Day 7** | ERC-8004 trust + agent profile        | `GET /agent/erc8004`, 8004scan, ◎ profile, post-pay feedback     |
+
 
 ---
 
-## How to run (when you return)
+## ACP Flow — Day 7 (trust alongside payment)
+
+```
+Buyer Agent / demo.html          Seller Agent                 8004scan / chain
+     │  initialize                    │                              │
+     │ ──────────────────────────────►│                              │
+     │  ◄── payment: x402 & Stripe ───│                              │
+     │  ◄── erc8004 in GET / health ──│                              │
+     │                                │                              │
+     │  [session + prompt + offers — same as Day 6]                  │
+     │  [commerce/pay — crypto or fiat — same as Day 6]              │
+     │                                │                              │
+     │  GET /agent/erc8004            │  discover agent by URL       │
+     │ ──────────────────────────────►│ ────────────────────────────►│
+     │                                │  on-chain ownerOf, tokenURI  │
+     │                                │  fetch IPFS registration     │
+     │  ◄── identity + rank + verify ─│                              │
+     │                                │                              │
+     │  commerce/pay (x402) settle    │                              │
+     │ ──────────────────────────────►│  giveFeedback (buyer wallet) │
+     │                                │ ──► Reputation Registry      │
+     │                                │  poll 8004scan for new scores│
+     │  ◄── receipt + trust rank delta│                              │
+     │                                │                              │
+     │  [◎ Profile panel in UI]       │                              │
+```
+
+**Four layers in the stack:**
+
+
+| Layer          | Question it answers                          | Where in demo                          |
+| -------------- | -------------------------------------------- | -------------------------------------- |
+| **ACP**        | Can agents negotiate and agree on an offer?  | Center column · handshake/session      |
+| **x402**       | Did USDC payment settle on-chain?            | Center column · crypto path            |
+| **Stripe**     | Did fiat payment complete?                   | Center column · fiat path              |
+| **ERC-8004**   | Who is this agent — verifiable identity?     | Seller **◎ Profile** popover           |
+
+
+---
+
+## Files Created / Modified
+
+### New: `trust/` package
+
+
+| File                     | Purpose                                                                 |
+| ------------------------ | ----------------------------------------------------------------------- |
+| `trust/config.py`        | Chain ID (from `X402_NETWORK`), registry addresses, 8004scan API/web URLs |
+| `trust/scan8004.py`      | 8004scan API client + `discover_agent_by_service_url()`                 |
+| `trust/registry_chain.py`| On-chain reads: `ownerOf`, `tokenURI`, `getAgentWallet`                 |
+| `trust/metadata.py`      | Fetch registration JSON (IPFS / HTTPS / data URI); gateway URL builder  |
+| `trust/identity_api.py`  | Builds `GET /agent/erc8004` response with `sections` + verify links     |
+| `trust/reputation_chain.py` | On-chain `giveFeedback()` via buyer wallet + Base Sepolia RPC        |
+| `trust/feedback_service.py` | Post-x402 feedback orchestration + 8004scan rank polling               |
+
+
+**Auto-discovery flow:**
+
+```
+Request.base_url or ERC8004_SERVICE_URL
+  → 8004scan search by endpoint
+  → optional narrow by SELLER_PAYTO / owner wallet
+  → agent ID + ranking + feedback merged into response
+```
+
+Chain defaults from `X402_NETWORK=eip155:84532`. Override with `ERC8004_AGENT_ID` or `ERC8004_CHAIN_ID` when needed.
+
+---
+
+### Updated: `seller_agent.py`
+
+
+| Feature               | Details                                                              |
+| --------------------- | -------------------------------------------------------------------- |
+| `GET /agent/erc8004`  | Full profile JSON — identity, ranking, feedback, verify links        |
+| `GET /` health check  | Adds `erc8004` block via `identity_status()` (no external API calls) |
+| `Request` injection   | Passes `request.base_url` into discovery for Railway/local URL match   |
+
+
+---
+
+### Updated: `payments/x402_service.py`
+
+After successful x402 settle (crypto only), calls `trust.feedback_service.submit_payment_feedback_async()` and attaches `receipt.trust` with rank before/after. Payment never fails if feedback fails.
+
+---
+
+### Updated: `payments/receipt_pdf.py`
+
+Crypto PDF receipts include **ERC-8004 Trust** block: feedback tx, score, rank delta, 8004scan indexer status.
+
+---
+
+### Updated: `demo.html`
+
+
+| Feature              | Details                                                                 |
+| -------------------- | ----------------------------------------------------------------------- |
+| **◎ Profile button** | Seller header — opens profile popover beside **$** wallet               |
+| **Four tabs**        | ID · Rank · Feedback · Verify — equal-width 4-column grid               |
+| **Rank scores**      | Displayed as `30 / 100` via `profileScore()`                            |
+| **ⓘ info icons**     | Click toggles tip open/close; hover preview when not dismissed          |
+| **Profile header**   | Title only — "Profile" (no agent name or config source note)            |
+| **Trust on receipt** | Wallet bubble + PDF show feedback tx and rank delta after crypto pay    |
+| **Profile refresh**  | Open ◎ Profile auto-refetches after crypto payment                      |
+| **Build stamp**      | Footer shows `build 2026-06-07j` (or later) — hard refresh after deploy |
+
+
+---
+
+### Updated: `local.env.example`
+
+Documented optional ERC-8004 overrides:
 
 ```bash
-cd acp-demo
-source venv/bin/activate
-pip install -r requirements.txt   # if fresh clone
+# ERC8004_AGENT_ID=6832
+# ERC8004_CHAIN_ID=84532
+# ERC8004_SERVICE_URL=https://your-app.up.railway.app
+SCAN8004_API_KEY=
+```
 
-# Terminal 1 — seller (ACP + x402 + Stripe + wallets + ERC-8004)
+---
+
+## ERC-8004 Architecture
+
+**Attention Agent** on Base Sepolia:
+
+| Field            | Value                                                        |
+| ---------------- | ------------------------------------------------------------ |
+| Agent ID         | `6832`                                                       |
+| Chain            | Base Sepolia (`84532`)                                       |
+| Service URL      | `https://acp-demo-production.up.railway.app/`              |
+| 8004scan profile | `https://testnet.8004scan.io/agents/base-sepolia/6832`       |
+| Registration     | IPFS `agentURI` — canonical JSON (name, services, x402 flag) |
+
+[EIP-8004](https://eips.ethereum.org/EIPS/eip-8004) separates **identity** (on-chain NFT) from **reputation** (indexer scores, feedback). It does not replace ACP or payment rails — it answers *who am I paying?*
+
+---
+
+## Owner vs agent wallet vs payTo
+
+
+| Field                    | Meaning                                                       |
+| ------------------------ | ------------------------------------------------------------- |
+| **Owner**                | Wallet that controls the identity NFT                         |
+| **Agent wallet**         | Wallet ERC-8004 declares for commerce / x402 payTo            |
+| **SELLER_PAYTO_ADDRESS** | What the Railway seller actually uses in `commerce/pay`       |
+
+All three can match; in the demo they often differ until `setAgentWallet()` on-chain is aligned with env. Operator task — not shown to buyers in the payment flow.
+
+---
+
+## Bug fixed: 8004scan profile URL uses chain slug
+
+The 8004scan web UI expects a **chain slug**, not a numeric chain ID:
+
+```
+✅ https://testnet.8004scan.io/agents/base-sepolia/6832
+❌ https://testnet.8004scan.io/agents/84532/6832   → "Agent Not Found"
+```
+
+`trust/config.py` → `scan8004_chain_slug()` maps `84532` → `base-sepolia` for verify links.
+
+---
+
+## Bug fixed: IPFS `agentURI` in browser
+
+Raw `ipfs://Qm…` does not open in a browser. `trust/metadata.py` → `agent_uri_browser_url()` probes public gateways (`dweb.link`, Cloudflare, `ipfs.io`) and returns the first working HTTPS URL for the Verify tab.
+
+---
+
+## Environment Variables
+
+Add to `local.env` (and Railway):
+
+```bash
+# Required for profile + ranking from 8004scan testnet API
+SCAN8004_API_KEY=...
+
+# Chain defaults from X402_NETWORK — usually no override needed
+X402_NETWORK=eip155:84532
+
+# Optional — skip auto-discovery
+# ERC8004_AGENT_ID=6832
+# ERC8004_SERVICE_URL=https://acp-demo-production.up.railway.app
+# ERC8004_OWNER_ADDRESS=0x...
+
+# Post-x402 feedback (buyer wallet — must differ from agent owner; needs ETH for gas)
+ERC8004_FEEDBACK_ON_PAY=true
+# Random 0–100 per payment by default; pin with ERC8004_FEEDBACK_VALUE=95
+```
+
+Day 5–6 vars (`BUYER_WALLET_PRIVATE_KEY`, `SELLER_PAYTO_ADDRESS`, `DEMO_SERVER_SIGN`, Stripe keys) stay as-is.
+
+**Reputation Registry (Base Sepolia):** `0x8004B663056A597Dffe9eCcC1965A193B7388713`
+
+**Indexer lag:** 8004scan has no write API. Rank updates come from indexing on-chain `giveFeedback` events — receipt may show `indexerStatus: pending` for up to ~30s.
+
+**Profile locally:** 8004scan registers the **Railway** URL, not `localhost:8002`. For ◎ on local dev, set `ERC8004_SERVICE_URL` to your Railway URL or uncomment `ERC8004_AGENT_ID=6832`.
+
+---
+
+## What to add to Railway
+
+In the Railway project → **Variables**, add:
+
+
+| Variable           | Notes                                              |
+| ------------------ | -------------------------------------------------- |
+| `SCAN8004_API_KEY` | 8004scan testnet API key for ranking + discovery   |
+
+Redeploy seller after adding the key. Existing Day 5–6 variables unchanged.
+
+---
+
+## ACP Spec Compliance — Day 7 Status
+
+
+| ACP Requirement                     | Day 6 | Day 7 |
+| ----------------------------------- | ----- | ----- |
+| `initialize` handshake              | ✅     | ✅     |
+| Session layer                       | ✅     | ✅     |
+| `session/prompt` + multi-turn       | ✅     | ✅     |
+| Catalog search + agent pick         | ✅     | ✅     |
+| `commerce/pay` — crypto (x402)      | ✅     | ✅     |
+| `commerce/pay` — fiat (Stripe)      | ✅     | ✅     |
+| Payment method selection at runtime | ✅     | ✅     |
+| Seller identity endpoint            | ❌     | ✅     |
+| ERC-8004 profile in UI              | ❌     | ✅     |
+| 8004scan ranking + verify links     | ❌     | ✅     |
+| Buyer-side trust check before pay   | ❌     | ❌     |
+| Post-payment ERC-8004 feedback      | ❌     | ✅ (crypto) |
+| Separate buyer payment service      | ❌     | ❌     |
+| SSE streaming                       | ❌     | ❌     |
+
+
+---
+
+## Production vs Demo Gap — Day 7
+
+
+| What we built                          | What production would use                               |
+| -------------------------------------- | ------------------------------------------------------- |
+| Full `/agent/erc8004` on seller        | Public buyer view vs operator-only fields               |
+| Profile loaded on demand in UI         | Buyer agent reads profile before `commerce/pay`         |
+| Feedback signed on seller (demo)         | Buyer service signs giveFeedback client-side only       |
+| Single Railway service                 | Split buyer (:8001) + seller (:8002)                    |
+| `DEMO_SERVER_SIGN` on seller           | Buyer signs x402 client-side only                       |
+
+
+---
+
+## How to Run Locally
+
+```bash
+source venv/bin/activate
+pip install -r requirements.txt
+
+# Terminal 1 — seller (ACP + x402 + Stripe + ERC-8004)
 uvicorn seller_agent:app --host 0.0.0.0 --port 8002 --reload
 
 # Terminal 2 — demo UI
 python3 -m http.server 8080
-# open http://localhost:8080/demo.html
+# Open http://localhost:8080/demo.html
 ```
 
-Copy `local.env.example` → `local.env`. Minimum for a full run:
+**Trust flow:** Start → Handshake → click seller **◎** → Profile loads → browse ID / Rank / Feedback / Verify tabs → click ⓘ on any field for context → open 8004scan link from Verify tab.
 
-- `ANTHROPIC_API_KEY` — Claude intent (optional; regex fallback)
-- `BUYER_WALLET_PRIVATE_KEY` + `SELLER_PAYTO_ADDRESS` — x402
-- `DEMO_SERVER_SIGN=true` — demo signs buyer USDC on seller (single-service only)
-- `SCAN8004_API_KEY` — 8004scan testnet API for profile/ranking
-- Stripe keys — fiat path (Day 6)
+**Crypto + rank flow:** Day 6 crypto path → after settle, receipt wallet bubble shows **◎ ERC-8004 trust** (feedback tx, rank before → after) → re-open ◎ Profile to see updated Rank tab.
 
-**Profile locally:** 8004scan registers your **Railway** URL, not `localhost:8002`. For ◎ on local dev, set `ERC8004_SERVICE_URL=https://acp-demo-production.up.railway.app` or uncomment `ERC8004_AGENT_ID=6832`.
-
-**Smoke test:** Start → Handshake → Session → *"running shoes at $150"* → pick offer → Payment → Crypto or Fiat → ◎ Profile → Verify → 8004scan link.
+**Hard refresh** after UI changes (`Cmd+Shift+R`). Check build stamp in footer (`build 2026-06-07j` or later).
 
 ---
 
-## Env cheatsheet (ERC-8004)
+## Where to Start Day 8
 
-```bash
-# Usually enough — chain from X402, agent ID from 8004scan match
-X402_NETWORK=eip155:84532
-SCAN8004_API_KEY=...
 
-# Optional overrides
-# ERC8004_AGENT_ID=6832
-# ERC8004_SERVICE_URL=https://your-app.up.railway.app
-```
+| Priority | Task                                      | File                    | Notes                                      |
+| -------- | ----------------------------------------- | ----------------------- | ------------------------------------------ |
+| 1        | Buyer-side trust check before pay         | `buyer_agent.py`, UI    | Fetch `/agent/erc8004` before `commerce/pay` |
+| 2        | Split buyer server on :8001               | `buyer_server.py` (new) | Proxy ACP; buyer owns signing keys         |
+| 3        | Public vs operator profile views          | `trust/identity_api.py` | Split sensitive fields from buyer JSON     |
+| 4        | SSE payment + session updates             | `seller_agent.py`       | Stream verify/settle steps live in UI      |
+| 5        | Fiat post-payment feedback                | `trust/feedback_service.py` | Stripe path reputation (optional)      |
 
----
-
-## Production gaps (honest ledger)
-
-| Demo today | Production later |
-|------------|------------------|
-| One Railway service | Split buyer (:8001) + seller (:8002) |
-| `DEMO_SERVER_SIGN` on seller | Buyer signs client-side only |
-| Full `/agent/erc8004` on seller | Public vs operator-only profile views |
-| Post-pay feedback to ERC-8004 | Reputation registry + indexer feedback |
-| In-memory sessions | Redis / DB + SSE replay |
 
 ---
 
-## File map (where the bodies are buried)
+## Live Links
 
-```
-acp-demo/
-├── demo.html              # The stage — buyer/seller UI, wallets, profile ◎
-├── seller_agent.py        # ACP + payments + GET /agent/erc8004
-├── buyer_agent.py         # Terminal buyer script
-├── session_manager.py     # Session history + payment receipts
-├── search.py              # 100-item catalog search
-├── payments/              # x402, Stripe, wallets, chain reads
-├── trust/                 # ERC-8004 + 8004scan (Day 7)
-├── local.env.example      # All env vars documented
-└── README_DAY*.md         # One chapter per day — this file is Day 7
-```
+- **Frontend:** `demo.html` (Netlify or local `http.server`)
+- **Backend:** `https://acp-demo-production.up.railway.app`
+- **Health check:** `GET /` → includes `erc8004.configured`, `agentId`, `chainId`
+- **Profile API:** `GET /agent/erc8004`
+- **8004scan:** [testnet.8004scan.io/agents/base-sepolia/6832](https://testnet.8004scan.io/agents/base-sepolia/6832)
+- **Explorer:** [sepolia.basescan.org](https://sepolia.basescan.org)
 
 ---
 
-## All chapters
+## Quick reference — all README files
 
-| File | Story beat |
-|------|------------|
-| [README.md](./README.md) | Project overview + quick start |
-| [Readme_Day1.md](./Readme_Day1.md) | Handshake, first offer |
-| [README_DAY2.md](./README_DAY2.md) | Sessions |
-| [README_DAY3.md](./README_DAY3.md) | Natural language |
-| [README_DAY4.md](./README_DAY4.md) | Catalog + negotiation |
-| [README_DAY5.md](./README_DAY5.md) | USDC on-chain |
-| [README_DAY6.md](./README_DAY6.md) | Stripe + payment choice |
-| **README_DAY7.md** | **Trust + Attention Agent profile** |
 
----
+| File                               | What it covers                                |
+| ---------------------------------- | --------------------------------------------- |
+| [README.md](./README.md)           | Project overview + quick start                |
+| [Readme_Day1.md](./Readme_Day1.md) | Handshake, commerce/request                   |
+| [README_DAY2.md](./README_DAY2.md) | Session layer                                 |
+| [README_DAY3.md](./README_DAY3.md) | session/prompt, NLP intent                    |
+| [README_DAY4.md](./README_DAY4.md) | Catalog, multi-turn, Claude, agent pick       |
+| [README_DAY5.md](./README_DAY5.md) | x402 USDC, wallets, receipt PDF               |
+| [README_DAY6.md](./README_DAY6.md) | Fiat via Stripe, dual wallets, payment picker |
+| [README_DAY7.md](./README_DAY7.md) | ERC-8004 trust, 8004scan, ◎ profile UI        |
 
-## Where Act V might go
-
-You have **intent**, **session**, **dual payment**, and **identity**. The next scenes write themselves:
-
-1. **Buyer-side trust** — buyer agent reads public profile before `commerce/pay`
-2. **Post-payment feedback** — ERC-8004 reputation after settle
-3. **Split deploy** — buyer server owns keys; seller owns catalog + x402 receive
-4. **README on Railway** — env vars for `SCAN8004_API_KEY`, redeploy after Day 7 push
-
----
-
-*When someone asks what this repo is, say: **"It's a Nike agentic commerce demo — ACP for negotiation, x402 and Stripe for payment, ERC-8004 for who the seller is."** Then open ◎ and show them Attention Agent on Base Sepolia.*

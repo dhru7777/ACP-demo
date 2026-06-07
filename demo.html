@@ -655,6 +655,30 @@
   .chat-wallet-card .wallet-addr-row { margin-bottom: 3px; gap: 4px; }
   .chat-wallet-card .wallet-addr-text { font-size: 9px; line-height: 1.3; }
   .chat-wallet-card .wallet-bal-row { padding: 2px 0; gap: 4px; }
+  .chat-wallet-card .wallet-trust-block {
+    margin-top: 6px;
+    padding-top: 5px;
+    border-top: 1px solid var(--border);
+    font-size: 9px;
+    line-height: 1.45;
+    color: var(--muted);
+  }
+  .chat-wallet-card .wallet-trust-title {
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 3px;
+  }
+  .chat-wallet-card .wallet-trust-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 6px;
+    padding: 1px 0;
+  }
+  .chat-wallet-card .wallet-trust-pending {
+    font-style: italic;
+    margin-top: 2px;
+  }
   .chat-wallet-card .wallet-pay-hint {
     margin-top: 4px;
     padding: 4px 6px;
@@ -1335,6 +1359,15 @@
       gap: 8px;
     }
     .btn        { font-size: 10px; padding: 10px 18px; min-height: 44px; flex-shrink: 0; }
+    .rating-inline {
+      order: 1;
+      width: 100%;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 6px;
+      padding: 6px 8px;
+    }
+    .rating-inline .feedback-countdown { max-width: none; width: 100%; text-align: center; }
     .status-txt { width: 100%; order: 3; font-size: 9px; }
     .pips       { order: 2; }
     .pip        { width: 14px; }
@@ -1473,6 +1506,335 @@
     box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
   }
   .flow-group-stripe .flow-group-badge { background: #635bff; color: #fff; }
+
+  /* ERC-8004 feedback flow */
+  .flow-group-erc8004 {
+    border-color: rgba(0, 0, 0, 0.22);
+    background: #fafafa;
+  }
+  .flow-group-erc8004 .flow-group-badge { background: #111; color: #fff; }
+  .flow-group-erc8004 .flow-group-subtitle {
+    font-size: 7px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    margin-top: 1px;
+  }
+  .proto-shared-caption {
+    font-size: 7px;
+    font-weight: 600;
+    text-align: center;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px dashed var(--border);
+    width: 100%;
+  }
+  .proto-registry-center { margin-bottom: 6px; width: 100%; }
+  .proto-registry-center .proto-registry { margin: 0; }
+
+  .feedback-give-btn {
+    display: block;
+    width: 100%;
+    margin-top: 6px;
+    padding: 8px 10px;
+    font-size: 10px;
+    font-weight: 600;
+    border: 1px solid #111;
+    border-radius: 8px;
+    background: #111;
+    color: #fff;
+    cursor: pointer;
+  }
+  .feedback-give-btn:hover { background: #333; }
+  .feedback-give-btn:disabled { opacity: 0.5; cursor: wait; }
+
+  .feedback-composer, .feedback-result-card {
+    font-size: 9px;
+    line-height: 1.4;
+    color: var(--text);
+  }
+  .feedback-composer-title {
+    font-size: 11px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .proto-ladder {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .proto-ladder .pl-node {
+    font-size: 7px;
+    padding: 3px 5px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: #f5f5f5;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .proto-ladder .pl-node.done { background: #e8e8e8; color: #333; border-color: #ccc; }
+  .proto-ladder .pl-node.active { background: #111; color: #fff; border-color: #111; font-weight: 600; }
+  .proto-ladder .pl-chev { font-size: 7px; color: var(--muted); }
+
+  .proto-registry {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 4px;
+    margin: 6px 0 8px;
+  }
+  .proto-reg-cell {
+    text-align: center;
+    padding: 5px 3px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: #fff;
+    font-size: 7px;
+    line-height: 1.25;
+  }
+  .proto-reg-cell strong {
+    display: block;
+    font-size: 7px;
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+  .proto-reg-cell.target { border-color: #111; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.06); }
+  .proto-reg-cell .proto-reg-sub { color: var(--muted); font-size: 6px; }
+
+  .proto-pipeline {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    width: 100%;
+  }
+  .proto-step {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 2px;
+    font-size: 8px;
+    color: var(--muted);
+  }
+  .proto-step .proto-dot {
+    flex-shrink: 0;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: 1.5px solid #ccc;
+    background: #fff;
+  }
+  .proto-step.done .proto-dot { background: #111; border-color: #111; }
+  .proto-step.active .proto-dot {
+    background: #111;
+    border-color: #111;
+    box-shadow: 0 0 0 2px rgba(0,0,0,0.12);
+  }
+  .proto-step.active { color: var(--text); font-weight: 600; }
+  .proto-step.done { color: #444; }
+  .proto-step .proto-sub {
+    display: block;
+    font-size: 7px;
+    font-weight: 400;
+    color: var(--muted);
+    margin-top: 1px;
+  }
+  .proto-connector {
+    width: 1px;
+    height: 6px;
+    background: #ddd;
+    margin-left: 5px;
+  }
+  .sb-delta {
+    font-size: 7px;
+    font-weight: 700;
+    margin-left: 2px;
+  }
+  .sb-delta.up { color: #0a7a2f; }
+  .sb-delta.down { color: #b33; }
+  .feedback-scoreboard {
+    margin: 6px 0;
+    padding: 6px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #fff;
+  }
+  .feedback-scoreboard h4 {
+    margin: 0 0 4px;
+    font-size: 8px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+  }
+  .sb-row {
+    display: grid;
+    grid-template-columns: 52px 1fr 22px 12px 1fr 22px;
+    align-items: center;
+    gap: 3px;
+    margin: 3px 0;
+    font-size: 8px;
+  }
+  .sb-label { color: var(--muted); }
+  .sb-track {
+    height: 5px;
+    background: #eee;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .sb-fill { height: 100%; border-radius: 3px; }
+  .sb-fill.before { background: #bbb; }
+  .sb-fill.after { background: #111; }
+  .sb-val { text-align: right; font-variant-numeric: tabular-nums; }
+  .sb-arrow { text-align: center; color: var(--muted); }
+
+  .rating-inline {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+  }
+  .rating-stars-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+  .rating-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
+  .star-picker {
+    display: inline-flex;
+    flex-wrap: nowrap;
+    gap: 2px;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .star-picker .star-btn {
+    border: none;
+    background: none;
+    padding: 0 2px;
+    line-height: 1;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .star-glyph {
+    display: block;
+    font-size: 22px;
+    line-height: 1;
+    color: #d0d0d0;
+  }
+  .feedback-countdown {
+    font-size: 8px;
+    color: var(--muted);
+    white-space: nowrap;
+    letter-spacing: 0.03em;
+    max-width: 140px;
+    line-height: 1.3;
+  }
+  .rating-score-input {
+    width: 40px;
+    padding: 4px 5px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 10px;
+    font-family: var(--mono);
+    text-align: center;
+  }
+  .rating-score-suffix {
+    font-size: 9px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .wallet-bal-account-label {
+    font-size: 8px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    margin-bottom: 2px;
+  }
+  .wallet-bal-primary .wallet-bal-val {
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .wallet-payment-delta {
+    font-size: 8px;
+    color: var(--text);
+    margin-top: 3px;
+    padding-top: 3px;
+    border-top: 1px dashed var(--border);
+  }
+  .wallet-payment-delta.buyer { color: #8b3a3a; }
+  .wallet-payment-delta.seller { color: #0a7a2f; }
+  .feedback-score-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+    font-size: 9px;
+  }
+  .feedback-score-row input {
+    width: 48px;
+    padding: 4px 6px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 10px;
+  }
+  .feedback-comment {
+    width: 100%;
+    min-height: 44px;
+    padding: 6px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 9px;
+    font-family: inherit;
+    resize: vertical;
+    margin-bottom: 6px;
+  }
+  .feedback-submit-btn {
+    width: 100%;
+    padding: 7px;
+    border: 1px solid #111;
+    border-radius: 6px;
+    background: #111;
+    color: #fff;
+    font-size: 9px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .feedback-submit-btn:disabled { opacity: 0.5; cursor: wait; }
+  .feedback-received-stars {
+    font-size: 28px;
+    letter-spacing: 4px;
+    line-height: 1.2;
+    text-align: center;
+    margin: 2px 0 6px;
+    color: #111;
+  }
+  .feedback-received-card {
+    text-align: center;
+    padding: 8px 12px;
+    min-width: 120px;
+  }
+  .feedback-received-label {
+    font-size: 8px;
+    color: var(--muted);
+    margin-bottom: 4px;
+    letter-spacing: 0.04em;
+  }
+  .feedback-result-meta { font-size: 8px; color: var(--muted); margin-top: 6px; }
 
   @media (max-width: 680px) {
     .pay-pick-grid  { gap: 5px; }
@@ -1658,6 +2020,8 @@
 
 <div class="bottom">
   <button class="btn primary" id="next-btn" onclick="nextStep()">Start</button>
+  <button class="btn primary" id="rate-btn" style="display:none">Rate seller agent</button>
+  <div class="rating-inline" id="rating-inline" style="display:none"></div>
   <button class="btn" id="reset-btn" onclick="resetDemo()" style="display:none">Reset</button>
   <div class="status-txt" id="status-txt">Click Start to begin the ACP demo step by step</div>
   <div class="pips">
@@ -1674,7 +2038,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script>
 const delay = ms => new Promise(r => setTimeout(r, ms));
-const DEMO_BUILD = '2026-06-07i';
+const DEMO_BUILD = '2026-06-07r';
 
 function isMobileLayout() {
   return window.matchMedia('(max-width: 680px)').matches;
@@ -1769,6 +2133,21 @@ function measureFlowGroupMarginTop(bubbleWrap, flowKind) {
 
   // Payment flow groups (x402, stripe): align with the first payment bubble,
   // measuring from the bottom of the previous group — not from the arrows container top.
+  if (flowKind === 'erc8004') {
+    const targetTop = flowAlignTargetTop(bubbleWrap);
+    const prevGroup = document.querySelector('.flow-group-x402')
+      || document.querySelector('.flow-group-stripe')
+      || acp
+      || null;
+    if (prevGroup) {
+      const prevBottom = prevGroup.getBoundingClientRect().bottom;
+      const flexGap = 8;
+      const pullUp = 18;
+      return Math.max(4, Math.round(targetTop - prevBottom - flexGap - pullUp));
+    }
+    return Math.max(8, Math.round(targetTop - arrows.getBoundingClientRect().top));
+  }
+
   if (flowKind === 'x402' || flowKind === 'stripe') {
     const targetTop = flowAlignTargetTop(bubbleWrap);
     const prevGroup = acp || null;
@@ -1800,8 +2179,8 @@ function applyFlowGroupMargin(flowKind, bubbleWrap) {
     group.style.transition = '';
     return;
   }
-  if (flowKind === 'x402' || flowKind === 'stripe') {
-    const pullUp = 22;
+  if (flowKind === 'erc8004' || flowKind === 'x402' || flowKind === 'stripe') {
+    const pullUp = flowKind === 'erc8004' ? 18 : 22;
     const desiredTop = flowAlignTargetTop(bubbleWrap) - pullUp;
     const delta = group.getBoundingClientRect().top - desiredTop;
     if (Math.abs(delta) > 1) {
@@ -1966,7 +2345,290 @@ async function ensureReceiptGas(rcpt, payResult) {
   return null;
 }
 
+function starsToScore(stars) {
+  return Math.max(0, Math.min(100, Math.round(Number(stars) * 20)));
+}
+
+function scoreToStars(score) {
+  const s = Math.max(0, Math.min(100, Number(score) || 0));
+  if (s === 0) return 1;
+  return Math.max(1, Math.min(5, Math.round(s / 20)));
+}
+
+function randomFeedbackStars() {
+  return Math.floor(Math.random() * 5) + 1;
+}
+
+function randomFeedbackComment() {
+  return FEEDBACK_COMMENT_SAMPLES[Math.floor(Math.random() * FEEDBACK_COMMENT_SAMPLES.length)];
+}
+
+function metricsFromProfile(data) {
+  const rank = data?.sections?.ranking || {};
+  const fb = data?.sections?.feedback || {};
+  return {
+    healthScore: rank.healthScore ?? data?.scores?.leaderboard?.health_score,
+    activity: rank.activity,
+    feedbackCount: fb.totalFeedbacks ?? 0,
+    averageScore: fb.averageScore ?? 0,
+    agentName: data?.name || 'Seller agent',
+    agentId: data?.agentId,
+  };
+}
+
+function scoreDeltaHtml(before, after) {
+  const b = Number(before) || 0;
+  const a = Number(after) || 0;
+  const d = Math.round((a - b) * 10) / 10;
+  if (!d) return '';
+  const cls = d > 0 ? 'up' : 'down';
+  const sign = d > 0 ? '+' : '';
+  return `<span class="sb-delta ${cls}">${sign}${d}</span>`;
+}
+
+function scoreboardBarHtml(label, before, after, isCount) {
+  const b = Number(before) || 0;
+  const a = after != null ? Number(after) : b;
+  const max = isCount ? Math.max(10, b, a, 1) : 100;
+  const pctB = Math.min(100, (b / max) * 100);
+  const pctA = Math.min(100, (a / max) * 100);
+  const showDelta = after != null && a !== b;
+  return `<div class="sb-row">
+    <span class="sb-label">${escHtml(label)}</span>
+    <div class="sb-track"><div class="sb-fill before" style="width:${pctB}%"></div></div>
+    <span class="sb-val">${b}</span>
+    <span class="sb-arrow">→</span>
+    <div class="sb-track"><div class="sb-fill after" style="width:${pctA}%"></div></div>
+    <span class="sb-val">${a}${showDelta ? scoreDeltaHtml(b, a) : ''}</span>
+  </div>`;
+}
+
+const ERC8004_PIPELINE = [
+  { id: 'pay', label: '① x402 paid', sub: 'USDC settles (commerce layer)' },
+  { id: 'rate', label: '② Buyer rates', sub: 'human/agent picks stars' },
+  { id: 'chain', label: '③ giveFeedback()', sub: 'buyer wallet → Reputation Registry' },
+  { id: 'index', label: '④ 8004scan', sub: 'indexer reads on-chain event' },
+  { id: 'profile', label: '⑤ Seller profile', sub: '◎ rank & feedback update' },
+];
+
+const ERC8004_STATUS = {
+  rate: 'ERC-8004 ② Buyer rates the seller agent (off-chain intent)',
+  chain: 'ERC-8004 ③ Buyer wallet signs giveFeedback() on Base Sepolia',
+  index: 'ERC-8004 ④ 8004scan indexes the Reputation Registry',
+  profile: 'ERC-8004 ⑤ Seller ◎ Profile reflects new feedback',
+};
+
+function buildProtoLadderHtml(activeId) {
+  const order = ['pay', 'rate', 'chain', 'index', 'profile'];
+  const activeIdx = order.indexOf(activeId);
+  let html = '<div class="proto-ladder">';
+  order.forEach((id, i) => {
+    const step = ERC8004_PIPELINE.find(s => s.id === id);
+    let cls = 'pl-node';
+    if (i < activeIdx) cls += ' done';
+    else if (i === activeIdx) cls += ' active';
+    html += `<span class="${cls}">${escHtml(step.label)}</span>`;
+    if (i < order.length - 1) html += '<span class="pl-chev">›</span>';
+  });
+  html += '</div>';
+  return html;
+}
+
+function buildRegistryStackHtml() {
+  return `<div class="proto-registry">
+    <div class="proto-reg-cell"><strong>Identity</strong><span class="proto-reg-sub">agent NFT</span></div>
+    <div class="proto-reg-cell target"><strong>Reputation</strong><span class="proto-reg-sub">giveFeedback()</span></div>
+    <div class="proto-reg-cell"><strong>8004scan</strong><span class="proto-reg-sub">public rank</span></div>
+  </div>`;
+}
+
+let _erc8004PipelineEl = null;
+
+function erc8004SharedAlignTarget() {
+  return lastBubbleWrap('feed-buyer')
+    || lastBubbleWrap('feed-seller')
+    || document.querySelector('#feed-buyer .chat-wallet-bwrap')
+    || document.querySelector('#feed-seller .chat-wallet-bwrap');
+}
+
+function mountErc8004ProtocolViz(alignBubble, activeStepId) {
+  const target = alignBubble || erc8004SharedAlignTarget();
+  const existing = document.querySelector('.flow-group-erc8004');
+  if (existing) {
+    _flowGroupBody = existing.querySelector('.flow-group-body');
+    setErc8004PipelineStep(activeStepId);
+    if (target) waitForBubbleLayout(target).then(() => alignFlowGroupToBubble('erc8004', target));
+    return existing;
+  }
+  beginFlowGroup('erc8004', target);
+  const caption = document.createElement('div');
+  caption.className = 'proto-shared-caption';
+  caption.textContent = 'Shared · buyer ↔ seller';
+  _flowGroupBody.appendChild(caption);
+  const regWrap = document.createElement('div');
+  regWrap.className = 'proto-registry-center';
+  regWrap.innerHTML = buildRegistryStackHtml();
+  _flowGroupBody.appendChild(regWrap);
+  const pipe = document.createElement('div');
+  pipe.className = 'proto-pipeline';
+  pipe.id = 'erc8004-pipeline';
+  ERC8004_PIPELINE.forEach((step, i) => {
+    if (i > 0) {
+      const conn = document.createElement('div');
+      conn.className = 'proto-connector';
+      pipe.appendChild(conn);
+    }
+    const row = document.createElement('div');
+    row.className = 'proto-step';
+    row.dataset.stepId = step.id;
+    row.innerHTML = `<span class="proto-dot"></span><span>${escHtml(step.label)}<span class="proto-sub">${escHtml(step.sub)}</span></span>`;
+    pipe.appendChild(row);
+  });
+  _flowGroupBody.appendChild(pipe);
+  _erc8004PipelineEl = pipe;
+  setErc8004PipelineStep(activeStepId);
+  return pipe;
+}
+
+function setErc8004PipelineStep(activeStepId) {
+  const pipe = _erc8004PipelineEl || document.getElementById('erc8004-pipeline');
+  if (!pipe) return;
+  const order = ERC8004_PIPELINE.map(s => s.id);
+  const activeIdx = order.indexOf(activeStepId);
+  pipe.querySelectorAll('.proto-step').forEach(el => {
+    const idx = order.indexOf(el.dataset.stepId);
+    el.classList.remove('done', 'active');
+    if (idx < activeIdx) el.classList.add('done');
+    else if (idx === activeIdx) el.classList.add('active');
+  });
+}
+
+function markErc8004PipelineComplete() {
+  const pipe = _erc8004PipelineEl || document.getElementById('erc8004-pipeline');
+  if (!pipe) return;
+  pipe.querySelectorAll('.proto-step').forEach(el => {
+    el.classList.remove('active');
+    el.classList.add('done');
+  });
+}
+
+function advanceErc8004PipelineTo(stepId) {
+  setErc8004PipelineStep(stepId);
+}
+
+function showErc8004SharedWalkthrough(stepId) {
+  mountErc8004ProtocolViz(erc8004SharedAlignTarget(), stepId);
+}
+
+function buildScoreboardHtml(metrics, title) {
+  return `<div class="feedback-scoreboard">
+    <h4>${escHtml(title)}</h4>
+    ${scoreboardBarHtml('Health', metrics.healthScore, metrics.healthScore)}
+    ${scoreboardBarHtml('Activity', metrics.activity, metrics.activity)}
+    ${scoreboardBarHtml('Avg score', metrics.averageScore, metrics.averageScore)}
+    ${scoreboardBarHtml('Feedbacks', metrics.feedbackCount, metrics.feedbackCount, true)}
+  </div>`;
+}
+
+function buildStarPickerHtml() {
+  let html = '<div class="rating-stars-row"><div class="star-picker" id="fb-star-picker">';
+  for (let i = 1; i <= 5; i++) {
+    html += `<button type="button" class="star-btn" data-star="${i}" aria-label="${i} of 5 stars">
+      <span class="star-glyph">☆</span>
+    </button>`;
+  }
+  html += '</div></div>';
+  return html;
+}
+
+function applyScoreToStarPicker(picker, score) {
+  const s = Math.max(0, Math.min(100, Number(score) || 0));
+  const v = s / 20;
+  picker.querySelectorAll('.star-btn').forEach(btn => {
+    const i = Number(btn.dataset.star);
+    const fill = Math.max(0, Math.min(1, v - (i - 1)));
+    const glyph = btn.querySelector('.star-glyph');
+    if (!glyph) return;
+    if (fill >= 0.35) {
+      glyph.textContent = '★';
+      glyph.style.color = '#111';
+      glyph.style.opacity = fill >= 1 ? '1' : String(0.35 + fill * 0.65);
+    } else {
+      glyph.textContent = '☆';
+      glyph.style.color = '#d0d0d0';
+      glyph.style.opacity = '1';
+    }
+  });
+}
+
+function wireStarPicker(container, scoreInput, onScoreChange) {
+  const picker = container.querySelector('#fb-star-picker');
+  if (!picker || !scoreInput) return;
+  const syncFromScore = (raw) => {
+    const s = Math.max(0, Math.min(100, Math.round(Number(raw) || 0)));
+    scoreInput.value = s;
+    applyScoreToStarPicker(picker, s);
+    if (onScoreChange) onScoreChange(s);
+  };
+  picker.querySelectorAll('.star-btn').forEach(btn => {
+    btn.addEventListener('click', () => syncFromScore(Number(btn.dataset.star) * 20));
+  });
+  scoreInput.addEventListener('input', () => syncFromScore(scoreInput.value));
+  applyScoreToStarPicker(picker, scoreInput.value);
+}
+
+let _feedbackAutoTimer = null;
+const FEEDBACK_AUTO_SEC = 3;
+
+function clearFeedbackAutoTimer() {
+  if (_feedbackAutoTimer) {
+    clearTimeout(_feedbackAutoTimer);
+    _feedbackAutoTimer = null;
+  }
+}
+
+function startFeedbackAutoSubmit(beforeMetrics, container) {
+  clearFeedbackAutoTimer();
+  let left = FEEDBACK_AUTO_SEC;
+  const countdownEl = container.querySelector('#fb-countdown');
+  const tick = () => {
+    if (countdownEl) {
+      countdownEl.textContent = left > 0 ? `Auto-submit in ${left}s — tap stars or edit score` : 'Submitting…';
+    }
+    if (left <= 0) {
+      submitBuyerFeedback(beforeMetrics);
+      return;
+    }
+    left -= 1;
+    _feedbackAutoTimer = setTimeout(tick, 1000);
+  };
+  const reset = () => {
+    clearFeedbackAutoTimer();
+    left = FEEDBACK_AUTO_SEC;
+    tick();
+  };
+  if (!container.dataset.autoWired) {
+    container.dataset.autoWired = '1';
+    container.querySelectorAll('.star-btn').forEach(btn => btn.addEventListener('click', reset));
+    const scoreInput = container.querySelector('#fb-score-input');
+    if (scoreInput) scoreInput.addEventListener('input', reset);
+  }
+  tick();
+}
+
+function scoreToStarLabel(score) {
+  const s = Math.max(0, Math.min(100, Number(score) || 0));
+  const v = s / 20;
+  let out = '';
+  for (let i = 1; i <= 5; i++) {
+    const fill = Math.max(0, Math.min(1, v - (i - 1)));
+    out += fill >= 0.75 ? '★' : fill >= 0.25 ? '⯪' : '☆';
+  }
+  return out;
+}
+
 function buildReceiptPayload(offer, payResult, walletBefore, walletAfter) {
+  const receipt = { ...(payResult.receipt || {}) };
   return {
     offer: offer ? {
       id: offer.id,
@@ -1974,7 +2636,7 @@ function buildReceiptPayload(offer, payResult, walletBefore, walletAfter) {
       price: offer.price,
       currency: offer.currency,
     } : null,
-    receipt: payResult.receipt || {},
+    receipt,
     wallets: {
       before: walletBefore,
       after: {
@@ -1983,6 +2645,221 @@ function buildReceiptPayload(offer, payResult, walletBefore, walletAfter) {
       },
     },
   };
+}
+
+let _ratingBeforeMetrics = null;
+
+function showRateSellerButton() {
+  if (_feedbackSubmitted) return;
+  const rateBtn = document.getElementById('rate-btn');
+  if (!rateBtn) return;
+  rateBtn.style.display = '';
+  rateBtn.disabled = false;
+  rateBtn.onclick = () => startSellerRating();
+  document.getElementById('reset-btn').style.display = 'none';
+  showErc8004SharedWalkthrough('rate');
+  setStatus('ERC-8004 shared walkthrough (center) — step ②: tap Rate seller agent.');
+}
+
+function hideRatingBar() {
+  const inline = document.getElementById('rating-inline');
+  const rateBtn = document.getElementById('rate-btn');
+  if (inline) { inline.style.display = 'none'; inline.innerHTML = ''; }
+  if (rateBtn) rateBtn.style.display = 'none';
+}
+
+async function startSellerRating() {
+  if (_feedbackSubmitted || busy) return;
+
+  busy = true;
+  _ratingBeforeMetrics = { healthScore: 0, activity: 0, feedbackCount: 0, averageScore: 0, agentName: 'Seller' };
+  try {
+    const r = await fetch(SELLER + '/agent/erc8004?t=' + Date.now(), { cache: 'no-store' });
+    const data = await r.json();
+    if (r.ok) _ratingBeforeMetrics = metricsFromProfile(data);
+  } catch (e) { /* snapshot for seller receipt only */ }
+
+  const score = starsToScore(randomFeedbackStars());
+  const rateBtn = document.getElementById('rate-btn');
+  const inline = document.getElementById('rating-inline');
+  if (!inline) { busy = false; return; }
+
+  if (rateBtn) rateBtn.style.display = 'none';
+  inline.style.display = 'flex';
+  inline.innerHTML = `
+    ${buildStarPickerHtml()}
+    <div class="rating-meta-row">
+      <input type="number" class="rating-score-input" id="fb-score-input" min="0" max="100" value="${score}" aria-label="Score out of 100" />
+      <span class="rating-score-suffix">/ 100</span>
+      <div class="feedback-countdown" id="fb-countdown">Auto-submit in ${FEEDBACK_AUTO_SEC}s</div>
+    </div>
+  `;
+  wireStarPicker(inline, inline.querySelector('#fb-score-input'));
+
+  showErc8004SharedWalkthrough('rate');
+  startFeedbackAutoSubmit(_ratingBeforeMetrics, inline);
+  setStatus(ERC8004_STATUS.rate + ' — center column shows shared protocol · 3s to adjust.');
+  busy = false;
+}
+
+async function submitBuyerFeedback(beforeMetrics) {
+  if (_feedbackSubmitted || _feedbackSubmitting || !_lastCryptoPayment) return;
+  _feedbackSubmitting = true;
+  clearFeedbackAutoTimer();
+  const ratingBar = document.getElementById('rating-inline');
+  const scoreInput = ratingBar?.querySelector('#fb-score-input');
+  const score = Math.max(0, Math.min(100, Math.round(Number(scoreInput?.value) || 0)));
+  const stars = scoreToStars(score);
+  const comment = randomFeedbackComment();
+  if (!beforeMetrics) beforeMetrics = _ratingBeforeMetrics;
+
+  busy = true;
+  setStatus(ERC8004_STATUS.chain);
+
+  const alignBubble = erc8004SharedAlignTarget() || ratingBar;
+  showErc8004SharedWalkthrough('chain');
+  await delay(200);
+  addArrow('right', 'buyer wallet', `${score}/100 · ${stars}★`, alignBubble);
+  await delay(350);
+  addArrow('left', 'giveFeedback()', 'Reputation Registry · Base Sepolia', alignBubble);
+
+  let result;
+  try {
+    const r = await fetch(SELLER + '/demo/erc8004/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        score,
+        stars,
+        comment,
+        sessionId: activeSession?.sessionId,
+        payment: _lastCryptoPayment.rcpt,
+      }),
+    });
+    result = await r.json();
+    if (!r.ok) throw new Error(result.error || `HTTP ${r.status}`);
+  } catch (e) {
+    addErrBubble('feed-buyer', 'Rating failed: ' + (e.message || e));
+    if (ratingBar?.querySelector('#fb-countdown')) {
+      startFeedbackAutoSubmit(beforeMetrics, ratingBar);
+    } else {
+      showRateSellerButton();
+    }
+    _feedbackSubmitting = false;
+    busy = false;
+    endFlowGroup();
+    return;
+  }
+
+  await delay(300);
+  advanceErc8004PipelineTo('index');
+  setStatus(ERC8004_STATUS.index + (result.indexerStatus === 'pending' ? ' (syncing…)' : ''));
+  addArrow('right', '8004scan', result.indexerStatus || 'pending', alignBubble);
+  await delay(400);
+  advanceErc8004PipelineTo('profile');
+  setStatus(ERC8004_STATUS.profile);
+  addArrow('left', 'seller ◎', 'stars received', alignBubble);
+  markErc8004PipelineComplete();
+  endFlowGroup();
+
+  _feedbackSubmitted = true;
+  _lastPaymentTrust = result;
+  scheduleProfileRefreshAfterPayment(result);
+
+  hideRatingBar();
+  document.getElementById('reset-btn').style.display = '';
+
+  addBuyerFeedbackAck(result, score);
+  const sellerReceipt = addFeedbackResultBubble(result, beforeMetrics, stars, score);
+  if (sellerReceipt) {
+    waitForBubbleLayout(sellerReceipt).then(() => alignFlowGroupToBubble('erc8004', erc8004SharedAlignTarget() || sellerReceipt));
+  }
+  setStatus('ERC-8004 complete — shared walkthrough done. Buyer ack + seller stars in feeds.');
+  _feedbackSubmitting = false;
+  busy = false;
+}
+
+function addBuyerFeedbackAck(result, score) {
+  const starStr = scoreToStarLabel(score);
+  const feed = document.getElementById('feed-buyer');
+  const wrap = document.createElement('div');
+  wrap.className = 'bwrap recv';
+  wrap.id = 'feedback-buyer-ack-wrap';
+  const lb = document.createElement('div');
+  lb.className = 'blabel';
+  lb.textContent = 'buyer · ERC-8004';
+  wrap.appendChild(lb);
+  const b = document.createElement('div');
+  b.className = 'bubble inc feedback-received-card';
+  b.innerHTML = `
+    <div class="feedback-received-label">Submitted on-chain ✓</div>
+    <div class="feedback-received-stars">${starStr}</div>
+  `;
+  const txUrl = result.feedbackTxHash
+    ? (result.feedbackExplorer || explorerTxUrl({ txHash: result.feedbackTxHash }))
+    : null;
+  if (txUrl) {
+    const a = document.createElement('a');
+    a.className = 'tx-verify-link';
+    a.href = txUrl;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.textContent = 'Verify your tx';
+    b.appendChild(a);
+  }
+  b.addEventListener('click', onWalletExplorerClick);
+  wrap.appendChild(b);
+  feed.appendChild(wrap);
+  requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.add('show')));
+}
+
+function appendFeedbackVerifyLinks(bubbleEl, result) {
+  const txUrl = result.feedbackTxHash
+    ? (result.feedbackExplorer || explorerTxUrl({ txHash: result.feedbackTxHash }))
+    : null;
+  if (txUrl) {
+    const a = document.createElement('a');
+    a.className = 'tx-verify-link';
+    a.href = txUrl;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.textContent = 'Verify feedback tx';
+    bubbleEl.appendChild(a);
+  }
+  if (result.scan8004Url) {
+    const a = document.createElement('a');
+    a.className = 'tx-verify-link';
+    a.href = result.scan8004Url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.textContent = 'Verify on 8004scan';
+    bubbleEl.appendChild(a);
+  }
+}
+
+function addFeedbackResultBubble(result, _beforeMetrics, _stars, score) {
+  const starStr = scoreToStarLabel(score);
+  const feed = document.getElementById('feed-seller');
+  const wrap = document.createElement('div');
+  wrap.className = 'bwrap recv';
+  wrap.id = 'feedback-result-wrap';
+  const lb = document.createElement('div');
+  lb.className = 'blabel';
+  lb.textContent = 'seller · ERC-8004';
+  wrap.appendChild(lb);
+  const b = document.createElement('div');
+  b.className = 'bubble inc feedback-received-card';
+  b.innerHTML = `
+    <div class="feedback-received-label">Stars received from buyer</div>
+    <div class="feedback-received-stars">${starStr}</div>
+  `;
+  appendFeedbackVerifyLinks(b, result);
+  b.addEventListener('click', onWalletExplorerClick);
+  wrap.appendChild(b);
+  feed.appendChild(wrap);
+  requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.add('show')));
+  softScrollToBubble(wrap);
+  return wrap;
 }
 
 function downloadReceiptPdfClient(payload) {
@@ -2105,6 +2982,8 @@ function buildWalletPopHtml(role, data, payHint, opts) {
     : null);
   const roleLabel = data.role || role;
   let html = '';
+  const acctLabelMobile = o.accountLabel || (roleLabel === 'buyer' ? 'Buyer account balance' : 'Seller account balance');
+  const payDeltaMobile = o.paymentDelta || '';
   if (mobileChat) {
     html = `
     <div class="wallet-pop-head-row wallet-chat-head">
@@ -2114,9 +2993,11 @@ function buildWalletPopHtml(role, data, payHint, opts) {
         ${walletExtLink(addrUrl, 'Basescan')}
       </span>
     </div>
-    <div class="wallet-bal-row wallet-chat-bal">
+    <div class="wallet-bal-account-label">${escHtml(acctLabelMobile)}</div>
+    <div class="wallet-bal-row wallet-chat-bal wallet-bal-primary">
       <span class="wallet-bal-val"><span>${usdcStr}</span>${walletExtLink(usdcUrl, 'USDC')}</span>
-    </div>`;
+    </div>
+    ${payDeltaMobile ? `<div class="wallet-payment-delta ${roleLabel}">${escHtml(payDeltaMobile)}</div>` : ''}`;
   } else if (compact) {
     html = `
     <div class="wallet-pop-head-row">
@@ -2137,14 +3018,18 @@ function buildWalletPopHtml(role, data, payHint, opts) {
     </div>`;
   }
   const usdcOnly = compact && !mobileChat && (o.paymentTxHash || o.usdcOnly);
+  const acctLabel = o.accountLabel || (roleLabel === 'buyer' ? 'Buyer account balance' : 'Seller account balance');
+  const payDelta = o.paymentDelta || '';
   if (!mobileChat) {
     if (usdcOnly) {
       html += `
-    <div class="wallet-bal-row">
+    <div class="wallet-bal-account-label">${escHtml(acctLabel)}</div>
+    <div class="wallet-bal-row wallet-bal-primary">
       <span>USDC</span>
       <span class="wallet-bal-val"><span>${usdcStr}</span>${walletExtLink(usdcUrl, 'Verify USDC on Basescan')}</span>
     </div>
-    <div class="wallet-muted wallet-usdc-only-note">x402 payment · USDC only (facilitator pays ETH gas)</div>`;
+    ${payDelta ? `<div class="wallet-payment-delta ${roleLabel}">${escHtml(payDelta)}</div>` : ''}
+    <div class="wallet-muted wallet-usdc-only-note">Wallet balance after payment · facilitator paid ETH gas</div>`;
     } else if (!compact) {
       html += `
     <div class="wallet-bal-row">
@@ -2204,12 +3089,17 @@ function addChatWalletBubble(feedId, role, data, payHint, paymentTxHash, usdcPai
   }
   const isSeller = feedId === 'feed-seller';
   const side = isSeller ? 'sent' : 'recv';
+  const paidAmt = usdcPaid || receiptPayload?.receipt?.usdcPaid || '—';
+  const accountLabel = isSeller ? 'Seller account balance' : 'Buyer account balance';
+  const paymentDelta = isSeller
+    ? `This payment: received +${paidAmt} USDC`
+    : `This payment: paid −${paidAmt} USDC`;
   const feed = document.getElementById(feedId);
   const wrap = document.createElement('div');
   wrap.className = 'bwrap ' + side + ' chat-wallet-bwrap';
   const lb = document.createElement('div');
   lb.className = 'blabel';
-  lb.innerHTML = `<span class="chat-wallet-label"><span class="chat-wallet-icon" aria-hidden="true">&#x1F4B3;</span> wallet · ${role}</span>`;
+  lb.innerHTML = `<span class="chat-wallet-label"><span class="chat-wallet-icon" aria-hidden="true">&#x1F4B3;</span> ${accountLabel}</span>`;
   wrap.appendChild(lb);
   const b = document.createElement('div');
   b.className = 'bubble inc chat-wallet-bubble';
@@ -2222,6 +3112,8 @@ function addChatWalletBubble(feedId, role, data, payHint, paymentTxHash, usdcPai
     usdcPaid,
     usdcOnly: true,
     histTitle: 'This payment',
+    accountLabel,
+    paymentDelta,
   });
   if (receiptPayload) appendWalletDownloadBtn(card, receiptPayload, payResult, isMobileLayout());
   card.addEventListener('click', onWalletExplorerClick);
@@ -2359,6 +3251,8 @@ function closeAllWalletPops() {
 
 // ── ERC-8004 agent profile (seller) — GET /agent/erc8004 ─────────────────────
 let _agentProfileCache = null;
+let _lastPaymentTrust = null;
+let _profileRefreshTimers = [];
 let _agentProfileLoading = false;
 
 function pinAgentProfilePopover(wrap) {
@@ -2398,6 +3292,10 @@ const PROFILE_FIELD_HELP = {
   watchers: 'Accounts following this agent for updates on 8004scan. More watchers usually means more ongoing attention.',
   verified: 'Whether 8004scan verified the publisher who listed this agent. Extra confidence in who submitted the profile.',
   publisher: 'Wallet or account that registered this listing on 8004scan. Can differ from the on-chain NFT owner.',
+  totalFeedbacks: 'Total on-chain ERC-8004 feedback entries indexed by 8004scan for this agent.',
+  averageScore: 'Average feedback score (0–100) across all indexed on-chain feedback.',
+  onChainPayments: 'Your buyer wallet’s x402 payment feedback on-chain — updates immediately after pay.',
+  latestPayment: 'Feedback from your most recent crypto payment in this session (may lead 8004scan by a few minutes).',
 };
 
 const PROFILE_VERIFY_HELP = {
@@ -2484,11 +3382,61 @@ const PROFILE_TABS = [
   { id: 'verify', label: 'Verify' },
 ];
 
+function mergeProfileRanking(rank) {
+  const merged = { ...(rank || {}) };
+  const trust = _lastPaymentTrust;
+  if (!trust?.submitted || !trust.rankingAfter) return merged;
+  const after = trust.rankingAfter;
+  for (const key of ['healthScore', 'activity', 'popularity']) {
+    const apiVal = merged[key];
+    const trustVal = after[key];
+    if (trustVal != null && (apiVal == null || trust.indexerStatus === 'pending' || trustVal > apiVal)) {
+      merged[key] = trustVal;
+      merged[`${key}Pending`] = trust.indexerStatus === 'pending';
+    }
+  }
+  return merged;
+}
+
+function mergeProfileFeedback(fb) {
+  const merged = { ...(fb || {}) };
+  const trust = _lastPaymentTrust;
+  if (!trust?.submitted) return merged;
+  const apiCount = merged.totalFeedbacks ?? 0;
+  const trustCount = trust.rankingAfter?.feedbackCount;
+  if (trustCount != null && (trust.indexerStatus === 'pending' || trustCount > apiCount)) {
+    merged.totalFeedbacks = trustCount;
+    merged.totalFeedbacksPending = trust.indexerStatus === 'pending';
+  }
+  if (trust.feedbackScore != null && (merged.averageScore == null || merged.averageScore === 0)) {
+    merged.averageScore = trust.feedbackScore;
+  }
+  const onChain = merged.onChainPaymentFeedback || {};
+  if (trust.submitted && (onChain.count == null || onChain.count === 0) && trust.feedbackTxHash) {
+    merged.onChainPaymentFeedback = {
+      count: Math.max(onChain.count || 0, 1),
+      averageScore: trust.feedbackScore,
+    };
+  }
+  return merged;
+}
+
+function buildLatestPaymentTrustHtml() {
+  const trust = _lastPaymentTrust;
+  if (!trust?.submitted) return '';
+  const pending = trust.indexerStatus === 'pending'
+    ? ' · 8004scan syncing'
+    : trust.indexerStatus === 'updated' ? ' · indexed' : '';
+  const tx = trust.feedbackTxHash ? shortAddr(trust.feedbackTxHash) : '—';
+  const score = trust.feedbackScore != null ? `${trust.feedbackScore} / 100` : '—';
+  return profileKv('Latest payment', `${score} · tx ${tx}${pending}`, 'latestPayment');
+}
+
 function buildProfilePanelHtml(tabId, data) {
   const sec = data.sections || {};
   const id = sec.identity || {};
-  const rank = sec.ranking || {};
-  const fb = sec.feedback || {};
+  const rank = mergeProfileRanking(sec.ranking || {});
+  const fb = mergeProfileFeedback(sec.feedback || {});
   const verifyLinks = (sec.verify && sec.verify.links) || data.verify || [];
 
   if (tabId === 'identity') {
@@ -2517,7 +3465,19 @@ function buildProfilePanelHtml(tabId, data) {
     ].join('');
   }
   if (tabId === 'feedback') {
+    const totalFb = fb.totalFeedbacks != null
+      ? String(fb.totalFeedbacks) + (fb.totalFeedbacksPending ? ' ↻' : '')
+      : null;
+    const avgScore = fb.averageScore != null ? profileScore(fb.averageScore) : null;
+    const onChain = fb.onChainPaymentFeedback || {};
+    const onChainLine = onChain.count != null
+      ? `${onChain.count} · avg ${onChain.averageScore ?? '—'}`
+      : null;
     return `
+      ${buildLatestPaymentTrustHtml()}
+      ${profileKv('On-chain feedbacks', totalFb, 'totalFeedbacks')}
+      ${profileKv('Average score', avgScore, 'averageScore')}
+      ${profileKv('Your x402 payments', onChainLine, 'onChainPayments')}
       ${profileKv('Stars', fb.starCount ?? 0, 'stars')}
       ${profileKv('Watchers', fb.watchCount ?? 0, 'watchers')}
       ${profileKv('Verified', fb.isVerified ? 'yes' : 'no', 'verified')}
@@ -2606,17 +3566,31 @@ function renderAgentProfilePop(data, errMsg) {
   }
 }
 
+function scheduleProfileRefreshAfterPayment(trust) {
+  _lastPaymentTrust = trust && trust.submitted ? trust : _lastPaymentTrust;
+  _agentProfileCache = null;
+  _profileRefreshTimers.forEach(t => clearTimeout(t));
+  _profileRefreshTimers = [];
+  const delays = [0, 8000, 20000, 45000, 90000];
+  delays.forEach((ms) => {
+    const t = setTimeout(() => {
+      fetchAgentProfile(true);
+    }, ms);
+    _profileRefreshTimers.push(t);
+  });
+}
+
 async function fetchAgentProfile(force = false) {
   if (_agentProfileCache && !force) {
     renderAgentProfilePop(_agentProfileCache);
     return;
   }
-  if (_agentProfileLoading) return;
+  if (_agentProfileLoading && !force) return;
   _agentProfileLoading = true;
   const pop = document.getElementById('agent-profile-pop-seller');
   if (pop) pop.innerHTML = '<div class="wallet-loading">Loading profile…</div>';
   try {
-    const r = await fetch(SELLER + '/agent/erc8004', { method: 'GET' });
+    const r = await fetch(SELLER + '/agent/erc8004?t=' + Date.now(), { method: 'GET', cache: 'no-store' });
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
     _agentProfileCache = data;
@@ -2645,7 +3619,7 @@ function initAgentProfileWidget() {
       return;
     }
     wrap.classList.add('open');
-    fetchAgentProfile();
+    fetchAgentProfile(!!_lastPaymentTrust);
   });
 }
 
@@ -3255,7 +4229,20 @@ const FLOW_GROUP_META = {
   acp:    { badge: 'ACP',    title: 'Agent Client Protocol' },
   x402:   { badge: 'x402',   title: 'Crypto settlement · USDC' },
   stripe: { badge: 'Stripe', title: 'Fiat settlement · Stripe test' },
+  erc8004: { badge: '8004',  title: 'ERC-8004 · Shared walkthrough', subtitle: 'buyer ↔ seller' },
 };
+
+const FEEDBACK_COMMENT_SAMPLES = [
+  'Smooth checkout — USDC settled fast.',
+  'Great shoe match for my budget.',
+  'Agent understood my intent quickly.',
+  'Clear offer card, would use again.',
+  'Fast negotiation, fair price.',
+];
+
+let _lastCryptoPayment = null;
+let _feedbackSubmitted = false;
+let _feedbackSubmitting = false;
 
 let _flowGroupBody = null;
 
@@ -3270,23 +4257,25 @@ function beginFlowGroup(kind, alignBubble) {
   group.setAttribute('aria-label', meta.title);
   const head = document.createElement('div');
   head.className = 'flow-group-head';
+  const subHtml = meta.subtitle ? `<div class="flow-group-subtitle">${escHtml(meta.subtitle)}</div>` : '';
   head.innerHTML = `
     <span class="flow-group-badge" title="${meta.title}">${meta.badge}</span>
     <div class="flow-group-titles">
       <div class="flow-group-title">${meta.title}</div>
+      ${subHtml}
     </div>`;
   const body = document.createElement('div');
   body.className = 'flow-group-body';
   group.appendChild(head);
   group.appendChild(body);
-  const isPaymentGroup = kind === 'x402' || kind === 'stripe';
-  if (isPaymentGroup && alignBubble) {
+  const isAlignedGroup = kind === 'x402' || kind === 'stripe' || kind === 'erc8004';
+  if (isAlignedGroup && alignBubble) {
     group.style.visibility = 'hidden';
     group.style.marginTop = '0px';
   }
   c.appendChild(group);
   _flowGroupBody = body;
-  if (isPaymentGroup && alignBubble) {
+  if (isAlignedGroup && alignBubble) {
     waitForBubbleLayout(alignBubble).then(() => {
       applyFlowGroupMargin(kind, alignBubble);
       group.style.visibility = '';
@@ -4295,17 +5284,20 @@ amount: ${usdcDue} USDC`);
     const sellerPayHint = formatWalletPayHint(`Received +${rcpt.usdcPaid || usdcDue} USDC`, rcpt.ethGas);
 
     const receiptPayload = buildReceiptPayload(pendingOffer, payResult, walletBefore, walletAfter);
+    _lastCryptoPayment = { rcpt, payResult, offer: pendingOffer };
+    _feedbackSubmitted = false;
+
     addChatWalletBubble('feed-buyer', 'buyer', buyerSnap, buyerPayHint, rcpt.txHash, rcpt.usdcPaid, receiptPayload, payResult);
     addChatWalletBubble('feed-seller', 'seller', sellerSnap, sellerPayHint, rcpt.txHash, rcpt.usdcPaid, receiptPayload, payResult);
     await delay(400);
+    showRateSellerButton();
 
     setWalletPayHint(buyerPayHint, sellerPayHint);
     await Promise.all(['buyer', 'seller'].map(r => fetchWallet(r, true)));
 
     setPip(4, 'done');
-    setStatus('Payment complete — USDC settled on Base Sepolia. Wallets stay open until Reset.');
+    setStatus('Payment complete — ERC-8004 walkthrough opens in center. Tap Rate seller agent.');
     document.getElementById('next-btn').style.display = 'none';
-    document.getElementById('reset-btn').style.display = '';
     busy = false;
     return;
   }
@@ -4322,10 +5314,11 @@ function resetDemo() {
   clearFeed('feed-seller');
   document.getElementById('arrows').innerHTML = '';
   endFlowGroup();
-  document.querySelectorAll('.flow-group-acp, .flow-group-x402').forEach(el => {
+  document.querySelectorAll('.flow-group-acp, .flow-group-x402, .flow-group-erc8004').forEach(el => {
     el.style.marginTop = '';
     el.style.visibility = '';
   });
+  _erc8004PipelineEl = null;
   addBubble('feed-buyer', 'mid', '', 'waiting to start');
   addBubble('feed-seller', 'mid', '', 'waiting for connection');
   for (let i = 0; i < 6; i++) setPip(i, '');
@@ -4344,12 +5337,26 @@ function resetDemo() {
   _fiatWalletPayHint.buyer = ''; _fiatWalletPayHint.seller = '';
   document.querySelectorAll('.wallet-wrap.payment-active').forEach(w => w.classList.remove('payment-active'));
   promptInFlight = false; promptTurnAborted = false; activePromptController = null;
+  _lastPaymentTrust = null;
+  _lastCryptoPayment = null;
+  _feedbackSubmitted = false;
+  _feedbackSubmitting = false;
+  _profileRefreshTimers.forEach(t => clearTimeout(t));
+  _profileRefreshTimers = [];
+  _agentProfileCache = null;
+  clearFeedbackAutoTimer();
+  hideRatingBar();
+  _ratingBeforeMetrics = null;
+  document.getElementById('feedback-result-wrap')?.remove();
+  document.getElementById('feedback-buyer-ack-wrap')?.remove();
   const btn = document.getElementById('next-btn');
   btn.textContent = 'Start';
   btn.style.display = '';
   btn.disabled = false;
   btn.onclick = nextStep;
   document.getElementById('reset-btn').style.display = 'none';
+  const rateBtn = document.getElementById('rate-btn');
+  if (rateBtn) { rateBtn.style.display = 'none'; rateBtn.onclick = null; }
 }
 </script>
 </body>

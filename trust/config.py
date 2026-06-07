@@ -5,11 +5,15 @@ Reuses payments.config env loading (local.env / Railway).
 
 from __future__ import annotations
 
+import random
+
 from payments.config import env, get_network
 
 # CREATE2 singleton addresses (testnet / mainnet families)
 IDENTITY_REGISTRY_TESTNET = "0x8004A818BFB912233c491871b3d84c89A494BD9e"
 IDENTITY_REGISTRY_MAINNET = "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432"
+REPUTATION_REGISTRY_TESTNET = "0x8004B663056A597Dffe9eCcC1965A193B7388713"
+REPUTATION_REGISTRY_MAINNET = "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63"
 
 DEFAULT_CHAIN_ID = 84532
 DEFAULT_SCAN8004_API = "https://8004scan.io/api/v1/public"
@@ -91,6 +95,32 @@ def identity_registry_for_chain(chain_id: int) -> str:
     if chain_id in (1, 8453, 137, 56, 42161):
         return IDENTITY_REGISTRY_MAINNET
     return IDENTITY_REGISTRY_TESTNET
+
+
+def reputation_registry_for_chain(chain_id: int) -> str:
+    """Known ERC-8004 Reputation Registry for EVM chains."""
+    if chain_id in (1, 8453, 137, 56, 42161):
+        return REPUTATION_REGISTRY_MAINNET
+    return REPUTATION_REGISTRY_TESTNET
+
+
+def feedback_on_pay_enabled() -> bool:
+    """Legacy flag — feedback is manual via demo button; default off."""
+    return env("ERC8004_FEEDBACK_ON_PAY", "false").lower() in ("1", "true", "yes")
+
+
+def get_feedback_value() -> int:
+    """
+    Score sent with giveFeedback (0–100). Random by default after each payment.
+    Set ERC8004_FEEDBACK_VALUE to pin a fixed score (e.g. for testing).
+    """
+    raw = env("ERC8004_FEEDBACK_VALUE")
+    if raw and str(raw).strip():
+        try:
+            return max(0, min(100, int(str(raw).strip())))
+        except ValueError:
+            pass
+    return random.randint(0, 100)
 
 
 def agent_registry_string(chain_id: int, registry: str | None = None) -> str:

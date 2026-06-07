@@ -296,5 +296,6 @@ open demo.html
 | [README_DAY4.md](./README_DAY4.md) | Catalog, multi-turn, Claude, agent pick       |
 | [README_DAY5.md](./README_DAY5.md) | x402 USDC, wallets, receipt PDF               |
 | [README_DAY6.md](./README_DAY6.md) | Fiat via Stripe, dual wallets, payment picker |
+| [README_DAY7.md](./README_DAY7.md) | ERC-8004 trust, 8004scan, ◎ profile UI        |
 
 

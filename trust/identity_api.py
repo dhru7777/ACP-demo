@@ -140,15 +140,46 @@ def _build_ranking_section(scan: dict | None) -> dict[str, Any] | None:
     }
 
 
-def _build_feedback_section(scan: dict | None) -> dict[str, Any] | None:
+def _build_feedback_section(
+    scan: dict | None,
+    *,
+    chain_id: int | None = None,
+    agent_id: int | None = None,
+) -> dict[str, Any] | None:
     if not scan:
         return None
+    scores = scan.get("scores") if isinstance(scan.get("scores"), dict) else {}
+    engagement = {}
+    if isinstance(scores.get("breakdown"), dict):
+        dims = scores["breakdown"].get("dimensions") or {}
+        if isinstance(dims.get("engagement"), dict):
+            engagement = dims["engagement"].get("details") or {}
+
+    on_chain: dict[str, Any] | None = None
+    if chain_id is not None and agent_id is not None:
+        try:
+            from payments.wallets import get_buyer_address
+            from trust.reputation_chain import read_feedback_summary
+
+            buyer = get_buyer_address()
+            on_chain = read_feedback_summary(
+                chain_id, agent_id, [buyer], "x402", "acp-commerce"
+            )
+        except Exception:
+            on_chain = None
+
     return {
         "starCount": scan.get("star_count"),
         "watchCount": scan.get("watch_count"),
         "isVerified": scan.get("is_verified"),
         "ownerUsername": scan.get("owner_username"),
         "protocols": scan.get("supported_protocols") or [],
+        "totalFeedbacks": scan.get("total_feedbacks"),
+        "averageScore": scan.get("average_score"),
+        "recentFeedbackCount": engagement.get("recent_feedback_count"),
+        "indexedFeedbackCount": engagement.get("feedback_count"),
+        "lastScoredAt": scan.get("last_scored_at"),
+        "onChainPaymentFeedback": on_chain,
     }
 
 
@@ -296,7 +327,7 @@ def build_agent_identity_response(service_url: str | None = None) -> dict[str, A
         on_chain=on_chain,
     )
     ranking = _build_ranking_section(scan)
-    feedback = _build_feedback_section(scan)
+    feedback = _build_feedback_section(scan, chain_id=chain_id, agent_id=agent_id)
     checks = {
         "onChainMinted": bool(on_chain.get("minted")),
         "serviceReachable": service_health.get("ok"),

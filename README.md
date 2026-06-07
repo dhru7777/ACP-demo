@@ -66,7 +66,7 @@ Hard refresh after UI changes (`Cmd+Shift+R`). Footer shows build stamp (e.g. `b
 | **6** | [README_DAY6.md](./README_DAY6.md) | Stripe fiat + buyer payment rail choice |
 | **7** | [README_DAY7.md](./README_DAY7.md) | ERC-8004 trust layer + ◎ profile UI |
 
-**Start here after a break:** [README_DAY7.md](./README_DAY7.md) — narrative map of Acts I–IV, env cheatsheet, file map, and production gaps.
+**Latest chapter:** [README_DAY7.md](./README_DAY7.md) — ERC-8004 trust layer, `GET /agent/erc8004`, ◎ profile UI, 8004scan integration.
 
 ---
 
