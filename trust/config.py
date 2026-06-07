@@ -109,6 +109,23 @@ def feedback_on_pay_enabled() -> bool:
     return env("ERC8004_FEEDBACK_ON_PAY", "false").lower() in ("1", "true", "yes")
 
 
+def feedback_poll_timeout_sec() -> float:
+    """8004scan poll after giveFeedback — keep short for interactive demo."""
+    raw = env("ERC8004_POLL_TIMEOUT_SEC", "12")
+    try:
+        return max(3.0, float(str(raw).strip()))
+    except ValueError:
+        return 12.0
+
+
+def feedback_poll_interval_sec() -> float:
+    raw = env("ERC8004_POLL_INTERVAL_SEC", "2")
+    try:
+        return max(1.0, float(str(raw).strip()))
+    except ValueError:
+        return 2.0
+
+
 def get_feedback_value() -> int:
     """
     Score sent with giveFeedback (0–100). Random by default after each payment.

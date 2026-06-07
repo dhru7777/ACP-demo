@@ -13,6 +13,8 @@ from typing import Any
 
 from payments.config import get_explorer_base
 from trust.config import (
+    feedback_poll_interval_sec,
+    feedback_poll_timeout_sec,
     get_chain_id,
     get_service_url,
     scan8004_agent_url,
@@ -177,7 +179,13 @@ def submit_agent_feedback(
             "feedbackScore": score,
         }
 
-    ranking_after, indexer_status = _poll_ranking_after(chain_id, agent_id, ranking_before)
+    ranking_after, indexer_status = _poll_ranking_after(
+        chain_id,
+        agent_id,
+        ranking_before,
+        timeout_sec=feedback_poll_timeout_sec(),
+        interval_sec=feedback_poll_interval_sec(),
+    )
 
     return {
         "submitted": True,

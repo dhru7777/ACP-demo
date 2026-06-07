@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<title>Agentic Commerce Protocol — Phase 1 Demo</title>
+<title>ACP · ERC-8004 · x402 — Agentic Payment Demo</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -56,8 +56,8 @@
   /* STAGE */
   .stage {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 120px minmax(0, 1fr);
-    column-gap: 10px;
+    grid-template-columns: minmax(0, 1fr) 152px minmax(0, 1fr);
+    column-gap: 12px;
     padding: 28px 40px;
     flex: 1 0 auto;
     min-height: 320px;
@@ -76,6 +76,7 @@
     min-width: 0;
     min-height: 280px;
     position: relative;
+    z-index: 2;
   }
   .panel:first-child .feed { padding-right: 10px; }
   .panel:last-child  .feed { padding-left: 10px; }
@@ -359,6 +360,20 @@
   }
   .wallet-wrap.open .wallet-pop {
     display: block;
+  }
+  .agent-profile-wrap.open .agent-profile-pop {
+    display: block;
+  }
+  .profile-btn.is-loading {
+    opacity: 0.55;
+    cursor: wait;
+  }
+  .profile-loading-detail {
+    font-size: 8px;
+    color: var(--muted);
+    margin-top: 6px;
+    line-height: 1.45;
+    letter-spacing: 0.02em;
   }
   .wallet-pop-title {
     font-size: 9px;
@@ -859,9 +874,10 @@
     max-width: 100%;
     min-width: 0;
     min-height: 0;
-    overflow: visible;
+    overflow: hidden;
     background: transparent;
-    z-index: 5;
+    z-index: 1;
+    isolation: isolate;
   }
   .wire {
     position: absolute;
@@ -885,7 +901,7 @@
     padding: 0 2px;
     box-sizing: border-box;
     pointer-events: none;
-    overflow: visible;
+    overflow: hidden;
   }
   .arrow-row {
     display: flex;
@@ -941,6 +957,7 @@
     background: var(--surface);
     box-sizing: border-box;
     pointer-events: none;
+    overflow: hidden;
   }
   .flow-group-acp {
     border-color: rgba(0, 0, 0, 0.28);
@@ -979,18 +996,22 @@
   }
   .flow-group-titles { flex: 1; min-width: 0; }
   .flow-group-title {
-    font-size: 9px;
+    font-size: 8px;
     font-weight: 600;
     color: var(--text);
-    line-height: 1.35;
+    line-height: 1.3;
     letter-spacing: 0.02em;
+    word-break: break-word;
+    overflow-wrap: anywhere;
   }
   .flow-group-body {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
     gap: 8px;
     width: 100%;
+    min-width: 0;
+    overflow: hidden;
   }
 
   /* BOTTOM */
@@ -1206,7 +1227,7 @@
       order: 0;
       padding-top: 8px;
       overflow: hidden;
-      max-width: 100%;
+      max-width: 58px;
       z-index: 1;
       align-self: stretch;
     }
@@ -1270,25 +1291,38 @@
     .offer-mini-badge { font-size: 6px; top: -7px; left: 4px; padding: 1px 4px; }
     .bubble.decision  { text-align: left; }
 
-    /* Center gutter — badge-only protocol labels; titles hidden (column too narrow) */
-    .arrows { padding: 0 1px; gap: 6px; width: 100%; overflow: hidden; }
+    /* Center gutter — badge-only; never spill into chat panels */
+    .arrows { padding: 0; gap: 4px; width: 100%; max-width: 58px; overflow: hidden; }
     .flow-group {
-      padding: 4px 2px 6px;
+      padding: 3px 1px 5px;
       margin-bottom: 2px;
       overflow: hidden;
       max-width: 100%;
+      width: 100%;
     }
     .flow-group-head {
       flex-direction: column;
       align-items: center;
       gap: 0;
-      margin-bottom: 4px;
-      padding-bottom: 3px;
+      margin-bottom: 3px;
+      padding-bottom: 2px;
       text-align: center;
     }
-    .flow-group-titles { display: none; }
-    .flow-group-badge { font-size: 7px; padding: 2px 5px; }
-    .flow-group-body { gap: 5px; }
+    .flow-group-titles { display: none !important; }
+    .flow-group-badge { font-size: 6.5px; padding: 2px 4px; }
+    .flow-group-body { gap: 3px; max-width: 100%; }
+    .proto-step { font-size: 6px; padding: 2px 0; gap: 3px; }
+    .proto-step .proto-rule { display: none; }
+    .proto-step .proto-dot { width: 5px; height: 5px; }
+    .proto-wait { font-size: 6px; padding: 3px 1px; line-height: 1.3; }
+    .proto-verify-row { font-size: 6px; gap: 2px; }
+    .proto-verify-row a { font-size: 6px; }
+    .arrow-chip { font-size: 6.5px; padding: 2px 3px; max-width: 100%; }
+    .arrow-label { font-size: 6px; }
+    .panel { overflow: hidden; }
+    .feed { overflow-x: hidden; max-width: 100%; }
+    .blabel { max-width: 100%; overflow-wrap: anywhere; word-break: break-word; }
+    .feedback-countdown { font-size: 7px; max-width: 100%; }
     .bwrap.sent .chat-wallet-bwrap,
     .bwrap.recv .chat-wallet-bwrap {
       width: auto;
@@ -1517,26 +1551,40 @@
     background: #fafafa;
   }
   .flow-group-erc8004 .flow-group-badge { background: #111; color: #fff; }
-  .flow-group-erc8004 .flow-group-subtitle {
-    font-size: 7px;
+  .proto-wait {
+    font-size: 8px;
     color: var(--muted);
-    letter-spacing: 0.05em;
-    margin-top: 1px;
-  }
-  .proto-shared-caption {
-    font-size: 7px;
-    font-weight: 600;
     text-align: center;
+    padding: 8px 4px;
+    letter-spacing: 0.03em;
+  }
+  .proto-step .proto-rule {
+    display: block;
+    font-size: 7px;
+    font-weight: 400;
     color: var(--muted);
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    margin-bottom: 6px;
-    padding-bottom: 4px;
-    border-bottom: 1px dashed var(--border);
+    margin-top: 1px;
+    line-height: 1.3;
+  }
+  .proto-verify-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 1px solid var(--border);
     width: 100%;
   }
-  .proto-registry-center { margin-bottom: 6px; width: 100%; }
-  .proto-registry-center .proto-registry { margin: 0; }
+  .proto-verify-row a {
+    font-size: 7px;
+    color: #1a56db;
+    text-decoration: none;
+    letter-spacing: 0.02em;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    line-height: 1.35;
+  }
+  .proto-verify-row a:hover { text-decoration: underline; }
 
   .feedback-give-btn {
     display: block;
@@ -1617,11 +1665,26 @@
   }
   .proto-step {
     display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 2px;
-    font-size: 8px;
+    align-items: flex-start;
+    gap: 5px;
+    padding: 4px 0;
+    font-size: 7px;
     color: var(--muted);
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .proto-step > span:last-child {
+    min-width: 0;
+    flex: 1;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+  .proto-step.revealed {
+    opacity: 1;
+    transform: none;
   }
   .proto-step .proto-dot {
     flex-shrink: 0;
@@ -1636,6 +1699,7 @@
     background: #111;
     border-color: #111;
     box-shadow: 0 0 0 2px rgba(0,0,0,0.12);
+    animation: blink 0.9s ease-in-out infinite;
   }
   .proto-step.active { color: var(--text); font-weight: 600; }
   .proto-step.done { color: #444; }
@@ -1751,6 +1815,17 @@
     flex: 1;
     min-width: 0;
     text-align: left;
+  }
+  .feedback-countdown.feedback-progress-active {
+    color: var(--text);
+    font-weight: 500;
+  }
+  .fb-progress-dot {
+    color: #0a7a2f;
+    margin-right: 2px;
+  }
+  .fb-progress-dot.blink {
+    animation: blink 0.9s ease-in-out infinite;
   }
   .rating-score-input {
     width: 56px;
@@ -1874,23 +1949,26 @@
     .phase-connector { width: 4px; margin-bottom: 0; }
 
     .stage {
-      grid-template-columns: minmax(0, 1fr) 50px minmax(0, 1fr);
-      column-gap: 4px;
-      padding: 6px 4px;
+      grid-template-columns: minmax(0, 1fr) 46px minmax(0, 1fr);
+      column-gap: 3px;
+      padding: 6px 3px;
     }
-    .center { padding-top: 6px; }
+    .center { padding-top: 4px; max-width: 46px; }
     .wire { top: 24px; }
-    .arrows { gap: 4px; padding: 0; }
-    .flow-group { padding: 3px 1px 5px; }
+    .arrows { gap: 3px; padding: 0; max-width: 46px; }
+    .flow-group { padding: 2px 0 4px; }
     .flow-group-head {
       margin-bottom: 2px;
       padding-bottom: 2px;
       border-bottom-width: 0;
     }
-    .flow-group-badge { font-size: 6px; padding: 2px 3px; letter-spacing: 0.04em; }
-    .flow-group-body { gap: 4px; }
-    .arrow-chip { font-size: 6.5px; padding: 2px 2px; border-radius: 5px; }
-    .arrow-label { font-size: 5.5px; }
+    .flow-group-badge { font-size: 5.5px; padding: 1px 3px; letter-spacing: 0.03em; }
+    .flow-group-body { gap: 3px; }
+    .proto-step { font-size: 5.5px; }
+    .proto-step > span:last-child { font-size: 5.5px; }
+    .arrow-chip { font-size: 5.5px; padding: 2px 1px; border-radius: 4px; line-height: 1.2; }
+    .arrow-label { font-size: 5px; display: none; }
+    .proto-verify-row { display: none; }
 
     .panel-head  { padding: 6px 6px; gap: 4px; }
     .panel-icon  { width: 20px; height: 20px; font-size: 8px; }
@@ -1927,7 +2005,7 @@
 <div class="header">
   <div>
     <div class="header-title">Dheeraj Maske &middot; Thesis Demo &middot; 2026 &middot; <span id="demo-build">build …</span></div>
-    <div class="header-sub">Simulating Agentic Payments with ACP <span class="sub-full" style="font-size:13px;color:var(--muted);font-weight:300;">(Agent Client Protocol)</span></div>
+    <div class="header-sub">Simulating agentic payment with ACP, ERC-8004 and x402</div>
   </div>
   <div class="phases">
     <div class="phase-step" id="ph0">
@@ -2033,7 +2111,7 @@
 
 <div class="bottom">
   <button class="btn primary" id="next-btn" onclick="nextStep()">Start</button>
-  <button class="btn primary" id="rate-btn" style="display:none">Rate seller agent</button>
+  <button class="btn primary" id="rate-btn" style="display:none" disabled>Rate my agent</button>
   <div class="rating-inline" id="rating-inline" style="display:none"></div>
   <button class="btn" id="reset-btn" onclick="resetDemo()" style="display:none">Reset</button>
   <div class="status-txt" id="status-txt">Click Start to begin the ACP demo step by step</div>
@@ -2051,7 +2129,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script>
 const delay = ms => new Promise(r => setTimeout(r, ms));
-const DEMO_BUILD = '2026-06-07s';
+const DEMO_BUILD = '2026-06-07y';
 
 function isMobileLayout() {
   return window.matchMedia('(max-width: 680px)').matches;
@@ -2107,9 +2185,16 @@ function lastBubbleWrap(feedId) {
 
 function shortProtocolLabel(label) {
   if (!label) return label;
-  return String(label)
+  let s = String(label)
     .replace(/buyer\s*→\s*seller/gi, 'B → S')
-    .replace(/seller\s*→\s*buyer/gi, 'S → B');
+    .replace(/seller\s*→\s*buyer/gi, 'S → B')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+  if (isSmallPhoneLayout()) {
+    s = s.replace(/\s*\|\s*/g, ' · ');
+    if (s.length > 26) s = s.slice(0, 25) + '…';
+  }
+  return s;
 }
 
 /** Scroll so the active chat bubble stays in view (does not jump to center labels). */
@@ -2416,43 +2501,24 @@ function scoreboardBarHtml(label, before, after, isCount) {
   </div>`;
 }
 
+const REPUTATION_REGISTRY_SEPOLIA = '0x8004B663056A597Dffe9eCcC1965A193B7388713';
+
 const ERC8004_PIPELINE = [
-  { id: 'pay', label: '① x402 paid', sub: 'USDC settles (commerce layer)' },
-  { id: 'rate', label: '② Buyer rates', sub: 'human/agent picks stars' },
-  { id: 'chain', label: '③ giveFeedback()', sub: 'buyer wallet → Reputation Registry' },
-  { id: 'index', label: '④ 8004scan', sub: 'indexer reads on-chain event' },
-  { id: 'profile', label: '⑤ Seller profile', sub: '◎ rank & feedback update' },
+  { id: 'rate', label: 'Buyer rates', rule: '0–100 score · not payment' },
+  { id: 'chain', label: 'giveFeedback()', rule: 'Buyer wallet signs registry' },
+  { id: 'index', label: '8004scan', rule: 'Indexer reads chain' },
+  { id: 'profile', label: 'Seller rank', rule: '◎ Profile updates' },
 ];
 
 const ERC8004_STATUS = {
-  rate: 'ERC-8004 ② Buyer rates the seller agent (off-chain intent)',
-  chain: 'ERC-8004 ③ Buyer wallet signs giveFeedback() on Base Sepolia',
-  index: 'ERC-8004 ④ 8004scan indexes the Reputation Registry',
-  profile: 'ERC-8004 ⑤ Seller ◎ Profile reflects new feedback',
+  rate: 'ERC-8004: buyer rates seller (off-chain intent)',
+  chain: 'ERC-8004: buyer wallet submits giveFeedback()',
+  index: 'ERC-8004: 8004scan indexing feedback',
+  profile: 'ERC-8004: seller reputation updated',
 };
 
-function buildProtoLadderHtml(activeId) {
-  const order = ['pay', 'rate', 'chain', 'index', 'profile'];
-  const activeIdx = order.indexOf(activeId);
-  let html = '<div class="proto-ladder">';
-  order.forEach((id, i) => {
-    const step = ERC8004_PIPELINE.find(s => s.id === id);
-    let cls = 'pl-node';
-    if (i < activeIdx) cls += ' done';
-    else if (i === activeIdx) cls += ' active';
-    html += `<span class="${cls}">${escHtml(step.label)}</span>`;
-    if (i < order.length - 1) html += '<span class="pl-chev">›</span>';
-  });
-  html += '</div>';
-  return html;
-}
-
-function buildRegistryStackHtml() {
-  return `<div class="proto-registry">
-    <div class="proto-reg-cell"><strong>Identity</strong><span class="proto-reg-sub">agent NFT</span></div>
-    <div class="proto-reg-cell target"><strong>Reputation</strong><span class="proto-reg-sub">giveFeedback()</span></div>
-    <div class="proto-reg-cell"><strong>8004scan</strong><span class="proto-reg-sub">public rank</span></div>
-  </div>`;
+function reputationRegistryExplorerUrl() {
+  return `https://sepolia.basescan.org/address/${REPUTATION_REGISTRY_SEPOLIA}`;
 }
 
 let _erc8004PipelineEl = null;
@@ -2464,56 +2530,78 @@ function erc8004SharedAlignTarget() {
     || document.querySelector('#feed-seller .chat-wallet-bwrap');
 }
 
-function mountErc8004ProtocolViz(alignBubble, activeStepId) {
-  const target = alignBubble || erc8004SharedAlignTarget();
+function ensureErc8004Shell() {
+  const target = erc8004SharedAlignTarget();
   const existing = document.querySelector('.flow-group-erc8004');
   if (existing) {
     _flowGroupBody = existing.querySelector('.flow-group-body');
-    setErc8004PipelineStep(activeStepId);
-    if (target) waitForBubbleLayout(target).then(() => alignFlowGroupToBubble('erc8004', target));
+    _erc8004PipelineEl = existing.querySelector('#erc8004-pipeline');
     return existing;
   }
   beginFlowGroup('erc8004', target);
-  const caption = document.createElement('div');
-  caption.className = 'proto-shared-caption';
-  caption.textContent = 'Shared · buyer ↔ seller';
-  _flowGroupBody.appendChild(caption);
-  const regWrap = document.createElement('div');
-  regWrap.className = 'proto-registry-center';
-  regWrap.innerHTML = buildRegistryStackHtml();
-  _flowGroupBody.appendChild(regWrap);
+  const wait = document.createElement('div');
+  wait.id = 'erc8004-placeholder';
+  wait.className = 'proto-wait';
+  wait.textContent = 'Waiting for seller rate request…';
+  _flowGroupBody.appendChild(wait);
   const pipe = document.createElement('div');
   pipe.className = 'proto-pipeline';
   pipe.id = 'erc8004-pipeline';
-  ERC8004_PIPELINE.forEach((step, i) => {
-    if (i > 0) {
+  _flowGroupBody.appendChild(pipe);
+  const verify = document.createElement('div');
+  verify.id = 'erc8004-verify';
+  verify.className = 'proto-verify-row';
+  verify.style.display = 'none';
+  _flowGroupBody.appendChild(verify);
+  _erc8004PipelineEl = pipe;
+  return document.querySelector('.flow-group-erc8004');
+}
+
+function hideErc8004Placeholder() {
+  document.getElementById('erc8004-placeholder')?.remove();
+}
+
+function erc8004StepDisplayLabel(step) {
+  if (!isSmallPhoneLayout()) return step.label;
+  const short = {
+    'Buyer rates': 'Rate',
+    'giveFeedback()': 'Chain',
+    '8004scan': 'Scan',
+    'Seller rank': 'Rank',
+  };
+  return short[step.label] || step.label;
+}
+
+function revealErc8004Step(stepId) {
+  ensureErc8004Shell();
+  hideErc8004Placeholder();
+  const step = ERC8004_PIPELINE.find(s => s.id === stepId);
+  if (!step) return;
+  const pipe = _erc8004PipelineEl;
+  const order = ERC8004_PIPELINE.map(s => s.id);
+  let row = pipe.querySelector(`[data-step-id="${stepId}"]`);
+  if (!row) {
+    if (pipe.querySelectorAll('.proto-step').length > 0) {
       const conn = document.createElement('div');
       conn.className = 'proto-connector';
       pipe.appendChild(conn);
     }
-    const row = document.createElement('div');
+    row = document.createElement('div');
     row.className = 'proto-step';
-    row.dataset.stepId = step.id;
-    row.innerHTML = `<span class="proto-dot"></span><span>${escHtml(step.label)}<span class="proto-sub">${escHtml(step.sub)}</span></span>`;
+    row.dataset.stepId = stepId;
+    row.innerHTML = `<span class="proto-dot"></span><span>${escHtml(erc8004StepDisplayLabel(step))}<span class="proto-rule">${escHtml(step.rule)}</span></span>`;
     pipe.appendChild(row);
-  });
-  _flowGroupBody.appendChild(pipe);
-  _erc8004PipelineEl = pipe;
-  setErc8004PipelineStep(activeStepId);
-  return pipe;
-}
-
-function setErc8004PipelineStep(activeStepId) {
-  const pipe = _erc8004PipelineEl || document.getElementById('erc8004-pipeline');
-  if (!pipe) return;
-  const order = ERC8004_PIPELINE.map(s => s.id);
-  const activeIdx = order.indexOf(activeStepId);
+    requestAnimationFrame(() => requestAnimationFrame(() => row.classList.add('revealed')));
+  }
+  const activeIdx = order.indexOf(stepId);
   pipe.querySelectorAll('.proto-step').forEach(el => {
     const idx = order.indexOf(el.dataset.stepId);
     el.classList.remove('done', 'active');
     if (idx < activeIdx) el.classList.add('done');
     else if (idx === activeIdx) el.classList.add('active');
   });
+  const target = erc8004SharedAlignTarget();
+  if (target) waitForBubbleLayout(target).then(() => alignFlowGroupToBubble('erc8004', target));
 }
 
 function markErc8004PipelineComplete() {
@@ -2525,12 +2613,28 @@ function markErc8004PipelineComplete() {
   });
 }
 
-function advanceErc8004PipelineTo(stepId) {
-  setErc8004PipelineStep(stepId);
+function updateErc8004VerifyLinks(result) {
+  const box = document.getElementById('erc8004-verify');
+  if (!box) return;
+  const txUrl = result?.feedbackTxHash
+    ? (result.feedbackExplorer || explorerTxUrl({ txHash: result.feedbackTxHash }))
+    : null;
+  const links = [
+    { url: reputationRegistryExplorerUrl(), label: 'Registry' },
+    txUrl ? { url: txUrl, label: 'Feedback tx' } : null,
+    result?.scan8004Url ? { url: result.scan8004Url, label: '8004scan' } : null,
+  ].filter(Boolean);
+  if (!links.length) return;
+  box.innerHTML = links.map(l =>
+    `<a href="${escHtml(l.url)}" target="_blank" rel="noopener noreferrer">${escHtml(l.label)}</a>`
+  ).join('');
+  box.style.display = 'flex';
 }
 
-function showErc8004SharedWalkthrough(stepId) {
-  mountErc8004ProtocolViz(erc8004SharedAlignTarget(), stepId);
+function prepareErc8004Walkthrough() {
+  ensureErc8004Shell();
+  const target = erc8004SharedAlignTarget();
+  if (target) waitForBubbleLayout(target).then(() => alignFlowGroupToBubble('erc8004', target));
 }
 
 function buildScoreboardHtml(metrics, title) {
@@ -2591,12 +2695,81 @@ function wireStarPicker(container, scoreInput, onScoreChange) {
 }
 
 let _feedbackAutoTimer = null;
+let _feedbackProgressTimer = null;
+let _feedbackProgressIdx = 0;
 const FEEDBACK_AUTO_SEC = 3;
+
+const FEEDBACK_BACKEND_STEPS = [
+  { label: 'Preparing', sub: 'feedback payload', centerId: 'chain' },
+  { label: 'Signing', sub: 'buyer wallet', centerId: 'chain' },
+  { label: 'Broadcasting', sub: 'giveFeedback()', centerId: 'chain' },
+  { label: 'Confirming', sub: 'on-chain receipt', centerId: 'chain' },
+  { label: '8004scan', sub: 'indexing rank', centerId: 'index' },
+  { label: 'Recorded', sub: 'reputation updated', centerId: 'profile' },
+];
 
 function clearFeedbackAutoTimer() {
   if (_feedbackAutoTimer) {
     clearTimeout(_feedbackAutoTimer);
     _feedbackAutoTimer = null;
+  }
+}
+
+function clearFeedbackProgressTimer() {
+  if (_feedbackProgressTimer) {
+    clearInterval(_feedbackProgressTimer);
+    _feedbackProgressTimer = null;
+  }
+}
+
+function feedbackStepProgressText(step) {
+  if (isSmallPhoneLayout()) {
+    const short = {
+      Preparing: 'Prep payload',
+      Signing: 'Wallet sign',
+      Broadcasting: 'Broadcast tx',
+      Confirming: 'Confirming',
+      '8004scan': '8004scan',
+      Recorded: 'Recorded ✓',
+    };
+    return short[step.label] || step.label;
+  }
+  return `${step.label} — ${step.sub}`;
+}
+
+function renderFeedbackSubmitProgress(container, stepIdx) {
+  const steps = FEEDBACK_BACKEND_STEPS;
+  const idx = Math.min(Math.max(0, stepIdx), steps.length - 1);
+  const step = steps[idx];
+  _feedbackProgressIdx = idx;
+  const countdownEl = container?.querySelector('#fb-countdown');
+  if (countdownEl) {
+    countdownEl.innerHTML = `<span class="fb-progress-dot blink">●</span> ${escHtml(feedbackStepProgressText(step))}`;
+    countdownEl.className = 'feedback-countdown feedback-progress-active';
+  }
+  revealErc8004Step(step.centerId);
+  setStatus(`ERC-8004: ${step.label} (${step.sub})…`);
+}
+
+function startFeedbackSubmitProgress(container) {
+  clearFeedbackProgressTimer();
+  _feedbackProgressIdx = 0;
+  renderFeedbackSubmitProgress(container, 0);
+  _feedbackProgressTimer = setInterval(() => {
+    if (_feedbackProgressIdx < FEEDBACK_BACKEND_STEPS.length - 2) {
+      renderFeedbackSubmitProgress(container, _feedbackProgressIdx + 1);
+    }
+  }, 1400);
+}
+
+function finishFeedbackSubmitProgress(container, success) {
+  clearFeedbackProgressTimer();
+  if (!success) return;
+  renderFeedbackSubmitProgress(container, FEEDBACK_BACKEND_STEPS.length - 1);
+  const countdownEl = container?.querySelector('#fb-countdown');
+  if (countdownEl) {
+    countdownEl.textContent = '✓ Reputation recorded on-chain';
+    countdownEl.classList.remove('feedback-progress-active');
   }
 }
 
@@ -2606,7 +2779,11 @@ function startFeedbackAutoSubmit(beforeMetrics, container) {
   const countdownEl = container.querySelector('#fb-countdown');
   const tick = () => {
     if (countdownEl) {
-      countdownEl.textContent = left > 0 ? `Auto-submit in ${left}s — tap stars or edit score` : 'Submitting…';
+      const waitMsg = isSmallPhoneLayout()
+        ? `Auto in ${left}s`
+        : `Auto-submit in ${left}s — tap stars or edit score`;
+      countdownEl.textContent = left > 0 ? waitMsg : '';
+      if (left <= 0) countdownEl.className = 'feedback-countdown feedback-progress-active';
     }
     if (left <= 0) {
       submitBuyerFeedback(beforeMetrics);
@@ -2661,6 +2838,24 @@ function buildReceiptPayload(offer, payResult, walletBefore, walletAfter) {
 }
 
 let _ratingBeforeMetrics = null;
+let _ratingRequestSent = false;
+
+const SELLER_RATE_REQUEST_MSG = 'Please rate us if you have enjoyed our service.';
+
+async function sendSellerRatingRequest() {
+  if (_ratingRequestSent) return;
+  _ratingRequestSent = true;
+  endFlowGroup();
+
+  const rateLabel = isSmallPhoneLayout()
+    ? 'S → B · rate request'
+    : 'seller  →  buyer   |   feedback request';
+  addBubble('feed-seller', 'sent', rateLabel, SELLER_RATE_REQUEST_MSG);
+  await delay(450);
+  addBubble('feed-buyer', 'recv', rateLabel, SELLER_RATE_REQUEST_MSG);
+  softScrollToBubble(lastBubbleWrap('feed-buyer'));
+  setStatus('Seller agent requested your rating — Rate my agent is now available.');
+}
 
 function showRateSellerButton() {
   if (_feedbackSubmitted) return;
@@ -2668,10 +2863,13 @@ function showRateSellerButton() {
   if (!rateBtn) return;
   rateBtn.style.display = '';
   rateBtn.disabled = false;
+  rateBtn.textContent = 'Rate my agent';
   rateBtn.onclick = () => startSellerRating();
   document.getElementById('reset-btn').style.display = 'none';
-  showErc8004SharedWalkthrough('rate');
-  setStatus('ERC-8004 shared walkthrough (center) — step ②: tap Rate seller agent.');
+  prepareErc8004Walkthrough();
+  const wait = document.getElementById('erc8004-placeholder');
+  if (wait) wait.textContent = 'Tap Rate my agent to begin';
+  setStatus('Tap Rate my agent — ERC-8004 steps will appear in the center.');
 }
 
 function hideRatingBar() {
@@ -2709,9 +2907,9 @@ async function startSellerRating() {
   `;
   wireStarPicker(inline, inline.querySelector('#fb-score-input'));
 
-  showErc8004SharedWalkthrough('rate');
+  revealErc8004Step('rate');
   startFeedbackAutoSubmit(_ratingBeforeMetrics, inline);
-  setStatus(ERC8004_STATUS.rate + ' — center column shows shared protocol · 3s to adjust.');
+  setStatus(ERC8004_STATUS.rate + ' · 3s to adjust stars.');
   busy = false;
 }
 
@@ -2727,14 +2925,7 @@ async function submitBuyerFeedback(beforeMetrics) {
   if (!beforeMetrics) beforeMetrics = _ratingBeforeMetrics;
 
   busy = true;
-  setStatus(ERC8004_STATUS.chain);
-
-  const alignBubble = erc8004SharedAlignTarget() || ratingBar;
-  showErc8004SharedWalkthrough('chain');
-  await delay(200);
-  addArrow('right', 'buyer wallet', `${score}/100 · ${stars}★`, alignBubble);
-  await delay(350);
-  addArrow('left', 'giveFeedback()', 'Reputation Registry · Base Sepolia', alignBubble);
+  startFeedbackSubmitProgress(ratingBar);
 
   let result;
   try {
@@ -2752,8 +2943,12 @@ async function submitBuyerFeedback(beforeMetrics) {
     result = await r.json();
     if (!r.ok) throw new Error(result.error || `HTTP ${r.status}`);
   } catch (e) {
+    clearFeedbackProgressTimer();
     addErrBubble('feed-buyer', 'Rating failed: ' + (e.message || e));
-    if (ratingBar?.querySelector('#fb-countdown')) {
+    const countdownEl = ratingBar?.querySelector('#fb-countdown');
+    if (countdownEl) {
+      countdownEl.textContent = 'Failed — adjust stars to retry';
+      countdownEl.classList.remove('feedback-progress-active');
       startFeedbackAutoSubmit(beforeMetrics, ratingBar);
     } else {
       showRateSellerButton();
@@ -2764,15 +2959,11 @@ async function submitBuyerFeedback(beforeMetrics) {
     return;
   }
 
-  await delay(300);
-  advanceErc8004PipelineTo('index');
-  setStatus(ERC8004_STATUS.index + (result.indexerStatus === 'pending' ? ' (syncing…)' : ''));
-  addArrow('right', '8004scan', result.indexerStatus || 'pending', alignBubble);
-  await delay(400);
-  advanceErc8004PipelineTo('profile');
-  setStatus(ERC8004_STATUS.profile);
-  addArrow('left', 'seller ◎', 'stars received', alignBubble);
+  finishFeedbackSubmitProgress(ratingBar, true);
+  const indexNote = result.indexerStatus === 'updated' ? '' : ' (indexer still syncing)';
+  setStatus(ERC8004_STATUS.profile + indexNote);
   markErc8004PipelineComplete();
+  updateErc8004VerifyLinks(result);
   endFlowGroup();
 
   _feedbackSubmitted = true;
@@ -2787,7 +2978,7 @@ async function submitBuyerFeedback(beforeMetrics) {
   if (sellerReceipt) {
     waitForBubbleLayout(sellerReceipt).then(() => alignFlowGroupToBubble('erc8004', erc8004SharedAlignTarget() || sellerReceipt));
   }
-  setStatus('ERC-8004 complete — shared walkthrough done. Buyer ack + seller stars in feeds.');
+  setStatus('ERC-8004 complete — verify links in center column.');
   _feedbackSubmitting = false;
   busy = false;
 }
@@ -3249,17 +3440,35 @@ async function fetchWallet(role, force = false) {
   }
 }
 
-function closeAllWalletPops() {
+function closeWalletPopsOnly() {
   document.querySelectorAll('.wallet-wrap.open').forEach(w => {
     w.classList.remove('open');
     const pop = w.querySelector('.wallet-pop');
     if (pop) pop.style.display = '';
   });
-  document.querySelectorAll('.agent-profile-wrap.open').forEach(w => {
-    w.classList.remove('open');
-    const pop = w.querySelector('.agent-profile-pop');
-    if (pop) pop.style.display = '';
-  });
+}
+
+function closeAgentProfilePop() {
+  const wrap = document.getElementById('agent-profile-wrap-seller');
+  if (!wrap) return;
+  wrap.classList.remove('open');
+  const pop = wrap.querySelector('.agent-profile-pop');
+  if (pop) pop.style.display = '';
+  const btn = wrap.querySelector('.profile-btn');
+  if (btn) btn.classList.remove('is-loading');
+}
+
+function closeAllWalletPops() {
+  closeWalletPopsOnly();
+  if (!_agentProfileLoading) closeAgentProfilePop();
+}
+
+function showProfileLoadingUI(pop) {
+  if (!pop) return;
+  pop.innerHTML = `
+    <div class="wallet-pop-title">Profile</div>
+    <div class="wallet-loading">Loading from on-chain…</div>
+    <div class="profile-loading-detail">Identity Registry · 8004scan indexer · usually a few seconds</div>`;
 }
 
 // ── ERC-8004 agent profile (seller) — GET /agent/erc8004 ─────────────────────
@@ -3593,15 +3802,45 @@ function scheduleProfileRefreshAfterPayment(trust) {
   });
 }
 
+async function prefetchAgentProfile() {
+  if (_agentProfileCache || _agentProfileLoading) return;
+  _agentProfileLoading = true;
+  try {
+    const r = await fetch(SELLER + '/agent/erc8004?t=' + Date.now(), { method: 'GET', cache: 'no-store' });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+    _agentProfileCache = data;
+  } catch (e) {
+    /* first open will retry with visible error */
+  } finally {
+    _agentProfileLoading = false;
+  }
+}
+
 async function fetchAgentProfile(force = false) {
+  const wrap = document.getElementById('agent-profile-wrap-seller');
+  const pop = document.getElementById('agent-profile-pop-seller');
+  const btn = wrap?.querySelector('.profile-btn');
+
   if (_agentProfileCache && !force) {
     renderAgentProfilePop(_agentProfileCache);
+    if (btn) btn.classList.remove('is-loading');
     return;
   }
-  if (_agentProfileLoading && !force) return;
+  if (_agentProfileLoading && !force) {
+    if (wrap?.classList.contains('open')) {
+      showProfileLoadingUI(pop);
+      pinAgentProfilePopover(wrap);
+    }
+    return;
+  }
+
   _agentProfileLoading = true;
-  const pop = document.getElementById('agent-profile-pop-seller');
-  if (pop) pop.innerHTML = '<div class="wallet-loading">Loading profile…</div>';
+  if (btn) btn.classList.add('is-loading');
+  if (wrap?.classList.contains('open')) {
+    showProfileLoadingUI(pop);
+    pinAgentProfilePopover(wrap);
+  }
   try {
     const r = await fetch(SELLER + '/agent/erc8004?t=' + Date.now(), { method: 'GET', cache: 'no-store' });
     const data = await r.json();
@@ -3612,6 +3851,7 @@ async function fetchAgentProfile(force = false) {
     renderAgentProfilePop(null, e.message || 'Failed to load agent identity');
   } finally {
     _agentProfileLoading = false;
+    if (btn) btn.classList.remove('is-loading');
   }
 }
 
@@ -3625,14 +3865,30 @@ function initAgentProfileWidget() {
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
     const wasOpen = wrap.classList.contains('open');
-    closeAllWalletPops();
-    if (wasOpen) {
-      wrap.classList.remove('open');
-      if (pop) pop.style.display = '';
+
+    if (_agentProfileLoading) {
+      closeWalletPopsOnly();
+      wrap.classList.add('open');
+      showProfileLoadingUI(pop);
+      pinAgentProfilePopover(wrap);
       return;
     }
+
+    closeWalletPopsOnly();
+    if (wasOpen) {
+      closeAgentProfilePop();
+      return;
+    }
+
     wrap.classList.add('open');
-    fetchAgentProfile(!!_lastPaymentTrust);
+    pinAgentProfilePopover(wrap);
+    if (_agentProfileCache) {
+      renderAgentProfilePop(_agentProfileCache);
+      if (_lastPaymentTrust) fetchAgentProfile(true);
+    } else {
+      showProfileLoadingUI(pop);
+      fetchAgentProfile(!!_lastPaymentTrust);
+    }
   });
 }
 
@@ -4242,7 +4498,7 @@ const FLOW_GROUP_META = {
   acp:    { badge: 'ACP',    title: 'Agent Client Protocol' },
   x402:   { badge: 'x402',   title: 'Crypto settlement · USDC' },
   stripe: { badge: 'Stripe', title: 'Fiat settlement · Stripe test' },
-  erc8004: { badge: '8004',  title: 'ERC-8004 · Shared walkthrough', subtitle: 'buyer ↔ seller' },
+  erc8004: { badge: '8004',  title: 'Reputation registry' },
 };
 
 const FEEDBACK_COMMENT_SAMPLES = [
@@ -4774,6 +5030,7 @@ protocolVersion: ${result.result.protocolVersion} agreed`);
     addBubble('feed-seller', 'mid', '', 'buyer verified');
     setDot('dot-buyer', 'on');
     setPip(1, 'done');
+    prefetchAgentProfile();
     setStatus(`Handshake done — ${itemCount} items in catalog (build ${DEMO_BUILD}). Click Next to create session.`);
     setBtn('Next: Create Session');
   }
@@ -5302,14 +5559,17 @@ amount: ${usdcDue} USDC`);
 
     addChatWalletBubble('feed-buyer', 'buyer', buyerSnap, buyerPayHint, rcpt.txHash, rcpt.usdcPaid, receiptPayload, payResult);
     addChatWalletBubble('feed-seller', 'seller', sellerSnap, sellerPayHint, rcpt.txHash, rcpt.usdcPaid, receiptPayload, payResult);
-    await delay(400);
-    showRateSellerButton();
 
     setWalletPayHint(buyerPayHint, sellerPayHint);
     await Promise.all(['buyer', 'seller'].map(r => fetchWallet(r, true)));
 
     setPip(4, 'done');
-    setStatus('Payment complete — ERC-8004 walkthrough opens in center. Tap Rate seller agent.');
+    prepareErc8004Walkthrough();
+    setStatus('Receipts on buyer & seller — awaiting seller feedback request…');
+    await delay(600);
+    await sendSellerRatingRequest();
+    await delay(400);
+    showRateSellerButton();
     document.getElementById('next-btn').style.display = 'none';
     busy = false;
     return;
@@ -5360,6 +5620,7 @@ function resetDemo() {
   clearFeedbackAutoTimer();
   hideRatingBar();
   _ratingBeforeMetrics = null;
+  _ratingRequestSent = false;
   document.getElementById('feedback-result-wrap')?.remove();
   document.getElementById('feedback-buyer-ack-wrap')?.remove();
   const btn = document.getElementById('next-btn');
@@ -5369,7 +5630,12 @@ function resetDemo() {
   btn.onclick = nextStep;
   document.getElementById('reset-btn').style.display = 'none';
   const rateBtn = document.getElementById('rate-btn');
-  if (rateBtn) { rateBtn.style.display = 'none'; rateBtn.onclick = null; }
+  if (rateBtn) {
+    rateBtn.style.display = 'none';
+    rateBtn.disabled = true;
+    rateBtn.textContent = 'Rate my agent';
+    rateBtn.onclick = null;
+  }
 }
 </script>
 </body>
