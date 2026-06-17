@@ -27,18 +27,32 @@
     font-family: var(--mono);
     font-size: 13px;
     line-height: 1.6;
-    min-height: 100vh;
+    height: 100%;
     min-height: 100dvh;
-    overflow-x: hidden;
+    overflow: hidden;
   }
   body {
     display: flex;
     flex-direction: column;
+    height: 100dvh;
+    overflow: hidden;
+  }
+  .demo-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     -ms-overflow-style: none;
   }
-  body::-webkit-scrollbar { display: none; }
+  .demo-scroll::-webkit-scrollbar { display: none; }
+  .demo-footer {
+    flex-shrink: 0;
+    background: var(--bg);
+    z-index: 30;
+    box-shadow: 0 -1px 0 var(--border);
+  }
 
   /* HEADER */
   .header {
@@ -368,6 +382,12 @@
     opacity: 0.55;
     cursor: wait;
   }
+  .profile-btn.profile-btn--hint {
+    animation: demo-cta-pulse 1.1s ease-in-out infinite;
+    border-color: #000;
+    color: #000;
+    background: #fff;
+  }
   .profile-loading-detail {
     font-size: 8px;
     color: var(--muted);
@@ -537,8 +557,25 @@
   }
 
   /* BUBBLES */
-  .bwrap { display: flex; flex-direction: column; gap: 2px; opacity: 0; transform: translateY(6px); transition: opacity 0.35s, transform 0.35s; }
-  .bwrap.show  { opacity: 1; transform: translateY(0); }
+  .bwrap {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    opacity: 0;
+    transition:
+      opacity 0.62s cubic-bezier(0.22, 1, 0.36, 1),
+      transform 0.62s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: opacity, transform;
+  }
+  .bwrap.feed-buyer.sent { transform: translateX(-24px); }
+  .bwrap.feed-buyer.recv { transform: translateX(24px); }
+  .bwrap.feed-seller.sent { transform: translateX(24px); }
+  .bwrap.feed-seller.recv { transform: translateX(-24px); }
+  .bwrap.mid { transform: translateY(10px); }
+  .bwrap.show {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
   .bwrap.sent  { align-items: flex-end; }
   .bwrap.recv  { align-items: flex-start; }
   .bwrap.mid   { align-items: center; }
@@ -778,10 +815,11 @@
     background: var(--card);
     padding: 14px 16px;
     opacity: 0;
-    transform: translateY(6px);
-    transition: opacity 0.4s, transform 0.4s;
+    transform: translateX(-20px);
+    transition: opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1), transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
   }
-  .offer-card.show { opacity: 1; transform: translateY(0); }
+  .offer-card.show { opacity: 1; transform: translateX(0); }
+  .offer-card.feed-seller { transform: translateX(20px); }
   .offer-item  { font-size: 10px; color: var(--muted); margin-bottom: 4px; }
   .offer-name  { font-size: 13px; font-weight: 400; color: var(--text); }
   .offer-price { font-size: 28px; font-weight: 300; color: var(--text); letter-spacing: -0.02em; margin: 6px 0 4px; }
@@ -817,10 +855,11 @@
   .offer-grid-wrap {
     padding: 4px 0;
     opacity: 0;
-    transform: translateY(6px);
-    transition: opacity 0.4s, transform 0.4s;
+    transform: translateX(-28px);
+    transition: opacity 0.58s cubic-bezier(0.22, 1, 0.36, 1), transform 0.58s cubic-bezier(0.22, 1, 0.36, 1);
   }
-  .offer-grid-wrap.show { opacity: 1; transform: translateY(0); }
+  .offer-grid-wrap.feed-seller { transform: translateX(28px); }
+  .offer-grid-wrap.show { opacity: 1; transform: translateX(0); }
   .offer-grid-label {
     font-size: 9px;
     color: #aaaaaa;
@@ -844,7 +883,23 @@
     text-align: left;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
+    opacity: 0;
+    transform: translateX(-14px);
   }
+  .offer-grid-wrap.show .offer-mini {
+    opacity: 1;
+    transform: translateX(0);
+    transition:
+      opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+      transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 0.2s,
+      box-shadow 0.2s;
+  }
+  .offer-grid-wrap.show .offer-mini:nth-child(1) { transition-delay: 0.08s; }
+  .offer-grid-wrap.show .offer-mini:nth-child(2) { transition-delay: 0.18s; }
+  .offer-grid-wrap.show .offer-mini:nth-child(3) { transition-delay: 0.28s; }
+  .offer-grid-wrap.feed-seller .offer-mini { transform: translateX(14px); }
+  .offer-grid-wrap.show.feed-seller .offer-mini { transform: translateX(0); }
   .offer-mini:hover:not(.faded) { border-color: rgba(0,0,0,0.3); box-shadow: 0 1px 4px rgba(0,0,0,0.07); }
   .offer-mini.agent-pick {
     border: 2px solid #000;
@@ -929,15 +984,15 @@
     max-width: 100%;
     width: 100%;
   }
-  .arrow-row.to-right { animation: slideRight 0.45s ease forwards; }
-  .arrow-row.to-left  { animation: slideLeft  0.45s ease forwards; }
+  .arrow-row.to-right { animation: slideRight 0.68s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+  .arrow-row.to-left  { animation: slideLeft  0.68s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
   @keyframes slideRight {
-    from { opacity: 0; transform: translateY(-8px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; transform: translateX(-16px); }
+    to   { opacity: 1; transform: translateX(0); }
   }
   @keyframes slideLeft {
-    from { opacity: 0; transform: translateY(-8px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; transform: translateX(16px); }
+    to   { opacity: 1; transform: translateX(0); }
   }
   .arrow-label {
     font-size: 9px;
@@ -1034,14 +1089,42 @@
   /* BOTTOM */
   .bottom {
     border-top: 1px solid var(--border);
-    padding: 18px 40px;
-    padding-bottom: max(18px, env(safe-area-inset-bottom));
+    padding: 14px 40px;
+    padding-bottom: max(14px, env(safe-area-inset-bottom));
     display: flex;
-    align-items: center;
-    gap: 16px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
     flex-shrink: 0;
     z-index: 20;
     background: var(--bg);
+  }
+  .bottom-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+  }
+  .bottom-actions .rating-inline {
+    flex: 1 1 100%;
+    width: 100%;
+    max-width: none;
+  }
+  .bottom-actions .pips {
+    margin-left: auto;
+  }
+  .bottom .btn {
+    align-self: center;
+    flex: 0 0 auto;
+    height: 44px;
+    min-height: 44px;
+    max-height: 44px;
+    padding: 0 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    line-height: 1.2;
   }
   .btn {
     font-family: var(--mono);
@@ -1064,29 +1147,22 @@
   .btn.primary:hover { background: #222; }
   .btn.primary:disabled { background: rgba(0,0,0,0.1); border-color: transparent; color: rgba(0,0,0,0.3); }
   .demo-guide-col {
-    flex: 1;
+    width: 100%;
     min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
   }
   .demo-guide-cta {
-    font-size: 11px;
-    line-height: 1.45;
-    color: var(--text);
-    letter-spacing: 0.01em;
-  }
-  .demo-guide-prefix { color: var(--muted); font-weight: 500; }
-  .demo-guide-action { font-weight: 700; }
-  .demo-guide-arrow { color: var(--muted); margin: 0 0.2em; }
-  .demo-guide-next { color: var(--text); font-weight: 500; }
-  .demo-guide-wait { color: var(--muted); font-style: italic; }
-  .demo-guide-why {
-    font-size: 9px;
+    font-size: 10px;
     line-height: 1.4;
     color: var(--muted);
+    letter-spacing: 0.01em;
   }
-  .status-txt { font-size: 9px; color: var(--muted); line-height: 1.35; }
+  .demo-guide-prefix { display: none; }
+  .demo-guide-action { font-weight: 600; color: var(--text); }
+  .demo-guide-arrow { color: var(--muted); margin: 0 0.25em; }
+  .demo-guide-next { color: var(--muted); font-weight: 400; }
+  .demo-guide-wait { color: var(--muted); font-style: italic; }
+  .demo-guide-why,
+  .status-txt { display: none !important; }
   @keyframes demo-cta-pulse {
     0%, 100% { box-shadow: 0 0 0 2px rgba(0,0,0,0.75), 0 0 0 6px rgba(0,0,0,0.08); }
     50% { box-shadow: 0 0 0 2px rgba(0,0,0,0.35), 0 0 0 10px rgba(0,0,0,0.14); }
@@ -1449,29 +1525,47 @@
     /* Bottom bar */
     .bottom {
       padding: 12px 14px;
-      flex-wrap: wrap;
       gap: 8px;
     }
-    .btn        { font-size: 10px; padding: 10px 18px; min-height: 44px; flex-shrink: 0; }
-    .rating-inline {
-      order: 1;
-      width: 100%;
-      min-width: 0;
-      max-width: none;
-      flex-wrap: wrap;
-      justify-content: center;
+    .bottom-actions { gap: 8px; }
+    .bottom .btn { font-size: 10px; padding: 0 14px; height: 44px; min-height: 44px; max-height: 44px; }
+    .bottom.bottom--rate-panel {
       gap: 8px;
+    }
+    .bottom.bottom--rate-panel .rating-inline {
+      padding: 10px 10px;
+      gap: 10px;
+      --star-gap: clamp(2px, 0.7vw, 4px);
+      --star-hit: clamp(32px, 8.5vw, 38px);
+      --star-size: clamp(16px, calc(var(--star-hit) * 0.5), 19px);
+    }
+    .rating-stars-row { width: 100%; }
+    .rating-meta-row {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+      width: 100%;
+    }
+    .rating-score-line {
+      justify-content: center;
+      width: 100%;
+    }
+    .rating-score-input {
+      width: 72px;
+      min-width: 72px;
+      font-size: 16px;
       padding: 8px 10px;
     }
-    .rating-meta-row { flex-wrap: wrap; gap: 6px; }
-    .rating-score-input { width: 64px; min-width: 64px; font-size: 14px; }
-    .rating-inline .feedback-countdown { width: 100%; text-align: center; flex: none; }
-    .demo-guide-col { width: 100%; order: 3; }
-    .demo-guide-cta { font-size: 10px; }
-    .demo-guide-why { font-size: 8px; }
-    .status-txt { font-size: 8px; }
-    .pips       { order: 2; }
-    .pip        { width: 14px; }
+    .rating-score-suffix { font-size: 11px; }
+    .rating-inline .feedback-countdown {
+      width: 100%;
+      text-align: center;
+      flex: none;
+      font-size: 9px;
+      line-height: 1.4;
+    }
+    .demo-guide-cta { font-size: 9px; }
+    .pip { width: 14px; }
 
     /* Prompt bar — input + cancel side by side, no overlap */
     .prompt-wrap {
@@ -1527,10 +1621,11 @@
   .pay-pick-wrap {
     padding: 4px 0;
     opacity: 0;
-    transform: translateY(6px);
-    transition: opacity 0.4s, transform 0.4s;
+    transform: translateX(-28px);
+    transition: opacity 0.58s cubic-bezier(0.22, 1, 0.36, 1), transform 0.58s cubic-bezier(0.22, 1, 0.36, 1);
   }
-  .pay-pick-wrap.show { opacity: 1; transform: translateY(0); }
+  .pay-pick-wrap.feed-seller { transform: translateX(28px); }
+  .pay-pick-wrap.show { opacity: 1; transform: translateX(0); }
   .pay-pick-label {
     font-size: 9px;
     color: #aaaaaa;
@@ -1548,7 +1643,11 @@
     border-radius: 8px;
     padding: 7px 10px 7px;
     cursor: pointer;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition:
+      opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+      transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 0.2s,
+      box-shadow 0.2s;
     position: relative;
     background: var(--surface);
     text-align: left;
@@ -1557,7 +1656,15 @@
     display: flex;
     align-items: center;
     gap: 6px;
+    opacity: 0;
+    transform: translateX(-12px);
   }
+  .pay-pick-wrap.show .pay-pick-card {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  .pay-pick-wrap.show .pay-pick-card:nth-child(1) { transition-delay: 0.1s; }
+  .pay-pick-wrap.show .pay-pick-card:nth-child(2) { transition-delay: 0.22s; }
   .pay-pick-card:hover:not(.faded) { border-color: rgba(0,0,0,0.3); box-shadow: 0 1px 4px rgba(0,0,0,0.07); }
   .pay-pick-card.agent-pick { border: 2px solid #000; }
   .pay-pick-card.human-pick { border: 2px solid #000; background: var(--card); }
@@ -1735,8 +1842,8 @@
     font-size: 7px;
     color: var(--muted);
     opacity: 0;
-    transform: translateY(4px);
-    transition: opacity 0.25s ease, transform 0.25s ease;
+    transform: translateX(-10px);
+    transition: opacity 0.48s cubic-bezier(0.22, 1, 0.36, 1), transform 0.48s cubic-bezier(0.22, 1, 0.36, 1);
     min-width: 0;
     max-width: 100%;
   }
@@ -1829,12 +1936,16 @@
     align-items: center;
     gap: 6px;
     flex-shrink: 0;
-    min-width: 300px;
+    min-width: 0;
     max-width: 420px;
     padding: 8px 14px;
     border: 1px solid var(--border);
     border-radius: 8px;
     background: var(--surface);
+    box-sizing: border-box;
+    --star-gap: 3px;
+    --star-hit: clamp(30px, 5.5vw, 34px);
+    --star-size: clamp(15px, calc(var(--star-hit) * 0.52), 18px);
   }
   .rating-stars-row {
     display: flex;
@@ -1847,27 +1958,44 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     width: 100%;
   }
-  .star-picker {
+  .rating-score-line {
     display: inline-flex;
-    flex-wrap: nowrap;
-    gap: 2px;
     align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .star-picker {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: center;
+    gap: var(--star-gap);
+    width: min(100%, calc(var(--star-hit) * 5 + var(--star-gap) * 4));
+    margin-inline: auto;
     flex-shrink: 0;
   }
   .star-picker .star-btn {
     border: none;
     background: none;
-    padding: 0 2px;
+    padding: 0;
     line-height: 1;
     cursor: pointer;
-    flex-shrink: 0;
+    flex: 0 0 var(--star-hit);
+    width: var(--star-hit);
+    height: var(--star-hit);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
   .star-glyph {
     display: block;
-    font-size: 22px;
+    font-size: var(--star-size);
     line-height: 1;
     color: #d0d0d0;
   }
@@ -1968,23 +2096,87 @@
   }
   .feedback-submit-btn:disabled { opacity: 0.5; cursor: wait; }
   .feedback-received-stars {
-    font-size: 28px;
-    letter-spacing: 4px;
-    line-height: 1.2;
+    font-size: 15px;
+    letter-spacing: 1px;
+    line-height: 1;
     text-align: center;
-    margin: 2px 0 6px;
+    margin: 0;
     color: #111;
   }
-  .feedback-received-card {
-    text-align: center;
-    padding: 8px 12px;
-    min-width: 120px;
+  .bubble.feedback-received-card {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    padding: 6px 8px;
+    line-height: 1.25;
+    width: fit-content;
+    max-width: min(88%, 200px);
+    white-space: normal;
+  }
+  .feedback-received-head {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    flex-wrap: wrap;
   }
   .feedback-received-label {
-    font-size: 8px;
+    font-size: 7px;
     color: var(--muted);
-    margin-bottom: 4px;
-    letter-spacing: 0.04em;
+    margin: 0;
+    letter-spacing: 0.03em;
+    line-height: 1.2;
+  }
+  .feedback-rank-snapshot {
+    font-size: 7px;
+    line-height: 1.3;
+    color: var(--text);
+    margin: 0;
+    padding: 3px 5px;
+    border-radius: 5px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    text-align: center;
+  }
+  .feedback-rank-pending {
+    color: var(--muted);
+    font-style: italic;
+  }
+  .feedback-check-rank-btn {
+    display: block;
+    width: 100%;
+    margin: 0;
+    padding: 4px 8px;
+    font-family: var(--mono);
+    font-size: 8px;
+    font-weight: 600;
+    border-radius: 5px;
+    border: 1px solid var(--border-hi);
+    background: #111;
+    color: #fff;
+    cursor: pointer;
+    text-align: center;
+    touch-action: manipulation;
+  }
+  .feedback-check-rank-btn:hover { background: #333; }
+  .feedback-verify-links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 2px 6px;
+    margin: 0;
+  }
+  .feedback-received-card .feedback-verify-links a.tx-verify-link {
+    display: inline;
+    margin: 0;
+    font-size: 7px;
+    font-weight: 500;
+    line-height: 1.2;
+  }
+  #check-rank-btn { flex-shrink: 0; }
+  .bottom.bottom--post-feedback .demo-guide-col {
+    width: 100%;
   }
   .feedback-result-meta { font-size: 8px; color: var(--muted); margin-top: 6px; }
 
@@ -2045,8 +2237,13 @@
     .bottom {
       padding: 10px 12px;
       padding-bottom: max(10px, env(safe-area-inset-bottom));
+      gap: 8px;
     }
-    .btn { font-size: 9px; padding: 10px 12px; min-height: 40px; }
+    .btn { font-size: 9px; padding: 9px 14px; min-height: 44px; }
+    .rating-inline { padding: 10px 8px; gap: 8px; }
+    .rating-inline .feedback-countdown { font-size: 8px; }
+    .demo-guide-cta { font-size: 9px; line-height: 1.4; }
+    .demo-guide-why { font-size: 7.5px; }
     .status-txt { font-size: 8px; line-height: 1.4; }
 
     .prompt-input { font-size: 16px; height: 36px; }
@@ -2065,6 +2262,8 @@
 </style>
 </head>
 <body>
+
+<div class="demo-scroll" id="demo-scroll">
 
 <div class="header">
   <div>
@@ -2160,6 +2359,10 @@
 
 </div>
 
+</div>
+
+<div class="demo-footer" id="demo-footer">
+
 <div class="prompt-wrap" id="prompt-wrap">
   <span class="prompt-label" id="prompt-label">prompt</span>
   <div class="prompt-field">
@@ -2174,30 +2377,54 @@
 </div>
 
 <div class="bottom">
-  <button class="btn primary" id="next-btn" onclick="nextStep()">Start</button>
-  <button class="btn primary" id="rate-btn" style="display:none" disabled>Rate my agent</button>
-  <div class="rating-inline" id="rating-inline" style="display:none"></div>
-  <button class="btn" id="reset-btn" onclick="resetDemo()" style="display:none">Reset</button>
+  <div class="bottom-actions">
+    <button class="btn primary" id="next-btn" onclick="nextStep()">Start</button>
+    <button class="btn primary" id="rate-btn" style="display:none" disabled>Rate my agent</button>
+    <div class="rating-inline" id="rating-inline" style="display:none"></div>
+    <button class="btn primary" id="check-rank-btn" style="display:none">Check agent rank</button>
+    <button class="btn" id="reset-btn" onclick="resetDemo()" style="display:none">Reset</button>
+    <div class="pips">
+      <div class="pip" id="pip0"></div>
+      <div class="pip" id="pip1"></div>
+      <div class="pip" id="pip2"></div>
+      <div class="pip" id="pip3"></div>
+      <div class="pip" id="pip4"></div>
+      <div class="pip" id="pip5"></div>
+    </div>
+  </div>
   <div class="demo-guide-col">
     <div class="demo-guide-cta" id="demo-guide-cta"></div>
-    <div class="demo-guide-why" id="demo-guide-why"></div>
-    <div class="status-txt" id="status-txt"></div>
+    <div class="demo-guide-why" id="demo-guide-why" hidden></div>
+    <div class="status-txt" id="status-txt" hidden></div>
   </div>
-  <div class="pips">
-    <div class="pip" id="pip0"></div>
-    <div class="pip" id="pip1"></div>
-    <div class="pip" id="pip2"></div>
-    <div class="pip" id="pip3"></div>
-    <div class="pip" id="pip4"></div>
-    <div class="pip" id="pip5"></div>
-  </div>
+</div>
+
 </div>
 
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script>
-const delay = ms => new Promise(r => setTimeout(r, ms));
-const DEMO_BUILD = '2026-06-08c';
+const DEMO_PACE = 1.2;
+const BUBBLE_REVEAL_MS = 80;
+const delay = ms => new Promise(r => setTimeout(r, Math.round(ms * DEMO_PACE)));
+const DEMO_BUILD = '2026-06-08k';
+
+function feedAgentClass(feedId) {
+  if (feedId === 'feed-buyer') return 'feed-buyer';
+  if (feedId === 'feed-seller') return 'feed-seller';
+  return '';
+}
+
+function revealEl(el, className = 'show') {
+  if (!el) return;
+  setTimeout(() => {
+    requestAnimationFrame(() => el.classList.add(className));
+  }, BUBBLE_REVEAL_MS);
+}
+
+function getDemoScrollEl() {
+  return document.getElementById('demo-scroll');
+}
 
 function isMobileLayout() {
   return window.matchMedia('(max-width: 680px)').matches;
@@ -2239,31 +2466,147 @@ function setDemoGuide(opts = {}) {
     if (waiting) {
       ctaEl.innerHTML = `<span class="demo-guide-wait">${escHtml(why || 'Working…')}</span>`
         + (next ? ` <span class="demo-guide-arrow">→</span> <span class="demo-guide-next">${escHtml(next)}</span>` : '');
+    } else if (next) {
+      ctaEl.innerHTML = `<span class="demo-guide-next">${escHtml(next)}</span>`;
     } else if (action) {
-      ctaEl.innerHTML = `<span class="demo-guide-prefix">Click to</span> `
-        + `<strong class="demo-guide-action">${escHtml(action)}</strong>`
-        + ` <span class="demo-guide-arrow">→</span> `
-        + `<span class="demo-guide-next">${escHtml(next || '')}</span>`;
+      ctaEl.innerHTML = `<span class="demo-guide-action">${escHtml(action)}</span>`;
     } else {
       ctaEl.innerHTML = '';
     }
   }
-  if (whyEl) whyEl.textContent = waiting ? '' : (why || '');
+  if (whyEl) whyEl.textContent = '';
 }
 
 function setWorking(why, next) {
   setDemoGuide({ waiting: true, why, next, highlight: false });
-  setStatus(why + (next ? ' — ' + next : ''));
+}
+
+function checkRankLabel() {
+  return isMobileLayout() ? 'Check rank' : 'Check agent rank';
+}
+
+function checkRankWhyGuide() {
+  if (isMobileLayout()) {
+    return 'ERC-8004 stored your rating on-chain — seller reputation and rank went up, improving discoverability';
+  }
+  return 'ERC-8004 stores your rating on-chain — the seller agent\'s reputation and rank increased, helping buyers discover trustworthy agents';
+}
+
+function profileRankViewGuide() {
+  if (isMobileLayout()) {
+    return 'Rank shows on-chain ERC-8004 reputation from your feedback · Reset to replay';
+  }
+  return 'Rank tab shows how your ERC-8004 feedback built on-chain reputation — higher rank means better discoverability · Reset to replay';
+}
+
+function buildFeedbackRankSnapshotHtml(result) {
+  const after = result?.rankingAfter || {};
+  const delta = result?.rankingDelta || {};
+  const pending = result?.indexerStatus === 'pending';
+  const parts = [];
+  if (after.healthScore != null) {
+    const d = delta.healthScore;
+    parts.push(`Health ${after.healthScore}${d && d !== '0' ? ` (${d})` : ''}`);
+  }
+  if (after.activity != null) {
+    const d = delta.activity;
+    parts.push(`Activity ${after.activity}${d && d !== '0' ? ` (${d})` : ''}`);
+  }
+  if (after.feedbackCount != null) {
+    const d = delta.feedbackCount;
+    parts.push(`Feedbacks ${after.feedbackCount}${d && d !== '0' ? ` (${d})` : ''}`);
+  }
+  if (!parts.length) return '';
+  const pendingNote = pending ? '<span class="feedback-rank-pending">syncing · </span>' : '';
+  return `<div class="feedback-rank-snapshot">${pendingNote}${escHtml(parts.join(' · '))}</div>`;
+}
+
+async function openAgentProfileTab(tabId = 'ranking', opts = {}) {
+  const wrap = document.getElementById('agent-profile-wrap-seller');
+  const pop = document.getElementById('agent-profile-pop-seller');
+  const profileBtn = wrap?.querySelector('.profile-btn');
+  if (!wrap || !pop) return;
+
+  clearDemoGuideHighlight();
+  profileBtn?.classList.remove('profile-btn--hint');
+
+  _profileActiveTab = tabId;
+  closeWalletPopsOnly();
+  wrap.classList.add('open');
+  pinAgentProfilePopover(wrap);
+
+  if (_agentProfileCache && opts.forceRefresh === false) {
+    renderAgentProfilePop(_agentProfileCache);
+  } else {
+    showProfileLoadingUI(pop);
+    pinAgentProfilePopover(wrap);
+    await fetchAgentProfile(true);
+  }
+  pinAgentProfilePopover(wrap);
+
+  const tabLabel = tabId === 'ranking' ? 'Rank' : (tabId === 'feedback' ? 'Feedback' : tabId);
+  const resetBtn = document.getElementById('reset-btn');
+  setDemoGuide({
+    target: resetBtn,
+    next: profileRankViewGuide(),
+  });
+  softScrollToBubble(document.getElementById('agent-profile-wrap-seller')?.closest('.panel-head'));
+}
+
+function showPostFeedbackActions(result) {
+  setBottomRatingLayout(null);
+  const bottom = document.querySelector('.bottom');
+  bottom?.classList.add('bottom--post-feedback');
+
+  const checkBtn = document.getElementById('check-rank-btn');
+  const resetBtn = document.getElementById('reset-btn');
+  const profileBtn = document.querySelector('#agent-profile-wrap-seller .profile-btn');
+
+  if (checkBtn) {
+    checkBtn.style.display = '';
+    checkBtn.textContent = checkRankLabel();
+    checkBtn.onclick = () => openAgentProfileTab('ranking');
+  }
+  if (resetBtn) resetBtn.style.display = '';
+  profileBtn?.classList.add('profile-btn--hint');
+
+  setDemoGuide({
+    targets: [checkBtn, profileBtn].filter(Boolean),
+    next: checkRankWhyGuide(),
+  });
+}
+
+function rateCtaLabel() {
+  return isMobileLayout() ? 'Rate agent' : 'Rate my agent';
+}
+
+function setBottomRatingLayout(mode) {
+  const bottom = document.querySelector('.bottom');
+  if (!bottom) return;
+  bottom.classList.remove('bottom--rate-cta', 'bottom--rate-panel');
+  if (mode === 'cta') bottom.classList.add('bottom--rate-cta');
+  if (mode === 'panel') bottom.classList.add('bottom--rate-panel');
+}
+
+function syncRateBtnLabel() {
+  const rateBtn = document.getElementById('rate-btn');
+  if (!rateBtn || rateBtn.style.display === 'none') return;
+  rateBtn.textContent = rateCtaLabel();
 }
 
 function guideForStart() {
+  setBottomRatingLayout(null);
+  document.querySelector('.bottom')?.classList.remove('bottom--post-feedback');
+  document.querySelector('#agent-profile-wrap-seller .profile-btn')?.classList.remove('profile-btn--hint');
+  const checkBtn = document.getElementById('check-rank-btn');
+  if (checkBtn) {
+    checkBtn.style.display = 'none';
+    checkBtn.onclick = null;
+  }
   setDemoGuide({
     target: document.getElementById('next-btn'),
-    action: 'Start',
-    why: 'Begin the guided walkthrough of ACP, payment, and ERC-8004 reputation',
-    next: 'Both agents boot online on the seller server',
+    next: 'Boot buyer and seller agents',
   });
-  setStatus('Ready — follow the blinking control at each step');
 }
 
 function shortArrowSublabel(sublabel) {
@@ -2324,15 +2667,29 @@ function shortProtocolLabel(label) {
   return s;
 }
 
-/** Scroll so the active chat bubble stays in view (does not jump to center labels). */
+/** Scroll so the active chat bubble stays in view inside the conversation pane. */
 function softScrollToBubble(bubbleWrap) {
   if (!bubbleWrap) return;
   requestAnimationFrame(() => {
-    const r = bubbleWrap.getBoundingClientRect();
-    const vh = window.innerHeight;
-    if (r.top < 120 || r.bottom > vh - 100) {
-      window.scrollTo({
-        top: window.scrollY + r.top - vh * 0.32,
+    const scroller = getDemoScrollEl();
+    const bubbleRect = bubbleWrap.getBoundingClientRect();
+    if (!scroller) {
+      const vh = window.innerHeight;
+      if (bubbleRect.top < 120 || bubbleRect.bottom > vh - 100) {
+        window.scrollTo({
+          top: window.scrollY + bubbleRect.top - vh * 0.32,
+          behavior: 'smooth',
+        });
+      }
+      return;
+    }
+    const scrollRect = scroller.getBoundingClientRect();
+    const padTop = 72;
+    const padBottom = 20;
+    if (bubbleRect.top < scrollRect.top + padTop || bubbleRect.bottom > scrollRect.bottom - padBottom) {
+      const relTop = bubbleRect.top - scrollRect.top + scroller.scrollTop;
+      scroller.scrollTo({
+        top: Math.max(0, relTop - scroller.clientHeight * 0.28),
         behavior: 'smooth',
       });
     }
@@ -2437,6 +2794,11 @@ function alignFlowGroupToBubble(flowKind, bubbleWrap) {
 
 function scrollToLatest() {
   requestAnimationFrame(() => {
+    const scroller = getDemoScrollEl();
+    if (scroller) {
+      scroller.scrollTo({ top: scroller.scrollHeight, behavior: 'smooth' });
+      return;
+    }
     window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' });
   });
 }
@@ -2718,7 +3080,7 @@ function revealErc8004Step(stepId) {
     row.dataset.stepId = stepId;
     row.innerHTML = `<span class="proto-dot"></span><span>${escHtml(erc8004StepDisplayLabel(step))}<span class="proto-rule">${escHtml(step.rule)}</span></span>`;
     pipe.appendChild(row);
-    requestAnimationFrame(() => requestAnimationFrame(() => row.classList.add('revealed')));
+    revealEl(row, 'revealed');
   }
   const activeIdx = order.indexOf(stepId);
   pipe.querySelectorAll('.proto-step').forEach(el => {
@@ -2990,19 +3352,17 @@ function showRateSellerButton() {
   if (!rateBtn) return;
   rateBtn.style.display = '';
   rateBtn.disabled = false;
-  rateBtn.textContent = 'Rate my agent';
+  rateBtn.textContent = rateCtaLabel();
   rateBtn.onclick = () => startSellerRating();
   document.getElementById('reset-btn').style.display = 'none';
+  setBottomRatingLayout('cta');
   prepareErc8004Walkthrough();
   const wait = document.getElementById('erc8004-placeholder');
-  if (wait) wait.textContent = 'Tap Rate my agent to begin';
+  if (wait) wait.textContent = isMobileLayout() ? 'Tap Rate agent below' : 'Tap Rate my agent to begin';
   setDemoGuide({
     target: rateBtn,
-    action: 'Rate my agent',
-    why: 'Seller requested ERC-8004 on-chain feedback after payment',
-    next: 'Buyer signs giveFeedback() — watch the center reputation pipeline',
+    next: 'Submit ERC-8004 feedback on-chain',
   });
-  setStatus('Seller requested a rating — tap the blinking button below');
 }
 
 function hideRatingBar() {
@@ -3010,6 +3370,7 @@ function hideRatingBar() {
   const rateBtn = document.getElementById('rate-btn');
   if (inline) { inline.style.display = 'none'; inline.innerHTML = ''; }
   if (rateBtn) rateBtn.style.display = 'none';
+  setBottomRatingLayout(null);
 }
 
 async function startSellerRating() {
@@ -3031,11 +3392,14 @@ async function startSellerRating() {
 
   if (rateBtn) rateBtn.style.display = 'none';
   inline.style.display = 'flex';
+  setBottomRatingLayout('panel');
   inline.innerHTML = `
     ${buildStarPickerHtml()}
     <div class="rating-meta-row">
-      <input type="number" class="rating-score-input" id="fb-score-input" min="0" max="100" value="${score}" aria-label="Score out of 100" />
-      <span class="rating-score-suffix">/ 100</span>
+      <div class="rating-score-line">
+        <input type="number" class="rating-score-input" id="fb-score-input" min="0" max="100" value="${score}" aria-label="Score out of 100" />
+        <span class="rating-score-suffix">/ 100</span>
+      </div>
       <div class="feedback-countdown" id="fb-countdown">Auto-submit in ${FEEDBACK_AUTO_SEC}s</div>
     </div>
   `;
@@ -3045,9 +3409,7 @@ async function startSellerRating() {
   startFeedbackAutoSubmit(_ratingBeforeMetrics, inline);
   setDemoGuide({
     target: inline,
-    action: 'adjust stars — or wait 3s to auto-submit',
-    why: 'Buyer agent posts reputation to the ERC-8004 registry on Base Sepolia',
-    next: 'Center column shows sign → broadcast → 8004scan rank update',
+    next: 'Adjust stars or wait 3s to auto-submit',
   });
   setStatus(ERC8004_STATUS.rate + ' · 3s to adjust stars.');
   busy = false;
@@ -3111,13 +3473,7 @@ async function submitBuyerFeedback(beforeMetrics) {
   scheduleProfileRefreshAfterPayment(result);
 
   hideRatingBar();
-  document.getElementById('reset-btn').style.display = '';
-  setDemoGuide({
-    target: document.getElementById('reset-btn'),
-    action: 'Reset',
-    why: 'Demo complete — replay handshake, payment, and reputation from scratch',
-    next: 'Fresh session with the same scripted buyer agent flow',
-  });
+  showPostFeedbackActions(result);
 
   appendFeedbackToPaymentReceipts(result);
   addBuyerFeedbackAck(result, score);
@@ -3125,7 +3481,7 @@ async function submitBuyerFeedback(beforeMetrics) {
   if (sellerReceipt) {
     waitForBubbleLayout(sellerReceipt).then(() => alignFlowGroupToBubble('erc8004', erc8004SharedAlignTarget() || sellerReceipt));
   }
-  setStatus('ERC-8004 complete — verify links in center column, or Reset to replay.');
+  setStatus('ERC-8004 feedback on-chain — check rank to see how reputation and discoverability changed.');
   _feedbackSubmitting = false;
   busy = false;
 }
@@ -3134,7 +3490,7 @@ function addBuyerFeedbackAck(result, score) {
   const starStr = scoreToStarLabel(score);
   const feed = document.getElementById('feed-buyer');
   const wrap = document.createElement('div');
-  wrap.className = 'bwrap recv';
+  wrap.className = 'bwrap recv feed-buyer';
   wrap.id = 'feedback-buyer-ack-wrap';
   const lb = document.createElement('div');
   lb.className = 'blabel';
@@ -3143,28 +3499,40 @@ function addBuyerFeedbackAck(result, score) {
   const b = document.createElement('div');
   b.className = 'bubble inc feedback-received-card';
   b.innerHTML = `
-    <div class="feedback-received-label">Submitted on-chain ✓</div>
-    <div class="feedback-received-stars">${starStr}</div>
+    <div class="feedback-received-head">
+      <div class="feedback-received-label">Submitted on-chain ✓</div>
+      <div class="feedback-received-stars">${starStr}</div>
+    </div>
+    ${buildFeedbackRankSnapshotHtml(result)}
+    <button type="button" class="feedback-check-rank-btn">${escHtml(checkRankLabel())} →</button>
   `;
   appendFeedbackVerifyLinks(b, result, { buyerLabels: true });
+  b.querySelector('.feedback-check-rank-btn')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openAgentProfileTab('ranking');
+  });
   b.addEventListener('click', onWalletExplorerClick);
   wrap.appendChild(b);
   feed.appendChild(wrap);
-  requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.add('show')));
+  revealEl(wrap);
+  softScrollToBubble(wrap);
 }
 
 function appendFeedbackVerifyLinks(containerEl, result, { buyerLabels = false } = {}) {
   const txUrl = result.feedbackTxHash
     ? (result.feedbackExplorer || explorerTxUrl({ txHash: result.feedbackTxHash }))
     : null;
+  const compact = containerEl.classList?.contains('feedback-received-card');
+  const row = compact ? document.createElement('div') : containerEl;
+  if (compact) row.className = 'feedback-verify-links';
   if (txUrl) {
     const a = document.createElement('a');
     a.className = 'tx-verify-link';
     a.href = txUrl;
     a.target = '_blank';
     a.rel = 'noopener noreferrer';
-    a.textContent = buyerLabels ? 'Verify your feedback tx' : 'Verify feedback tx';
-    containerEl.appendChild(a);
+    a.textContent = buyerLabels ? 'Verify tx' : 'Verify feedback tx';
+    row.appendChild(a);
   }
   if (result.scan8004Url) {
     const a = document.createElement('a');
@@ -3172,9 +3540,10 @@ function appendFeedbackVerifyLinks(containerEl, result, { buyerLabels = false } 
     a.href = result.scan8004Url;
     a.target = '_blank';
     a.rel = 'noopener noreferrer';
-    a.textContent = 'Verify on 8004scan';
-    containerEl.appendChild(a);
+    a.textContent = '8004scan';
+    row.appendChild(a);
   }
+  if (compact && row.childElementCount) containerEl.appendChild(row);
 }
 
 function appendFeedbackToPaymentReceipts(result) {
@@ -3200,7 +3569,7 @@ function addFeedbackResultBubble(result, _beforeMetrics, _stars, score) {
   const starStr = scoreToStarLabel(score);
   const feed = document.getElementById('feed-seller');
   const wrap = document.createElement('div');
-  wrap.className = 'bwrap recv';
+  wrap.className = 'bwrap recv feed-seller';
   wrap.id = 'feedback-result-wrap';
   const lb = document.createElement('div');
   lb.className = 'blabel';
@@ -3209,14 +3578,16 @@ function addFeedbackResultBubble(result, _beforeMetrics, _stars, score) {
   const b = document.createElement('div');
   b.className = 'bubble inc feedback-received-card';
   b.innerHTML = `
-    <div class="feedback-received-label">Stars received from buyer</div>
-    <div class="feedback-received-stars">${starStr}</div>
+    <div class="feedback-received-head">
+      <div class="feedback-received-label">Stars received from buyer</div>
+      <div class="feedback-received-stars">${starStr}</div>
+    </div>
   `;
   appendFeedbackVerifyLinks(b, result);
   b.addEventListener('click', onWalletExplorerClick);
   wrap.appendChild(b);
   feed.appendChild(wrap);
-  requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.add('show')));
+  revealEl(wrap);
   softScrollToBubble(wrap);
   return wrap;
 }
@@ -3274,7 +3645,7 @@ async function downloadReceiptPdf(payload, payResult) {
 function addRichBubble(feedId, side, label, fillBubble) {
   const feed = document.getElementById(feedId);
   const wrap = document.createElement('div');
-  wrap.className = 'bwrap ' + side;
+  wrap.className = 'bwrap ' + side + ' ' + feedAgentClass(feedId);
   if (label) {
     const lb = document.createElement('div');
     lb.className = 'blabel';
@@ -3287,7 +3658,7 @@ function addRichBubble(feedId, side, label, fillBubble) {
   fillBubble(b);
   wrap.appendChild(b);
   feed.appendChild(wrap);
-  requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.add('show')));
+  revealEl(wrap);
   scrollToLatest();
 }
 
@@ -3455,7 +3826,7 @@ function addChatWalletBubble(feedId, role, data, payHint, paymentTxHash, usdcPai
     : `This payment: paid −${paidAmt} USDC`;
   const feed = document.getElementById(feedId);
   const wrap = document.createElement('div');
-  wrap.className = 'bwrap ' + side + ' chat-wallet-bwrap';
+  wrap.className = 'bwrap ' + side + ' chat-wallet-bwrap ' + feedAgentClass(feedId);
   wrap.dataset.paymentReceipt = '1';
   const lb = document.createElement('div');
   lb.className = 'blabel';
@@ -3480,7 +3851,7 @@ function addChatWalletBubble(feedId, role, data, payHint, paymentTxHash, usdcPai
   b.appendChild(card);
   wrap.appendChild(b);
   feed.appendChild(wrap);
-  requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.add('show')));
+  revealEl(wrap);
   softScrollToBubble(wrap);
   return wrap;
 }
@@ -4018,8 +4389,9 @@ function initAgentProfileWidget() {
   if (pop) pop.addEventListener('click', onWalletExplorerClick);
   const btn = wrap.querySelector('.profile-btn');
   if (!btn) return;
-  btn.addEventListener('click', (e) => {
+  btn.addEventListener('click', async (e) => {
     e.stopPropagation();
+    btn.classList.remove('profile-btn--hint');
     const wasOpen = wrap.classList.contains('open');
 
     if (_agentProfileLoading) {
@@ -4033,6 +4405,11 @@ function initAgentProfileWidget() {
     closeWalletPopsOnly();
     if (wasOpen) {
       closeAgentProfilePop();
+      return;
+    }
+
+    if (_feedbackSubmitted && _lastPaymentTrust) {
+      await openAgentProfileTab('ranking');
       return;
     }
 
@@ -4087,6 +4464,11 @@ document.addEventListener('DOMContentLoaded', () => {
   initWalletWidgets();
   initAgentProfileWidget();
   guideForStart();
+  window.addEventListener('resize', () => {
+    syncRateBtnLabel();
+    const checkBtn = document.getElementById('check-rank-btn');
+    if (checkBtn && checkBtn.style.display !== 'none') checkBtn.textContent = checkRankLabel();
+  });
 });
 
 // ── Fiat wallet (Stripe test mode) ───────────────────────────────────────────
@@ -4232,7 +4614,7 @@ function addPaymentPicker(feedId) {
   return new Promise(resolve => {
     const feed = document.getElementById(feedId);
     const wrap = document.createElement('div');
-    wrap.className = 'pay-pick-wrap';
+    wrap.className = 'pay-pick-wrap ' + feedAgentClass(feedId);
 
     const lbl = document.createElement('div');
     lbl.className = 'pay-pick-label';
@@ -4281,14 +4663,12 @@ function addPaymentPicker(feedId) {
 
     wrap.appendChild(grid);
     feed.appendChild(wrap);
-    requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.add('show')));
+    revealEl(wrap);
     scrollToLatest();
-    setDemoGuide({
-      selector: '.pay-pick-card',
-      action: 'pick Fiat or Crypto — or wait for the agent',
-      why: 'Agent defaults to Crypto (x402 USDC) unless you override',
-      next: 'Payment executes and wallet receipts appear in both chats',
-    });
+  setDemoGuide({
+    selector: '.pay-pick-card',
+    next: 'Tap Fiat or Crypto — agent picks Crypto in 4s',
+  });
 
     const pill       = document.getElementById('countdown-pill');
     const promptWrap = document.getElementById('prompt-wrap');
@@ -4334,7 +4714,7 @@ function addFiatReceiptBubble(feedId, rcpt, offer, receiptPayload) {
   const side     = isSeller ? 'sent' : 'recv';
   const feed     = document.getElementById(feedId);
   const wrap     = document.createElement('div');
-  wrap.className = 'bwrap ' + side + ' chat-wallet-bwrap';
+  wrap.className = 'bwrap ' + side + ' chat-wallet-bwrap ' + feedAgentClass(feedId);
   wrap.dataset.paymentReceipt = '1';
 
   const lb = document.createElement('div');
@@ -4433,7 +4813,7 @@ function addFiatReceiptBubble(feedId, rcpt, offer, receiptPayload) {
   b.appendChild(card);
   wrap.appendChild(b);
   feed.appendChild(wrap);
-  requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.add('show')));
+  revealEl(wrap);
   softScrollToBubble(wrap);
   return wrap;
 }
@@ -4529,7 +4909,7 @@ let activePromptController = null;
 function addBubble(feedId, side, label, text, extraClass = '') {
   const feed = document.getElementById(feedId);
   const wrap = document.createElement('div');
-  wrap.className = 'bwrap ' + side;
+  wrap.className = 'bwrap ' + side + ' ' + feedAgentClass(feedId);
   if (label) {
     const lb = document.createElement('div');
     lb.className = 'blabel';
@@ -4542,7 +4922,7 @@ function addBubble(feedId, side, label, text, extraClass = '') {
   b.textContent = text;
   wrap.appendChild(b);
   feed.appendChild(wrap);
-  requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.add('show')));
+  revealEl(wrap);
   return wrap;
 }
 
@@ -4581,7 +4961,7 @@ function getCommerceCategories(commerce) {
 function addCapsBubble(feedId, info, canLoad, sessCaps, itemCount, categories, isSeller = false, commerce = {}, payment = {}) {
   const feed = document.getElementById(feedId);
   const wrap = document.createElement('div');
-  wrap.className = 'bwrap ' + (isSeller ? 'sent' : 'recv');
+  wrap.className = 'bwrap ' + (isSeller ? 'sent' : 'recv') + ' ' + feedAgentClass(feedId);
 
   const lb = document.createElement('div');
   lb.className = 'blabel';
@@ -4611,7 +4991,7 @@ payment methods: ${[x402On && 'x402 USDC · Base Sepolia', stripeDetail].filter(
   b.innerHTML = `<span class="caps-summary">${summary}</span><span class="caps-toggle" onclick="this.parentNode.querySelector('.caps-detail').classList.toggle('open');this.textContent=this.textContent.includes('▾')?'▸ show details':'▾ hide details'"> ▾ show details</span><div class="caps-detail">${detail}</div>`;
   wrap.appendChild(b);
   feed.appendChild(wrap);
-  requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.add('show')));
+  revealEl(wrap);
   scrollToLatest();
 }
 
@@ -4624,7 +5004,7 @@ function addErrBubble(feedId, text) {
   b.textContent = text;
   wrap.appendChild(b);
   feed.appendChild(wrap);
-  requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.add('show')));
+  revealEl(wrap);
   scrollToLatest();
 }
 
@@ -4636,7 +5016,7 @@ const ITEM_IMAGES = {
 function addOfferCard(feedId, offer) {
   const feed     = document.getElementById(feedId);
   const card     = document.createElement('div');
-  card.className = 'offer-card';
+  card.className = 'offer-card ' + feedAgentClass(feedId);
   // item id can be in offer.item or offer.id depending on caller
   const itemId   = offer.item || offer.id || '';
   const imgSrc   = ITEM_IMAGES[itemId];
@@ -4656,7 +5036,7 @@ function addOfferCard(feedId, offer) {
     </div>
   `;
   feed.appendChild(card);
-  requestAnimationFrame(() => requestAnimationFrame(() => card.classList.add('show')));
+  revealEl(card);
   scrollToLatest();
 }
 
@@ -4760,11 +5140,8 @@ function setBtn(text, guide) {
   b.disabled = false;
   b.style.display = '';
   if (guide === false) return;
-  const action = (guide && guide.action) || text;
   setDemoGuide({
     target: b,
-    action,
-    why: guide?.why || '',
     next: guide?.next || '',
   });
 }
@@ -4782,11 +5159,8 @@ function setHumanInControl(statusMsg) {
   pill.textContent = statusMsg || 'you are in control — Enter or Send';
   setDemoGuide({
     targets: [document.getElementById('next-btn'), field],
-    action: 'Send Now — or edit the prompt first',
-    why: 'You took control from the buyer agent',
-    next: 'Seller receives your text and returns shoe offers',
+    next: 'Edit prompt if needed, then Send Now',
   });
-  setStatus(statusMsg || 'Edit the prompt, then press Enter or Send');
   setBtn('Send Now', false);
   document.getElementById('next-btn').onclick = nextStep;
   input.focus();
@@ -4948,7 +5322,7 @@ function formatOfferLine(o, budget, marker) {
 function addOfferGrid(feedId, offers, agentIdx, budget) {
   const feed = document.getElementById(feedId);
   const wrap = document.createElement('div');
-  wrap.className = 'offer-grid-wrap';
+  wrap.className = 'offer-grid-wrap ' + feedAgentClass(feedId);
 
   const lbl = document.createElement('div');
   lbl.className = 'offer-grid-label';
@@ -4979,7 +5353,7 @@ function addOfferGrid(feedId, offers, agentIdx, budget) {
 
   wrap.appendChild(grid);
   feed.appendChild(wrap);
-  requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.add('show')));
+  revealEl(wrap);
   scrollToLatest();
   return grid;
 }
@@ -5029,9 +5403,7 @@ offers.map((o, i) => {
   addOfferGrid('feed-buyer', offers, pick.index, budget);
   setDemoGuide({
     selector: '.offer-mini',
-    action: 'pick a shoe card — or wait for the agent',
-    why: `Agent recommends option ${pick.index + 1} based on intent match and budget`,
-    next: 'Confirm selection, then choose Fiat or Crypto payment',
+    next: `Tap a shoe or wait — agent picks option ${pick.index + 1}`,
   });
   await delay(600);
 
@@ -5111,10 +5483,7 @@ offers.map((o, i) => {
   setDot('dot-buyer', 'on');
   setPip(3, 'done');
   setStatus(`Offer selected — $${chosenOffer.price.toFixed(2)} USD ready for payment.`);
-  setBtn('Next: Payment', {
-    why: 'Lock in the chosen catalog offer before settlement',
-    next: 'Pick Fiat (Stripe test card) or Crypto (x402 USDC on Base Sepolia)',
-  });
+  setBtn('Next: Payment', { next: 'Choose Fiat (Stripe) or Crypto (USDC)' });
   step++;
   busy = false;
 }
@@ -5144,10 +5513,7 @@ async function nextStep() {
     setDot('dot-buyer', 'on');
     setDot('dot-seller', 'on');
     setStatus('Agents online — proceed to ACP handshake');
-    setBtn('Next: Handshake', {
-      why: 'ACP initialize negotiates protocol version and seller capabilities',
-      next: 'See catalog size, session methods, and payment options',
-    });
+    setBtn('Next: Handshake', { next: 'Seller shares catalog & payment options' });
   }
 
   // ── STEP 1 — Initialize / Handshake ───────────────────────────────────────
@@ -5188,20 +5554,14 @@ preferredCurrencies: USD/USDC`);
       setStatus(`Connection failed — ${new URL(SELLER).host}`);
       setDot('dot-buyer', '');
       busy = false;
-      setBtn('Retry', {
-        why: 'Seller server was unreachable during initialize',
-        next: 'Retry the ACP handshake from this step',
-      });
+      setBtn('Retry', { next: 'Retry ACP handshake' });
       return;
     }
 
     if (result.error) {
       addErrBubble('feed-seller', 'Error: ' + result.error.message);
       busy = false;
-      setBtn('Retry', {
-        why: 'Seller rejected the initialize request',
-        next: 'Retry handshake after checking server logs',
-      });
+      setBtn('Retry', { next: 'Retry ACP handshake' });
       return;
     }
 
@@ -5235,10 +5595,7 @@ protocolVersion: ${result.result.protocolVersion} agreed`);
     setPip(1, 'done');
     prefetchAgentProfile();
     setStatus(`Handshake done — ${itemCount} items in catalog (build ${DEMO_BUILD}).`);
-    setBtn('Next: Create Session', {
-      why: 'session/new allocates shared state for this buyer–seller dialogue',
-      next: 'Buyer agent sends a natural-language shopping intent',
-    });
+    setBtn('Next: Create Session', { next: 'Buyer agent sends shopping intent' });
   }
 
   // ── STEP 2 — Session / New ─────────────────────────────────────────────────
@@ -5306,12 +5663,9 @@ stored — will be sent with all requests`);
     showPrompt(BUYER_PROFILE.initialIntent, 'buyer agent intent', true);
     setDemoGuide({
       targets: [document.getElementById('next-btn'), document.querySelector('.prompt-field')],
-      action: 'Send Now — or tap the prompt to edit first',
-      why: 'Buyer agent auto-sends its shoe search in 5 seconds',
-      next: 'Seller parses intent and returns matching catalog offers',
+      next: 'Auto-sends in 5s — tap prompt to edit first',
     });
     setBtn('Send Now', false);
-    setStatus('Buyer agent sending in 5s — blinked controls are yours to override');
 
     step++;
     busy = false;
@@ -5426,12 +5780,9 @@ res1.agentMessage);
       showPrompt(agentBudgetReply, 'buyer agent reply (auto)', true);
       setDemoGuide({
         targets: [document.getElementById('next-btn'), document.querySelector('.prompt-field')],
-        action: 'Send Reply Now — or edit the budget line',
-        why: 'Seller needs a dollar budget before searching the catalog',
-        next: 'Matching shoe offers appear in the buyer chat',
+        next: 'Auto-replies with budget in 5s',
       });
       setBtn('Send Reply Now', false);
-      setStatus('Buyer agent responding with budget in 5s — blinked controls override the agent');
       setDot('dot-buyer', 'on');
 
       // Wait for countdown (or human override via button / Enter key)
@@ -5856,6 +6207,13 @@ function resetDemo() {
   btn.disabled = false;
   btn.onclick = nextStep;
   document.getElementById('reset-btn').style.display = 'none';
+  document.querySelector('.bottom')?.classList.remove('bottom--post-feedback');
+  document.querySelector('#agent-profile-wrap-seller .profile-btn')?.classList.remove('profile-btn--hint');
+  const checkBtn = document.getElementById('check-rank-btn');
+  if (checkBtn) {
+    checkBtn.style.display = 'none';
+    checkBtn.onclick = null;
+  }
   const rateBtn = document.getElementById('rate-btn');
   if (rateBtn) {
     rateBtn.style.display = 'none';
