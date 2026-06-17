@@ -247,12 +247,16 @@ def build_agent_identity_response(service_url: str | None = None) -> dict[str, A
         return {
             "configured": False,
             "error": (
-                "Could not resolve ERC-8004 agent. Register the service URL on 8004scan, "
-                "or set ERC8004_AGENT_ID."
+                "Could not resolve ERC-8004 agent. Set ERC8004_AGENT_ID=6832 on the server "
+                "(recommended for Railway), or register ERC8004_SERVICE_URL on 8004scan."
             ),
             "chainId": chain_id,
             "serviceUrl": service_url or get_service_url(),
             "agentIdSource": agent_id_source,
+            "hint": (
+                "Railway: add ERC8004_AGENT_ID and ERC8004_SERVICE_URL=https://your-app.up.railway.app "
+                "plus SCAN8004_API_KEY. Auto-discovery can time out without an owner/ID hint."
+            ),
         }
 
     registry = identity_registry_for_chain(chain_id)
