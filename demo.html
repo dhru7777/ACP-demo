@@ -590,31 +590,34 @@
   .bwrap.recv .blabel { text-align: left; }
   .bubble {
     max-width: 92%;
+    min-width: 0;
     padding: 8px 12px;
     border-radius: 10px;
     font-size: 11px;
     line-height: 1.7;
     white-space: pre-wrap;
     word-break: break-word;
+    overflow-wrap: anywhere;
+    box-sizing: border-box;
   }
   .bubble.out {
     background: #000;
     border: 1px solid #000;
     color: #ffffff;
     border-bottom-right-radius: 2px;
-    max-width: 92%;
+    max-width: 88%;
   }
   .bubble.inc {
     background: var(--card);
     border: 1px solid var(--border-hi);
     color: #222222;
     border-bottom-left-radius: 2px;
-    max-width: 92%;
+    max-width: 88%;
   }
-  #feed-seller .bwrap.sent { padding-left: 6%; }
-  #feed-seller .bwrap.recv { padding-right: 2%; }
-  #feed-buyer .bwrap.sent { padding-right: 6%; }
-  #feed-buyer .bwrap.recv { padding-left: 2%; }
+  .bwrap.sent .bubble { align-self: flex-end; width: fit-content; max-width: 88%; }
+  .bwrap.recv .bubble { align-self: flex-start; width: fit-content; max-width: 88%; }
+  #feed-seller .bwrap.sent .bubble,
+  #feed-buyer .bwrap.recv .bubble { max-width: 86%; }
   .bubble.sys {
     background: transparent;
     border: 1px solid var(--border-hi);
@@ -1241,7 +1244,8 @@
   }
 
   /* COLLAPSIBLE CAPS BUBBLE */
-  .caps-summary { white-space: pre-wrap; display: block; }
+  .bubble.caps-bubble { max-width: 86%; overflow: hidden; }
+  .caps-summary { white-space: pre-wrap; display: block; overflow-wrap: anywhere; word-break: break-word; }
   .caps-toggle {
     display: inline-block;
     margin-top: 6px;
@@ -2418,7 +2422,7 @@
 const DEMO_PACE = 1.2;
 const BUBBLE_REVEAL_MS = 80;
 const delay = ms => new Promise(r => setTimeout(r, Math.round(ms * DEMO_PACE)));
-const DEMO_BUILD = '2026-06-08l';
+const DEMO_BUILD = '2026-06-08m';
 
 function feedAgentClass(feedId) {
   if (feedId === 'feed-buyer') return 'feed-buyer';
@@ -3339,6 +3343,8 @@ function buildReceiptPayload(offer, payResult, walletBefore, walletAfter) {
 
 let _ratingBeforeMetrics = null;
 let _ratingRequestSent = false;
+let _ratingUiOpen = false;
+let _ratingStarting = false;
 
 const SELLER_RATE_REQUEST_MSG = 'Please rate us if you have enjoyed our service.';
 
@@ -3364,7 +3370,6 @@ function showRateSellerButton() {
   rateBtn.style.display = '';
   rateBtn.disabled = false;
   rateBtn.textContent = rateCtaLabel();
-  rateBtn.onclick = () => startSellerRating();
   document.getElementById('reset-btn').style.display = 'none';
   setBottomRatingLayout('cta');
   prepareErc8004Walkthrough();
@@ -3379,16 +3384,24 @@ function showRateSellerButton() {
 function hideRatingBar() {
   const inline = document.getElementById('rating-inline');
   const rateBtn = document.getElementById('rate-btn');
-  if (inline) { inline.style.display = 'none'; inline.innerHTML = ''; }
+  if (inline) { inline.style.display = 'none'; inline.innerHTML = ''; inline.dataset.autoWired = ''; }
   if (rateBtn) rateBtn.style.display = 'none';
+  _ratingUiOpen = false;
+  _ratingStarting = false;
   setBottomRatingLayout(null);
 }
 
 async function startSellerRating() {
-  if (_feedbackSubmitted || busy) return;
+  if (_feedbackSubmitted || _feedbackSubmitting || _ratingUiOpen || _ratingStarting) return;
+  _ratingStarting = true;
   clearDemoGuideHighlight();
 
-  busy = true;
+  const rateBtn = document.getElementById('rate-btn');
+  if (rateBtn) {
+    rateBtn.disabled = true;
+    rateBtn.textContent = isMobileLayout() ? 'Opening…' : 'Opening rating…';
+  }
+
   _ratingBeforeMetrics = { healthScore: 0, activity: 0, feedbackCount: 0, averageScore: 0, agentName: 'Seller' };
   try {
     const r = await fetch(SELLER + '/agent/erc8004?t=' + Date.now(), { cache: 'no-store' });
@@ -3397,10 +3410,18 @@ async function startSellerRating() {
   } catch (e) { /* snapshot for seller receipt only */ }
 
   const score = starsToScore(randomFeedbackStars());
-  const rateBtn = document.getElementById('rate-btn');
   const inline = document.getElementById('rating-inline');
-  if (!inline) { busy = false; return; }
+  if (!inline) {
+    _ratingStarting = false;
+    if (rateBtn) {
+      rateBtn.disabled = false;
+      rateBtn.textContent = rateCtaLabel();
+    }
+    return;
+  }
 
+  _ratingUiOpen = true;
+  _ratingStarting = false;
   if (rateBtn) rateBtn.style.display = 'none';
   inline.style.display = 'flex';
   setBottomRatingLayout('panel');
@@ -3423,7 +3444,6 @@ async function startSellerRating() {
     next: 'Adjust stars or wait 3s to auto-submit',
   });
   setStatus(ERC8004_STATUS.rate + ' · 3s to adjust stars.');
-  busy = false;
 }
 
 async function submitBuyerFeedback(beforeMetrics) {
@@ -4471,9 +4491,20 @@ function initWalletWidgets() {
   });
 }
 
+function initRateButton() {
+  const rateBtn = document.getElementById('rate-btn');
+  if (!rateBtn || rateBtn.dataset.wired) return;
+  rateBtn.dataset.wired = '1';
+  rateBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    startSellerRating();
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   initWalletWidgets();
   initAgentProfileWidget();
+  initRateButton();
   guideForStart();
   window.addEventListener('resize', () => {
     syncRateBtnLabel();
@@ -6210,6 +6241,8 @@ function resetDemo() {
   hideRatingBar();
   _ratingBeforeMetrics = null;
   _ratingRequestSent = false;
+  _ratingUiOpen = false;
+  _ratingStarting = false;
   document.getElementById('feedback-result-wrap')?.remove();
   document.getElementById('feedback-buyer-ack-wrap')?.remove();
   const btn = document.getElementById('next-btn');
@@ -6230,7 +6263,6 @@ function resetDemo() {
     rateBtn.style.display = 'none';
     rateBtn.disabled = true;
     rateBtn.textContent = 'Rate my agent';
-    rateBtn.onclick = null;
   }
 }
 </script>
