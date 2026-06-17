@@ -1063,8 +1063,51 @@
   .btn.primary { background: #000; border-color: #000; color: #fff; font-weight: 500; }
   .btn.primary:hover { background: #222; }
   .btn.primary:disabled { background: rgba(0,0,0,0.1); border-color: transparent; color: rgba(0,0,0,0.3); }
-  .status-txt { font-size: 10px; color: var(--muted); flex: 1; }
-  .pips { display: flex; gap: 5px; align-items: center; }
+  .demo-guide-col {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .demo-guide-cta {
+    font-size: 11px;
+    line-height: 1.45;
+    color: var(--text);
+    letter-spacing: 0.01em;
+  }
+  .demo-guide-prefix { color: var(--muted); font-weight: 500; }
+  .demo-guide-action { font-weight: 700; }
+  .demo-guide-arrow { color: var(--muted); margin: 0 0.2em; }
+  .demo-guide-next { color: var(--text); font-weight: 500; }
+  .demo-guide-wait { color: var(--muted); font-style: italic; }
+  .demo-guide-why {
+    font-size: 9px;
+    line-height: 1.4;
+    color: var(--muted);
+  }
+  .status-txt { font-size: 9px; color: var(--muted); line-height: 1.35; }
+  @keyframes demo-cta-pulse {
+    0%, 100% { box-shadow: 0 0 0 2px rgba(0,0,0,0.75), 0 0 0 6px rgba(0,0,0,0.08); }
+    50% { box-shadow: 0 0 0 2px rgba(0,0,0,0.35), 0 0 0 10px rgba(0,0,0,0.14); }
+  }
+  .demo-cta-highlight {
+    animation: demo-cta-pulse 1.1s ease-in-out infinite !important;
+    position: relative;
+    z-index: 2;
+  }
+  .btn.primary.demo-cta-highlight:not(:disabled) {
+    background: #000;
+    border-color: #000;
+    color: #fff;
+  }
+  .prompt-field.demo-cta-highlight {
+    border-radius: 8px;
+  }
+  .prompt-field.demo-cta-highlight .prompt-input {
+    border-color: #000 !important;
+  }
+  .pips { display: flex; gap: 5px; align-items: center; flex-shrink: 0; }
   .pip {
     width: 18px; height: 2px; border-radius: 2px;
     background: var(--dim);
@@ -1423,7 +1466,10 @@
     .rating-meta-row { flex-wrap: wrap; gap: 6px; }
     .rating-score-input { width: 64px; min-width: 64px; font-size: 14px; }
     .rating-inline .feedback-countdown { width: 100%; text-align: center; flex: none; }
-    .status-txt { width: 100%; order: 3; font-size: 9px; }
+    .demo-guide-col { width: 100%; order: 3; }
+    .demo-guide-cta { font-size: 10px; }
+    .demo-guide-why { font-size: 8px; }
+    .status-txt { font-size: 8px; }
     .pips       { order: 2; }
     .pip        { width: 14px; }
 
@@ -2132,7 +2178,11 @@
   <button class="btn primary" id="rate-btn" style="display:none" disabled>Rate my agent</button>
   <div class="rating-inline" id="rating-inline" style="display:none"></div>
   <button class="btn" id="reset-btn" onclick="resetDemo()" style="display:none">Reset</button>
-  <div class="status-txt" id="status-txt">Click Start to begin the ACP demo step by step</div>
+  <div class="demo-guide-col">
+    <div class="demo-guide-cta" id="demo-guide-cta"></div>
+    <div class="demo-guide-why" id="demo-guide-why"></div>
+    <div class="status-txt" id="status-txt"></div>
+  </div>
   <div class="pips">
     <div class="pip" id="pip0"></div>
     <div class="pip" id="pip1"></div>
@@ -2147,7 +2197,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script>
 const delay = ms => new Promise(r => setTimeout(r, ms));
-const DEMO_BUILD = '2026-06-08b';
+const DEMO_BUILD = '2026-06-08c';
 
 function isMobileLayout() {
   return window.matchMedia('(max-width: 680px)').matches;
@@ -2155,6 +2205,65 @@ function isMobileLayout() {
 
 function isSmallPhoneLayout() {
   return window.matchMedia('(max-width: 390px)').matches;
+}
+
+function clearDemoGuideHighlight() {
+  document.querySelectorAll('.demo-cta-highlight').forEach(el => el.classList.remove('demo-cta-highlight'));
+}
+
+function setDemoGuide(opts = {}) {
+  const {
+    target = null,
+    targets = null,
+    selector = null,
+    action = '',
+    why = '',
+    next = '',
+    waiting = false,
+    highlight = true,
+  } = opts;
+
+  clearDemoGuideHighlight();
+  let els = [];
+  if (targets && targets.length) els = targets.filter(Boolean);
+  else if (target) els = [target];
+  else if (selector) els = Array.from(document.querySelectorAll(selector));
+
+  if (highlight && !waiting && els.length) {
+    els.forEach(el => el.classList.add('demo-cta-highlight'));
+  }
+
+  const ctaEl = document.getElementById('demo-guide-cta');
+  const whyEl = document.getElementById('demo-guide-why');
+  if (ctaEl) {
+    if (waiting) {
+      ctaEl.innerHTML = `<span class="demo-guide-wait">${escHtml(why || 'Working…')}</span>`
+        + (next ? ` <span class="demo-guide-arrow">→</span> <span class="demo-guide-next">${escHtml(next)}</span>` : '');
+    } else if (action) {
+      ctaEl.innerHTML = `<span class="demo-guide-prefix">Click to</span> `
+        + `<strong class="demo-guide-action">${escHtml(action)}</strong>`
+        + ` <span class="demo-guide-arrow">→</span> `
+        + `<span class="demo-guide-next">${escHtml(next || '')}</span>`;
+    } else {
+      ctaEl.innerHTML = '';
+    }
+  }
+  if (whyEl) whyEl.textContent = waiting ? '' : (why || '');
+}
+
+function setWorking(why, next) {
+  setDemoGuide({ waiting: true, why, next, highlight: false });
+  setStatus(why + (next ? ' — ' + next : ''));
+}
+
+function guideForStart() {
+  setDemoGuide({
+    target: document.getElementById('next-btn'),
+    action: 'Start',
+    why: 'Begin the guided walkthrough of ACP, payment, and ERC-8004 reputation',
+    next: 'Both agents boot online on the seller server',
+  });
+  setStatus('Ready — follow the blinking control at each step');
 }
 
 function shortArrowSublabel(sublabel) {
@@ -2887,7 +2996,13 @@ function showRateSellerButton() {
   prepareErc8004Walkthrough();
   const wait = document.getElementById('erc8004-placeholder');
   if (wait) wait.textContent = 'Tap Rate my agent to begin';
-  setStatus('Tap Rate my agent — ERC-8004 steps will appear in the center.');
+  setDemoGuide({
+    target: rateBtn,
+    action: 'Rate my agent',
+    why: 'Seller requested ERC-8004 on-chain feedback after payment',
+    next: 'Buyer signs giveFeedback() — watch the center reputation pipeline',
+  });
+  setStatus('Seller requested a rating — tap the blinking button below');
 }
 
 function hideRatingBar() {
@@ -2899,6 +3014,7 @@ function hideRatingBar() {
 
 async function startSellerRating() {
   if (_feedbackSubmitted || busy) return;
+  clearDemoGuideHighlight();
 
   busy = true;
   _ratingBeforeMetrics = { healthScore: 0, activity: 0, feedbackCount: 0, averageScore: 0, agentName: 'Seller' };
@@ -2927,6 +3043,12 @@ async function startSellerRating() {
 
   revealErc8004Step('rate');
   startFeedbackAutoSubmit(_ratingBeforeMetrics, inline);
+  setDemoGuide({
+    target: inline,
+    action: 'adjust stars — or wait 3s to auto-submit',
+    why: 'Buyer agent posts reputation to the ERC-8004 registry on Base Sepolia',
+    next: 'Center column shows sign → broadcast → 8004scan rank update',
+  });
   setStatus(ERC8004_STATUS.rate + ' · 3s to adjust stars.');
   busy = false;
 }
@@ -2990,6 +3112,12 @@ async function submitBuyerFeedback(beforeMetrics) {
 
   hideRatingBar();
   document.getElementById('reset-btn').style.display = '';
+  setDemoGuide({
+    target: document.getElementById('reset-btn'),
+    action: 'Reset',
+    why: 'Demo complete — replay handshake, payment, and reputation from scratch',
+    next: 'Fresh session with the same scripted buyer agent flow',
+  });
 
   appendFeedbackToPaymentReceipts(result);
   addBuyerFeedbackAck(result, score);
@@ -2997,7 +3125,7 @@ async function submitBuyerFeedback(beforeMetrics) {
   if (sellerReceipt) {
     waitForBubbleLayout(sellerReceipt).then(() => alignFlowGroupToBubble('erc8004', erc8004SharedAlignTarget() || sellerReceipt));
   }
-  setStatus('ERC-8004 complete — verify links in center column.');
+  setStatus('ERC-8004 complete — verify links in center column, or Reset to replay.');
   _feedbackSubmitting = false;
   busy = false;
 }
@@ -3958,6 +4086,7 @@ function initWalletWidgets() {
 document.addEventListener('DOMContentLoaded', () => {
   initWalletWidgets();
   initAgentProfileWidget();
+  guideForStart();
 });
 
 // ── Fiat wallet (Stripe test mode) ───────────────────────────────────────────
@@ -4131,6 +4260,7 @@ function addPaymentPicker(feedId) {
       card.addEventListener('click', () => {
         if (done) return;
         done = true;
+        clearDemoGuideHighlight();
         clearInterval(timer);
         pill.style.display = 'none';
         promptWrap.classList.remove('visible');
@@ -4153,6 +4283,12 @@ function addPaymentPicker(feedId) {
     feed.appendChild(wrap);
     requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.add('show')));
     scrollToLatest();
+    setDemoGuide({
+      selector: '.pay-pick-card',
+      action: 'pick Fiat or Crypto — or wait for the agent',
+      why: 'Agent defaults to Crypto (x402 USDC) unless you override',
+      next: 'Payment executes and wallet receipts appear in both chats',
+    });
 
     const pill       = document.getElementById('countdown-pill');
     const promptWrap = document.getElementById('prompt-wrap');
@@ -4171,6 +4307,7 @@ function addPaymentPicker(feedId) {
         if (!done) {
           done = true;
           clearInterval(timer);
+          clearDemoGuideHighlight();
           pill.style.display = 'none';
           promptWrap.classList.remove('visible');
           if (field) field.style.display = '';
@@ -4617,24 +4754,40 @@ function setPip(i, state) {
 function setStatus(t) { document.getElementById('status-txt').textContent = t; }
 function litStep(i)   { document.getElementById('ph' + i).classList.add('lit'); }
 function clearFeed(id){ document.getElementById(id).innerHTML = ''; }
-function setBtn(text) {
+function setBtn(text, guide) {
   const b = document.getElementById('next-btn');
   b.textContent = text;
   b.disabled = false;
+  b.style.display = '';
+  if (guide === false) return;
+  const action = (guide && guide.action) || text;
+  setDemoGuide({
+    target: b,
+    action,
+    why: guide?.why || '',
+    next: guide?.next || '',
+  });
 }
 
 function setHumanInControl(statusMsg) {
   clearCountdown();
   const input = document.getElementById('prompt-input');
   const pill  = document.getElementById('countdown-pill');
+  const field = document.querySelector('.prompt-field');
   input.className = 'prompt-input';
   document.getElementById('prompt-label').textContent = 'your prompt';
   document.getElementById('prompt-wrap').classList.add('visible');
   pill.style.display = '';
   pill.style.animation = 'none';
   pill.textContent = statusMsg || 'you are in control — Enter or Send';
+  setDemoGuide({
+    targets: [document.getElementById('next-btn'), field],
+    action: 'Send Now — or edit the prompt first',
+    why: 'You took control from the buyer agent',
+    next: 'Seller receives your text and returns shoe offers',
+  });
   setStatus(statusMsg || 'Edit the prompt, then press Enter or Send');
-  setBtn('Send Now');
+  setBtn('Send Now', false);
   document.getElementById('next-btn').onclick = nextStep;
   input.focus();
 }
@@ -4874,6 +5027,12 @@ offers.map((o, i) => {
 
   // Show all 3 cards in grid, agent's pick highlighted
   addOfferGrid('feed-buyer', offers, pick.index, budget);
+  setDemoGuide({
+    selector: '.offer-mini',
+    action: 'pick a shoe card — or wait for the agent',
+    why: `Agent recommends option ${pick.index + 1} based on intent match and budget`,
+    next: 'Confirm selection, then choose Fiat or Crypto payment',
+  });
   await delay(600);
 
   // 4-second countdown for human to pick a different card
@@ -4897,6 +5056,7 @@ offers.map((o, i) => {
       remaining--;
       if (remaining <= 0) {
         clearInterval(timer);
+        clearDemoGuideHighlight();
         pill.style.display = 'none';
         wrap.classList.remove('visible');
         if (field) field.style.display = '';
@@ -4910,6 +5070,7 @@ offers.map((o, i) => {
       card.addEventListener('click', () => {
         if (done) return;
         done = true;
+        clearDemoGuideHighlight();
         clearInterval(timer);
         pill.style.display = 'none';
         wrap.classList.remove('visible');
@@ -4949,8 +5110,11 @@ offers.map((o, i) => {
 
   setDot('dot-buyer', 'on');
   setPip(3, 'done');
-  setStatus(`Offer selected — $${chosenOffer.price.toFixed(2)} USD. Click Next to choose payment method.`);
-  setBtn('Next: Payment');
+  setStatus(`Offer selected — $${chosenOffer.price.toFixed(2)} USD ready for payment.`);
+  setBtn('Next: Payment', {
+    why: 'Lock in the chosen catalog offer before settlement',
+    next: 'Pick Fiat (Stripe test card) or Crypto (x402 USDC on Base Sepolia)',
+  });
   step++;
   busy = false;
 }
@@ -4960,6 +5124,7 @@ offers.map((o, i) => {
 async function nextStep() {
   if (busy) return;
   busy = true;
+  clearDemoGuideHighlight();
   document.getElementById('next-btn').disabled = true;
 
   // ── STEP 0 — Boot ──────────────────────────────────────────────────────────
@@ -4967,7 +5132,7 @@ async function nextStep() {
     clearFeed('feed-buyer');
     clearFeed('feed-seller');
     setPip(0, 'active');
-    setStatus('Booting agents...');
+    setWorking('Booting agents', 'Handshake step unlocks when both sides are online');
     setDot('dot-buyer', 'working');
     setDot('dot-seller', 'working');
     await delay(800);
@@ -4978,15 +5143,18 @@ async function nextStep() {
     setPip(0, 'done');
     setDot('dot-buyer', 'on');
     setDot('dot-seller', 'on');
-    setStatus('Agents online — click Next to begin handshake');
-    setBtn('Next: Handshake');
+    setStatus('Agents online — proceed to ACP handshake');
+    setBtn('Next: Handshake', {
+      why: 'ACP initialize negotiates protocol version and seller capabilities',
+      next: 'See catalog size, session methods, and payment options',
+    });
   }
 
   // ── STEP 1 — Initialize / Handshake ───────────────────────────────────────
   else if (step === 1) {
     setPip(1, 'active');
     litStep(0);
-    setStatus('Sending initialize to seller agent...');
+    setWorking('Sending initialize', 'Seller returns agent capabilities and catalog summary');
     setDot('dot-buyer', 'working');
 
     if (sellerCatalogCount === 0) await refreshSellerHealth();
@@ -5020,14 +5188,20 @@ preferredCurrencies: USD/USDC`);
       setStatus(`Connection failed — ${new URL(SELLER).host}`);
       setDot('dot-buyer', '');
       busy = false;
-      setBtn('Retry');
+      setBtn('Retry', {
+        why: 'Seller server was unreachable during initialize',
+        next: 'Retry the ACP handshake from this step',
+      });
       return;
     }
 
     if (result.error) {
       addErrBubble('feed-seller', 'Error: ' + result.error.message);
       busy = false;
-      setBtn('Retry');
+      setBtn('Retry', {
+        why: 'Seller rejected the initialize request',
+        next: 'Retry handshake after checking server logs',
+      });
       return;
     }
 
@@ -5060,8 +5234,11 @@ protocolVersion: ${result.result.protocolVersion} agreed`);
     setDot('dot-buyer', 'on');
     setPip(1, 'done');
     prefetchAgentProfile();
-    setStatus(`Handshake done — ${itemCount} items in catalog (build ${DEMO_BUILD}). Click Next to create session.`);
-    setBtn('Next: Create Session');
+    setStatus(`Handshake done — ${itemCount} items in catalog (build ${DEMO_BUILD}).`);
+    setBtn('Next: Create Session', {
+      why: 'session/new allocates shared state for this buyer–seller dialogue',
+      next: 'Buyer agent sends a natural-language shopping intent',
+    });
   }
 
   // ── STEP 2 — Session / New ─────────────────────────────────────────────────
@@ -5069,7 +5246,7 @@ protocolVersion: ${result.result.protocolVersion} agreed`);
     if (!sellerCaps) { busy = false; setBtn('Next: Create Session'); return; }
     setPip(2, 'active');
     litStep(1);
-    setStatus('Creating session context with seller...');
+    setWorking('Creating session', 'Session id will be stored for all later turns');
     setDot('dot-buyer', 'working');
 
     const sessBubble = addBubble('feed-buyer', 'sent', 'buyer  →  seller   |   session/new',
@@ -5127,8 +5304,14 @@ stored — will be sent with all requests`);
     // Show the buyer agent's pre-configured intent in the prompt box
     // Agent controls the value — human can edit before it fires
     showPrompt(BUYER_PROFILE.initialIntent, 'buyer agent intent', true);
-    setStatus(`Buyer agent sending in 5s — click the prompt to take control`);
-    setBtn('Send Now');
+    setDemoGuide({
+      targets: [document.getElementById('next-btn'), document.querySelector('.prompt-field')],
+      action: 'Send Now — or tap the prompt to edit first',
+      why: 'Buyer agent auto-sends its shoe search in 5 seconds',
+      next: 'Seller parses intent and returns matching catalog offers',
+    });
+    setBtn('Send Now', false);
+    setStatus('Buyer agent sending in 5s — blinked controls are yours to override');
 
     step++;
     busy = false;
@@ -5190,7 +5373,7 @@ stored — will be sent with all requests`);
 
     setPip(3, 'active');
     litStep(2);
-    setStatus('Buyer agent sending intent...');
+    setWorking('Buyer agent sending intent', 'Seller may ask for budget or return shoe offers');
     setDot('dot-buyer', 'working');
 
     let result1;
@@ -5241,13 +5424,19 @@ res1.agentMessage);
         ? `My budget is $${budgetInTurn1}`
         : `My budget is $${BUYER_PROFILE.budget}`;
       showPrompt(agentBudgetReply, 'buyer agent reply (auto)', true);
-      setStatus(`Buyer agent responding with budget in 5s — click prompt to take control`);
+      setDemoGuide({
+        targets: [document.getElementById('next-btn'), document.querySelector('.prompt-field')],
+        action: 'Send Reply Now — or edit the budget line',
+        why: 'Seller needs a dollar budget before searching the catalog',
+        next: 'Matching shoe offers appear in the buyer chat',
+      });
+      setBtn('Send Reply Now', false);
+      setStatus('Buyer agent responding with budget in 5s — blinked controls override the agent');
       setDot('dot-buyer', 'on');
 
       // Wait for countdown (or human override via button / Enter key)
       await new Promise(resolve => {
         startCountdown(5, resolve);
-        document.getElementById('next-btn').textContent = 'Send Reply Now';
         document.getElementById('next-btn').disabled = false;
         document.getElementById('next-btn').onclick = () => { clearCountdown(); resolve(); };
       });
@@ -5295,9 +5484,7 @@ res1.agentMessage);
     if (!pendingOffer) { busy = false; setBtn('Next: Payment'); return; }
     setPip(4, 'active');
     litStep(4);
-
-    // ── Payment method picker — add to BOTH feeds to keep column heights balanced
-    setStatus('Agent choosing payment method…');
+    setWorking('Opening payment picker', 'Choose Fiat (Stripe) or Crypto (x402 USDC)');
     addBubble('feed-buyer', 'mid', '', 'selecting payment method…');
     addBubble('feed-seller', 'mid', '', 'awaiting payment method…');
     await delay(500);
@@ -5637,8 +5824,9 @@ function resetDemo() {
   document.querySelectorAll('.phase-step').forEach(c => c.classList.remove('lit'));
   setDot('dot-buyer', '');
   setDot('dot-seller', '');
-  setStatus('Click Start to begin the ACP demo step by step');
   hidePrompt();
+  clearDemoGuideHighlight();
+  guideForStart();
   document.getElementById('prompt-input').value = '';
   document.getElementById('prompt-label').textContent = 'prompt';
   document.getElementById('prompt-input').className = 'prompt-input';
