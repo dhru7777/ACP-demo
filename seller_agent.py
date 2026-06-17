@@ -142,10 +142,26 @@ async def wallet_seller():
 # --------------------------------------------------------------------------
 # ERC-8004 agent identity — live 8004scan + on-chain verification links
 # --------------------------------------------------------------------------
+def _public_service_url(request: Request) -> str:
+    """Prefer env override; behind Railway/proxies use X-Forwarded-* (not http:// base_url)."""
+    from trust.config import get_service_url
+
+    explicit = get_service_url()
+    if explicit:
+        return explicit.rstrip("/")
+    proto = (request.headers.get("x-forwarded-proto") or request.url.scheme or "https")
+    if "," in proto:
+        proto = proto.split(",")[0].strip()
+    host = request.headers.get("x-forwarded-host") or request.headers.get("host") or request.url.netloc
+    if host and "," in host:
+        host = host.split(",")[0].strip()
+    return f"{proto}://{host}".rstrip("/")
+
+
 @app.get("/agent/erc8004")
 async def agent_erc8004(request: Request):
     try:
-        service_url = str(request.base_url).rstrip("/")
+        service_url = _public_service_url(request)
         data = await asyncio.to_thread(build_agent_identity_response, service_url)
         if not data.get("configured"):
             return JSONResponse(data, status_code=503)

@@ -1591,6 +1591,7 @@
     padding-top: 6px;
     border-top: 1px solid var(--border);
     width: 100%;
+    pointer-events: auto;
   }
   .proto-verify-row a {
     font-size: 7px;
@@ -2146,7 +2147,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <script>
 const delay = ms => new Promise(r => setTimeout(r, ms));
-const DEMO_BUILD = '2026-06-08a';
+const DEMO_BUILD = '2026-06-08b';
 
 function isMobileLayout() {
   return window.matchMedia('(max-width: 680px)').matches;
@@ -3949,7 +3950,7 @@ function initWalletWidgets() {
   window.addEventListener('resize', reposition);
   window.addEventListener('scroll', reposition, true);
   document.addEventListener('click', (e) => {
-    if (e.target.closest('.wallet-wrap')) return;
+    if (e.target.closest('.wallet-wrap') || e.target.closest('.agent-profile-wrap')) return;
     closeAllWalletPops();
   });
 }
