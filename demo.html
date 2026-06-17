@@ -2437,7 +2437,7 @@
 const DEMO_PACE = 1.2;
 const BUBBLE_REVEAL_MS = 80;
 const delay = ms => new Promise(r => setTimeout(r, Math.round(ms * DEMO_PACE)));
-const DEMO_BUILD = '2026-06-08o';
+const DEMO_BUILD = '2026-06-08p';
 
 function feedAgentClass(feedId) {
   if (feedId === 'feed-buyer') return 'feed-buyer';
@@ -4671,6 +4671,7 @@ function buildWalletTabPop(pop, cryptoHtml, role) {
 function addPaymentPicker(feedId) {
   return new Promise(resolve => {
     const feed = document.getElementById(feedId);
+    feed.querySelectorAll('.pay-pick-wrap').forEach(el => el.remove());
     const wrap = document.createElement('div');
     wrap.className = 'pay-pick-wrap ' + feedAgentClass(feedId);
 
@@ -4957,6 +4958,7 @@ function resolveBudget(parsedIntent, promptText) {
 document.getElementById('demo-build').textContent = 'build ' + DEMO_BUILD;
 
 let step = 0, busy = false, sellerCaps = null, activeSession = null, pendingOffer = null, chosenPaymentMethod = null;
+let _paymentInProgress = false;
 let autoFireTimer = null;
 let promptInFlight = false;
 let promptTurnAborted = false;
@@ -5886,11 +5888,25 @@ res1.agentMessage);
       // Budget was already in the first message — show offers directly
       await showOffers(res1, turn1Text);
     }
+    document.getElementById('next-btn').disabled = false;
+    busy = false;
+    return;
   }
 
   // ── STEP 4 — Payment (Fiat via Stripe or Crypto via x402) ────────────────
   else if (step === 4) {
-    if (!pendingOffer) { busy = false; setBtn('Next: Payment'); return; }
+    if (_paymentInProgress) {
+      busy = false;
+      document.getElementById('next-btn').disabled = false;
+      return;
+    }
+    _paymentInProgress = true;
+    if (!pendingOffer) {
+      _paymentInProgress = false;
+      busy = false;
+      setBtn('Next: Payment');
+      return;
+    }
     setPip(4, 'active');
     litStep(4);
     setWorking('Opening payment picker', 'Choose Fiat (Stripe) or Crypto (x402 USDC)');
@@ -5952,12 +5968,12 @@ amount: $${pendingOffer.price.toFixed(2)} USD`);
         if (!r.ok) throw new Error(stripeResult.error || stripeResult.message || `HTTP ${r.status}`);
       } catch (e) {
         addErrBubble('feed-buyer', 'Stripe payment failed: ' + (e.message || e));
-        busy = false; setBtn('Retry Payment'); return;
+        busy = false; _paymentInProgress = false; setBtn('Retry Payment'); return;
       }
 
       if (stripeResult.status !== 'paid') {
         addErrBubble('feed-seller', stripeResult.error || 'Stripe charge failed');
-        busy = false; setBtn('Retry Payment'); return;
+        busy = false; _paymentInProgress = false; setBtn('Retry Payment'); return;
       }
 
       const rcptS = stripeResult.receipt || {};
@@ -6081,7 +6097,7 @@ catalog: $${pendingOffer.price.toFixed(2)} ${pendingOffer.currency}`);
       quote = q.result;
     } catch (e) {
       addErrBubble('feed-buyer', 'Quote failed: ' + sellerErrorMsg(e));
-      busy = false; setBtn('Retry Payment'); return;
+      busy = false; _paymentInProgress = false; setBtn('Retry Payment'); return;
     }
 
     const fx = quote.fx || {};
@@ -6104,7 +6120,7 @@ balance ok: ${balOk ? 'yes' : 'NO — insufficient USDC'}`);
 
     if (!balOk) {
       addErrBubble('feed-buyer', 'Buyer USDC balance too low for this offer.');
-      busy = false; setBtn('Retry Payment'); return;
+      busy = false; _paymentInProgress = false; setBtn('Retry Payment'); return;
     }
 
     setStatus('Signing & settling USDC via x402 facilitator…');
@@ -6128,12 +6144,12 @@ amount: ${usdcDue} USDC`);
       if (!r.ok) throw new Error(payResult.error || payResult.message || `HTTP ${r.status}`);
     } catch (e) {
       addErrBubble('feed-buyer', 'Payment failed: ' + (e.message || e));
-      busy = false; setBtn('Retry Payment'); return;
+      busy = false; _paymentInProgress = false; setBtn('Retry Payment'); return;
     }
 
     if (payResult.status !== 'paid') {
       addErrBubble('feed-seller', payResult.error || 'Settlement failed');
-      busy = false; setBtn('Retry Payment'); return;
+      busy = false; _paymentInProgress = false; setBtn('Retry Payment'); return;
     }
 
     addBubble('feed-seller', 'mid', '', 'facilitator · verify ✓\nfacilitator · settle ✓');
@@ -6240,6 +6256,7 @@ function resetDemo() {
   document.getElementById('prompt-label').textContent = 'prompt';
   document.getElementById('prompt-input').className = 'prompt-input';
   step = 0; sellerCaps = null; activeSession = null; pendingOffer = null; chosenPaymentMethod = null; autoFireTimer = null;
+  _paymentInProgress = false;
   _fiatWalletCache.buyer.data = null; _fiatWalletCache.buyer.loading = false;
   _fiatWalletCache.seller.data = null; _fiatWalletCache.seller.loading = false;
   _walletPayHint.buyer = ''; _walletPayHint.seller = '';
