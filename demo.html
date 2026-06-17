@@ -92,8 +92,12 @@
     position: relative;
     z-index: 2;
   }
-  .panel:first-child .feed { padding-right: 10px; }
-  .panel:last-child  .feed { padding-left: 10px; }
+  .panel:first-child .feed {
+    padding: 14px 16px 14px 12px;
+  }
+  .panel:last-child .feed {
+    padding: 14px 12px 14px 16px;
+  }
   .panel-head {
     padding: 14px 18px;
     border-bottom: 1px solid var(--border);
@@ -573,19 +577,19 @@
       transform 0.62s cubic-bezier(0.22, 1, 0.36, 1);
     will-change: opacity, transform;
   }
-  .bwrap.feed-buyer.sent { transform: translateX(-18px); }
-  .bwrap.feed-buyer.recv { transform: translateX(18px); }
-  .bwrap.feed-seller.sent { transform: translateX(18px); }
-  .bwrap.feed-seller.recv { transform: translateX(-18px); }
+  .bwrap.feed-buyer.sent { transform: translateX(-12px); }
+  .bwrap.feed-buyer.recv { transform: translateX(12px); }
+  .bwrap.feed-seller.sent { transform: translateX(12px); }
+  .bwrap.feed-seller.recv { transform: translateX(-12px); }
   .bwrap.mid { transform: translateY(10px); }
   .bwrap.show {
     opacity: 1;
     transform: translate(0, 0);
   }
-  .bwrap.sent  { align-items: flex-end; }
-  .bwrap.recv  { align-items: flex-start; }
-  .bwrap.mid   { align-items: center; }
-  .blabel { font-size: 9px; color: #aaaaaa; padding: 0 4px; letter-spacing: 0.02em; line-height: 1.3; max-width: 100%; overflow-wrap: anywhere; word-break: break-word; }
+  .bwrap.sent  { align-items: flex-end; padding-right: 2px; }
+  .bwrap.recv  { align-items: flex-start; padding-left: 2px; }
+  .bwrap.mid   { align-items: center; padding-inline: 2px; }
+  .blabel { font-size: 9px; color: #aaaaaa; padding: 0 6px; letter-spacing: 0.02em; line-height: 1.3; max-width: 100%; overflow-wrap: anywhere; word-break: break-word; box-sizing: border-box; }
   .bwrap.sent .blabel { text-align: right; }
   .bwrap.recv .blabel { text-align: left; }
   .bubble {
@@ -614,10 +618,13 @@
     border-bottom-left-radius: 2px;
     max-width: 88%;
   }
-  .bwrap.sent .bubble { align-self: flex-end; width: fit-content; max-width: 88%; }
-  .bwrap.recv .bubble { align-self: flex-start; width: fit-content; max-width: 88%; }
-  #feed-seller .bwrap.sent .bubble,
-  #feed-buyer .bwrap.recv .bubble { max-width: 86%; }
+  .bwrap.sent .bubble { align-self: flex-end; width: fit-content; max-width: min(86%, calc(100% - 6px)); }
+  .bwrap.recv .bubble { align-self: flex-start; width: fit-content; max-width: min(86%, calc(100% - 6px)); }
+  #feed-buyer .bwrap.sent .bubble,
+  #feed-seller .bwrap.recv .bubble { max-width: min(84%, calc(100% - 8px)); }
+  #feed-buyer .bwrap.recv .bubble,
+  #feed-seller .bwrap.sent .bubble { max-width: min(86%, calc(100% - 6px)); }
+  .bubble.caps-bubble { max-width: min(84%, calc(100% - 8px)); overflow: hidden; }
   .bubble.sys {
     background: transparent;
     border: 1px solid var(--border-hi);
@@ -1244,7 +1251,6 @@
   }
 
   /* COLLAPSIBLE CAPS BUBBLE */
-  .bubble.caps-bubble { max-width: 86%; overflow: hidden; }
   .caps-summary { white-space: pre-wrap; display: block; overflow-wrap: anywhere; word-break: break-word; }
   .caps-toggle {
     display: inline-block;
@@ -1386,10 +1392,6 @@
       position: relative;
       z-index: 2;
     }
-    .panel:first-child .feed { padding-right: 4px; }
-    .panel:last-child  .feed { padding-left: 4px; }
-    .bubble.out,
-    .bubble.inc { max-width: 92%; }
     .wire {
       display: block;
       top: 32px;
@@ -1403,8 +1405,9 @@
     .port-tag    { display: none; }
     .dot         { width: 5px; height: 5px; }
 
-    /* Feeds grow with content — no inner scrollbar */
-    .feed { padding: 5px; gap: 5px; min-height: 120px; }
+    .panel:first-child .feed { padding: 6px 10px 6px 6px; }
+    .panel:last-child .feed  { padding: 6px 6px 6px 10px; }
+    .feed { gap: 5px; min-height: 120px; }
 
     /* Consistent bubble typography on mobile */
     .bubble,
@@ -1417,7 +1420,14 @@
       font-size: 9px;
       line-height: 1.5;
       padding: 5px 7px;
-      max-width: 100%;
+    }
+    .bwrap.sent .bubble,
+    .bwrap.recv .bubble {
+      max-width: min(90%, calc(100% - 8px));
+    }
+    #feed-buyer .bwrap.sent .bubble,
+    #feed-seller .bwrap.recv .bubble {
+      max-width: min(88%, calc(100% - 10px));
     }
     .blabel { font-size: 7px; }
     .caps-summary,
@@ -2247,7 +2257,9 @@
     .name-short  { display: inline; }
     .panel-name  { font-size: 9px; }
 
-    .feed { padding: 4px; min-height: 100px; }
+    .panel:first-child .feed { padding: 5px 9px 5px 5px; }
+    .panel:last-child .feed  { padding: 5px 5px 5px 9px; }
+    .feed { gap: 5px; min-height: 100px; }
 
     .bottom {
       padding: 10px 12px;
@@ -2422,7 +2434,7 @@
 const DEMO_PACE = 1.2;
 const BUBBLE_REVEAL_MS = 80;
 const delay = ms => new Promise(r => setTimeout(r, Math.round(ms * DEMO_PACE)));
-const DEMO_BUILD = '2026-06-08m';
+const DEMO_BUILD = '2026-06-08n';
 
 function feedAgentClass(feedId) {
   if (feedId === 'feed-buyer') return 'feed-buyer';
