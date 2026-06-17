@@ -8,7 +8,8 @@
 | Settlement | **x402** (USDC) + **Stripe** (fiat) | Did payment complete on the chosen rail? |
 | Trust | **ERC-8004** + [8004scan](https://testnet.8004scan.io) | Who is this agent, and can I verify it? |
 
-**Live seller:** [acp-demo-production.up.railway.app](https://acp-demo-production.up.railway.app)  
+**Live demo:** [dheeraj-agentic-communication-demo.netlify.app](https://dheeraj-agentic-communication-demo.netlify.app)  
+**Live seller API:** [acp-demo-production.up.railway.app](https://acp-demo-production.up.railway.app)  
 **Registered identity:** [Attention Agent #6832 on Base Sepolia](https://testnet.8004scan.io/agents/base-sepolia/6832)
 
 ---
@@ -23,7 +24,9 @@ A Nike-themed **buyer ↔ seller** demo:
 4. **Payment** — buyer picks **Crypto (USDC on Base Sepolia)** or **Fiat (Stripe test card ···4242)**.
 5. **Profile** — seller **◎** panel shows ERC-8004 identity, 8004scan rank, feedback, and verify links.
 
-Open `demo.html` for the three-column stage: **Buyer** | **Protocols (ACP · x402 · Stripe)** | **Seller**.
+Open the [live demo](https://dheeraj-agentic-communication-demo.netlify.app) or `demo.html` locally for the three-column stage: **Buyer** | **Protocols (ACP · x402 · Stripe)** | **Seller**.
+
+The Netlify site is static UI only; all agent calls go to the **Railway seller API** (`acp-demo-production.up.railway.app`). ERC-8004 on 8004scan registers that Railway URL, not the Netlify frontend.
 
 ---
 

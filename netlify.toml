@@ -1,6 +1,9 @@
 [build]
   publish = "."
 
+# Site: https://dheeraj-agentic-communication-demo.netlify.app
+# Connect this repo's main branch in Netlify → Build & deploy (no build command).
+
 [[redirects]]
   from = "/"
   to = "/demo.html"
