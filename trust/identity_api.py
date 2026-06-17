@@ -5,6 +5,7 @@ Build public JSON for GET /agent/erc8004 — identity + verify links.
 from __future__ import annotations
 
 from typing import Any
+from urllib.parse import urlparse
 
 import requests
 
@@ -28,7 +29,38 @@ from trust.metadata import (
     primary_service_endpoint,
 )
 from trust.registry_chain import read_identity_on_chain
-from trust.scan8004 import discover_agent_by_service_url, fetch_agent
+from trust.scan8004 import (
+    agent_matches_service_url,
+    discover_agent_by_service_url,
+    fetch_agent,
+    search_agents,
+)
+
+# Registered Nike seller demo on Base Sepolia — avoids 30s+ paginated discovery on Railway.
+_DEMO_AGENT_BY_HOST: dict[str, int] = {
+    "acp-demo-production.up.railway.app": 6832,
+}
+
+
+def _normalize_public_service_url(url: str | None) -> str | None:
+    if not url or not str(url).strip():
+        return None
+    raw = str(url).strip().rstrip("/")
+    if raw.startswith("http://") and ".railway.app" in raw:
+        raw = "https://" + raw[len("http://") :]
+    return raw
+
+
+def _demo_agent_id_for_url(service_url: str) -> int | None:
+    host = (urlparse(service_url).netloc or "").lower().split(":")[0]
+    if not host:
+        return None
+    if host in _DEMO_AGENT_BY_HOST:
+        return _DEMO_AGENT_BY_HOST[host]
+    for pattern, agent_id in _DEMO_AGENT_BY_HOST.items():
+        if host.endswith("." + pattern):
+            return agent_id
+    return None
 
 
 def _chain_label(chain_id: int) -> str:
@@ -220,9 +252,26 @@ def resolve_agent_identity(service_url: str | None = None) -> tuple[int | None, 
     if explicit_id is not None:
         return explicit_id, chain_id, "env", None
 
-    url = (service_url or get_service_url() or "").strip().rstrip("/")
+    url = _normalize_public_service_url(service_url or get_service_url())
     if not url:
         return None, chain_id, "missing", None
+
+    demo_id = _demo_agent_id_for_url(url)
+    if demo_id is not None:
+        scan = fetch_agent(chain_id, demo_id)
+        if scan:
+            return demo_id, chain_id, "demo", scan
+
+    host = (urlparse(url).netloc or "").split(":")[0]
+    if host:
+        for row in search_agents(host, chain_id=chain_id, limit=12):
+            try:
+                aid = int(row.get("token_id") or row.get("agentId") or row.get("id"))
+            except (TypeError, ValueError):
+                continue
+            scan = fetch_agent(chain_id, aid)
+            if agent_matches_service_url(scan, url):
+                return aid, chain_id, "discovered", scan
 
     owner_hint = env("ERC8004_OWNER_ADDRESS")
     if not owner_hint:

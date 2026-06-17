@@ -155,6 +155,11 @@ def _public_service_url(request: Request) -> str:
     host = request.headers.get("x-forwarded-host") or request.headers.get("host") or request.url.netloc
     if host and "," in host:
         host = host.split(",")[0].strip()
+    # Railway internal routing often reports http while the public URL is https.
+    if proto == "http" and host and (
+        host.endswith(".railway.app") or host.endswith(".up.railway.app")
+    ):
+        proto = "https"
     return f"{proto}://{host}".rstrip("/")
 
 
