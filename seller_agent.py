@@ -30,7 +30,8 @@ import os
 import json
 import asyncio
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import JSONResponse, Response, FileResponse, RedirectResponse
+from pathlib import Path
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
@@ -52,6 +53,9 @@ from payments import x402_service
 from payments.chain import fetch_tx_fee_eth
 from payments.receipt_pdf import build_receipt_pdf
 from trust.identity_api import build_agent_identity_response, identity_status
+from intent import api as intent_api
+from intent import service as intent_service
+from intent.payment_guard import check_offer_for_session, finalize_paid_receipt
 # --------------------------------------------------------------------------
 # Anthropic client — used for natural language intent parsing.
 # Falls back silently to regex if the key is missing or the call fails.
@@ -81,6 +85,29 @@ app.add_middleware(
 
 # Tracks connected clients (from handshake)
 connected_clients: dict = {}
+
+_ROOT = Path(__file__).resolve().parent
+
+
+@app.get("/intent-demo")
+async def intent_demo_redirect():
+    return RedirectResponse(url="/intent-demo.html")
+
+
+@app.get("/intent-demo.html")
+async def serve_intent_demo():
+    path = _ROOT / "intent" / "intent-demo.html"
+    if not path.is_file():
+        return JSONResponse({"error": "intent-demo.html not found"}, status_code=404)
+    return FileResponse(path, media_type="text/html")
+
+
+@app.get("/demo.html")
+async def serve_demo_html():
+    path = _ROOT / "demo.html"
+    if not path.is_file():
+        return JSONResponse({"error": "demo.html not found"}, status_code=404)
+    return FileResponse(path, media_type="text/html")
 
 
 # --------------------------------------------------------------------------
@@ -253,6 +280,29 @@ async def demo_x402_execute(request: Request):
         return JSONResponse({"error": f"Unknown offer: {offer_id}"}, status_code=404)
     catalog_usd = float(offer.get("price") or product["price"])
     offer_name = offer.get("name") or product.get("name", "")
+
+    check_result = None
+    if session_id:
+        try:
+            check_result = check_offer_for_session(
+                session_id,
+                offer_id=offer_id,
+                offer_name=offer_name,
+                catalog_usd=catalog_usd,
+                product=product,
+                offer=offer,
+                payment_rail="x402",
+                require_intent=body.get("requireIntent", True),
+            )
+        except ValueError as e:
+            return JSONResponse({"status": "error", "error": str(e)}, status_code=400)
+        if check_result and not check_result.get("pass"):
+            return JSONResponse({
+                "status": "error",
+                "error": "Constraint check failed",
+                "constraintCheck": check_result,
+            }, status_code=403)
+
     try:
         result = await x402_service.execute_payment(catalog_usd, offer_id, offer_name)
         if session_id and session_manager.exists(session_id):
@@ -262,6 +312,14 @@ async def demo_x402_execute(request: Request):
             if sess is not None:
                 paid = sess.setdefault("context", {}).setdefault("paidOffers", {})
                 paid[offer_id] = result
+            if check_result and result.get("status") == "paid":
+                finalize_paid_receipt(
+                    session_id,
+                    offer_id=offer_id,
+                    check_result=check_result,
+                    receipt=result.get("receipt") or {},
+                    provider="x402",
+                )
         return JSONResponse(result)
     except Exception as e:
         return JSONResponse({"status": "error", "error": str(e)}, status_code=500)
@@ -293,6 +351,36 @@ async def demo_stripe_verify_connect():
         return JSONResponse({"ok": False, "accountId": seller_id, "error": str(e)}, status_code=400)
 
 
+@app.get("/intent/constraints")
+async def intent_constraints():
+    return intent_api.constraints_response()
+
+
+@app.post("/intent/capture")
+async def intent_capture(request: Request):
+    return await intent_api.capture_body(await request.json())
+
+
+@app.get("/intent/manifest/{session_id}")
+async def intent_manifest(session_id: str):
+    return intent_api.manifest_response(session_id)
+
+
+@app.get("/intent/merchant/{session_id}")
+async def intent_merchant(session_id: str):
+    return intent_api.merchant_response(session_id)
+
+
+@app.get("/intent/audit/{session_id}")
+async def intent_audit(session_id: str):
+    return intent_api.audit_response(session_id)
+
+
+@app.post("/intent/check")
+async def intent_check(request: Request):
+    return await intent_api.check_body(await request.json())
+
+
 @app.post("/demo/stripe/execute")
 async def demo_stripe_execute(request: Request):
     """Demo UI: charge test card via Stripe in one call."""
@@ -309,8 +397,41 @@ async def demo_stripe_execute(request: Request):
         return JSONResponse({"error": f"Unknown offer: {offer_id}"}, status_code=404)
     catalog_usd = float(offer.get("price") or product["price"])
     offer_name = offer.get("name") or product.get("name", "")
+
+    check_result = None
+    if session_id:
+        try:
+            check_result = check_offer_for_session(
+                session_id,
+                offer_id=offer_id,
+                offer_name=offer_name,
+                catalog_usd=catalog_usd,
+                product=product,
+                offer=offer,
+                payment_rail="stripe_fiat",
+                require_intent=body.get("requireIntent", True),
+            )
+        except ValueError as e:
+            return JSONResponse({"status": "error", "error": str(e)}, status_code=400)
+        if check_result and not check_result.get("pass"):
+            return JSONResponse({
+                "status": "error",
+                "error": "Constraint check failed",
+                "constraintCheck": check_result,
+            }, status_code=403)
+
+    metadata_extra = None
+    if check_result:
+        metadata_extra = {
+            "intentHash": check_result.get("intentHash"),
+            "checkoutHash": check_result.get("checkoutHash"),
+            "constraintCheck": check_result.get("constraintCheck"),
+        }
+
     try:
-        result = await stripe_service.execute_payment(catalog_usd, offer_id, offer_name)
+        result = await stripe_service.execute_payment(
+            catalog_usd, offer_id, offer_name, metadata_extra=metadata_extra,
+        )
         if session_id and session_manager.exists(session_id):
             session_manager.add_history(session_id, "buyer", "commerce/pay.fiat", body)
             session_manager.add_history(session_id, "seller", "commerce/pay.fiat.receipt", result)
@@ -318,6 +439,14 @@ async def demo_stripe_execute(request: Request):
             if sess is not None:
                 paid = sess.setdefault("context", {}).setdefault("paidOffers", {})
                 paid[offer_id] = result
+            if check_result and result.get("status") == "paid":
+                finalize_paid_receipt(
+                    session_id,
+                    offer_id=offer_id,
+                    check_result=check_result,
+                    receipt=result.get("receipt") or {},
+                    provider="stripe",
+                )
         return JSONResponse(result)
     except Exception as e:
         return JSONResponse({"status": "error", "error": str(e)}, status_code=500)
@@ -890,6 +1019,22 @@ def _build_offers(id_, session_id: str, query: str, max_price: float, raw_text: 
     session_manager.add_history(session_id, "seller", "session/prompt.response",
                                 {"offers": offers})
 
+    intent_info = None
+    try:
+        intent_info = intent_service.capture_intent(
+            session_id=session_id,
+            prompt=raw_text or query,
+            budget_usd=max_price,
+            prompt_summary=query,
+        )
+        session_manager.add_history(session_id, "buyer", "intent/capture.auto", {
+            "intentHash": intent_info["intentHash"],
+            "promptSummary": query,
+            "budgetUsd": max_price,
+        })
+    except ValueError as e:
+        print(f"  [Intent] capture skipped: {e}")
+
     top  = offers[0]
     rest = len(offers) - 1
     if rest > 0:
@@ -901,15 +1046,20 @@ def _build_offers(id_, session_id: str, query: str, max_price: float, raw_text: 
 
     print(f"  Offers: {[o['id'] for o in offers]}")
 
+    result_payload = {
+        "stopReason":   "end_turn",
+        "agentMessage": msg,
+        "parsedIntent": {"query": query, "max_price": max_price},
+        "usedClaude":   used_claude,
+        "offers":       offers,
+    }
+    if intent_info:
+        result_payload["intentHash"] = intent_info["intentHash"]
+        result_payload["intentCapturedAt"] = intent_info["capturedAt"]
+
     return {
         "jsonrpc": "2.0", "id": id_,
-        "result": {
-            "stopReason":   "end_turn",
-            "agentMessage": msg,
-            "parsedIntent": {"query": query, "max_price": max_price},
-            "usedClaude":   used_claude,
-            "offers":       offers
-        }
+        "result": result_payload,
     }
 
 

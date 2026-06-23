@@ -359,4 +359,5 @@ python3 -m http.server 8080
 | [README_DAY5.md](./README_DAY5.md) | x402 USDC, wallets, receipt PDF               |
 | [README_DAY6.md](./README_DAY6.md) | Fiat via Stripe, dual wallets, payment picker |
 | [README_DAY7.md](./README_DAY7.md) | ERC-8004 trust, 8004scan, ◎ profile UI        |
+| [README_DAY8.md](./README_DAY8.md) | Verifiable Intent, hash chain, VI UI          |
 

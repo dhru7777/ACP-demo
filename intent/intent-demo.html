@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auditable Intent · Stripe Autonomous Mode</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f5f5f5;
+      --surface: #fff;
+      --border: rgba(0,0,0,.1);
+      --text: #111;
+      --muted: #666;
+      --mono: 'DM Mono', monospace;
+      --ok: #0a7;
+      --bad: #c33;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--mono);
+      font-size: 13px;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 28px 20px 48px; }
+    h1 { font-size: 20px; font-weight: 500; margin: 0 0 6px; }
+    .sub { color: var(--muted); margin-bottom: 24px; }
+    .grid { display: grid; gap: 16px; }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 12px; }
+    label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+    input, textarea, select {
+      width: 100%;
+      font: inherit;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+      background: #fafafa;
+    }
+    textarea { min-height: 72px; resize: vertical; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 640px) { .row { grid-template-columns: 1fr; } }
+    button {
+      font: inherit;
+      border: 1px solid #111;
+      background: #111;
+      color: #fff;
+      border-radius: 999px;
+      padding: 10px 16px;
+      cursor: pointer;
+      margin-right: 8px;
+      margin-top: 8px;
+    }
+    button.secondary { background: #fff; color: #111; }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+    pre {
+      background: #fafafa;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      overflow: auto;
+      font-size: 11px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin: 0;
+    }
+    .hash { font-size: 11px; word-break: break-all; color: #333; }
+    .pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 10px;
+      border: 1px solid var(--border);
+    }
+    .pill.pass { color: var(--ok); border-color: var(--ok); }
+    .pill.fail { color: var(--bad); border-color: var(--bad); }
+    a { color: #111; }
+    .steps { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    .step { font-size: 11px; color: var(--muted); }
+    .step.done { color: var(--ok); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Auditable Intent (Stripe autonomous)</h1>
+    <p class="sub">Capture intent → hash → constraint check → pay → audit. Test page before wiring into <a href="/demo.html">main demo</a>.</p>
+
+    <div class="steps" id="steps"></div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>1 · Session & intent</h2>
+        <div class="row">
+          <div>
+            <label>Buyer prompt</label>
+            <textarea id="prompt">running shoes at $150</textarea>
+          </div>
+          <div>
+            <label>Budget (USD)</label>
+            <input id="budget" type="number" value="150" min="1">
+          </div>
+        </div>
+        <button id="btnSession">Create session</button>
+        <button id="btnCapture" class="secondary" disabled>Capture intent</button>
+        <button id="btnPrompt" class="secondary" disabled>ACP session/prompt</button>
+        <p class="hash" id="sessionLine">session: —</p>
+        <p class="hash" id="hashLine">intent hash: —</p>
+      </div>
+
+      <div class="card">
+        <h2>2 · Offer & constraints</h2>
+        <label>Offer from catalog search</label>
+        <select id="offerSelect" disabled><option value="">Run prompt first</option></select>
+        <button id="btnCheck" class="secondary" disabled>Check constraints</button>
+        <button id="btnPay" disabled>Pay with Stripe</button>
+        <p id="checkLine"></p>
+      </div>
+
+      <div class="card">
+        <h2>3 · Audit views</h2>
+        <button id="btnBuyerAudit" class="secondary" disabled>Buyer manifest</button>
+        <button id="btnMerchantAudit" class="secondary" disabled>Merchant view (hash only)</button>
+        <button id="btnFullAudit" class="secondary" disabled>Full audit trail</button>
+      </div>
+
+      <div class="card">
+        <h2>Output</h2>
+        <pre id="out">Ready.</pre>
+      </div>
+    </div>
+  </div>
+
+<script>
+const SELLER = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+  ? 'http://localhost:8002'
+  : 'https://acp-demo-production.up.railway.app';
+
+let sessionId = '';
+let intentHash = '';
+let offers = [];
+let lastCheck = null;
+
+const $ = id => document.getElementById(id);
+const out = msg => { $('out').textContent = typeof msg === 'string' ? msg : JSON.stringify(msg, null, 2); };
+
+function setSteps(done) {
+  const labels = ['Session', 'Intent captured', 'Offers', 'Constraint check', 'Paid', 'Audit'];
+  $('steps').innerHTML = labels.map((l, i) =>
+    `<span class="step ${i < done ? 'done' : ''}">${i + 1}. ${l}</span>`
+  ).join('');
+}
+setSteps(0);
+
+async function rpc(method, params, id = 1) {
+  const r = await fetch(SELLER + '/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ jsonrpc: '2.0', id, method, params }),
+  });
+  return r.json();
+}
+
+async function api(path, opts = {}) {
+  const r = await fetch(SELLER + path, {
+    headers: { 'Content-Type': 'application/json' },
+    ...opts,
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || data.message || r.statusText);
+  return data;
+}
+
+function refreshOfferSelect() {
+  const sel = $('offerSelect');
+  sel.innerHTML = '';
+  if (!offers.length) {
+    sel.innerHTML = '<option value="">No offers</option>';
+    sel.disabled = true;
+    return;
+  }
+  offers.forEach((o, i) => {
+    const opt = document.createElement('option');
+    opt.value = String(i);
+    opt.textContent = `${o.name} · $${o.price} · ${o.category}`;
+    sel.appendChild(opt);
+  });
+  sel.disabled = false;
+  $('btnCheck').disabled = false;
+}
+
+$('btnSession').onclick = async () => {
+  try {
+    await rpc('initialize', { protocolVersion: 1, clientCapabilities: {}, clientInfo: { name: 'intent-demo', version: '1.0.0' } }, 0);
+    const res = await rpc('session/new', { cwd: '/intent-demo', buyerId: 'intent-demo-buyer' });
+    sessionId = res.result?.sessionId;
+    $('sessionLine').textContent = 'session: ' + sessionId;
+    $('btnCapture').disabled = !sessionId;
+    $('btnPrompt').disabled = !sessionId;
+    setSteps(1);
+    out({ sessionId });
+  } catch (e) { out(String(e)); }
+};
+
+$('btnCapture').onclick = async () => {
+  try {
+    const data = await api('/intent/capture', {
+      method: 'POST',
+      body: JSON.stringify({
+        sessionId,
+        prompt: $('prompt').value.trim(),
+        budgetUsd: Number($('budget').value),
+        promptSummary: $('prompt').value.trim(),
+        paymentRail: 'stripe_fiat',
+      }),
+    });
+    intentHash = data.intentHash;
+    $('hashLine').textContent = 'intent hash: ' + intentHash;
+    setSteps(2);
+    out(data);
+  } catch (e) { out(String(e)); }
+};
+
+$('btnPrompt').onclick = async () => {
+  try {
+    const res = await rpc('session/prompt', {
+      sessionId,
+      prompt: [{ type: 'text', text: $('prompt').value.trim() }],
+    });
+    if (res.error) throw new Error(res.error.message);
+    offers = res.result?.offers || [];
+    intentHash = res.result?.intentHash || intentHash;
+    if (intentHash) $('hashLine').textContent = 'intent hash: ' + intentHash;
+    refreshOfferSelect();
+    setSteps(Math.max(2, offers.length ? 3 : 2));
+    out(res.result);
+  } catch (e) { out(String(e)); }
+};
+
+$('btnCheck').onclick = async () => {
+  try {
+    const offer = offers[Number($('offerSelect').value)];
+    lastCheck = await api('/intent/check', {
+      method: 'POST',
+      body: JSON.stringify({ sessionId, offerId: offer.id, offer }),
+    });
+    $('checkLine').innerHTML = `<span class="pill ${lastCheck.pass ? 'pass' : 'fail'}">${lastCheck.constraintCheck}</span> checkout hash: <span class="hash">${lastCheck.checkoutHash}</span>`;
+    $('btnPay').disabled = !lastCheck.pass;
+    $('btnBuyerAudit').disabled = false;
+    $('btnMerchantAudit').disabled = false;
+    $('btnFullAudit').disabled = false;
+    setSteps(4);
+    out(lastCheck);
+  } catch (e) { out(String(e)); }
+};
+
+$('btnPay').onclick = async () => {
+  try {
+    const offer = offers[Number($('offerSelect').value)];
+    const data = await api('/demo/stripe/execute', {
+      method: 'POST',
+      body: JSON.stringify({ sessionId, offerId: offer.id, offer, requireIntent: true }),
+    });
+    if (data.status === 'error') throw new Error(data.error);
+    setSteps(5);
+    out(data);
+  } catch (e) { out(String(e)); }
+};
+
+$('btnBuyerAudit').onclick = async () => {
+  try { out(await api('/intent/manifest/' + sessionId)); } catch (e) { out(String(e)); }
+};
+$('btnMerchantAudit').onclick = async () => {
+  try { out(await api('/intent/merchant/' + sessionId)); } catch (e) { out(String(e)); }
+};
+$('btnFullAudit').onclick = async () => {
+  try { out(await api('/intent/audit/' + sessionId)); setSteps(6); } catch (e) { out(String(e)); }
+};
+</script>
+</body>
+</html>

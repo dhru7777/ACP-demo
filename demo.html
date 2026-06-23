@@ -1743,6 +1743,201 @@
   }
   .flow-group-stripe .flow-group-badge { background: #635bff; color: #fff; }
 
+  /* Verifiable intent audit flow */
+  .flow-group-intent {
+    border-color: rgba(0, 0, 0, 0.22);
+    background: #f8f8f8;
+  }
+  .flow-group-intent .flow-group-badge { background: #444; color: #fff; }
+  .flow-group-intent .proto-step.done .proto-dot {
+    background: #0a7;
+    border-color: #0a7;
+    box-shadow: 0 0 0 2px rgba(10, 119, 85, 0.15);
+  }
+  .flow-group-intent .proto-step.active .proto-dot {
+    background: #0a7;
+    border-color: #0a7;
+  }
+  .intent-audit-compact {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 10px;
+    line-height: 1.35;
+  }
+  .intent-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+  .intent-row.chain {
+    margin-top: 2px;
+    padding-top: 6px;
+    border-top: 1px dashed var(--border);
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+  .intent-row.chain .intent-chain-combo {
+    flex: 1 1 calc(100% - 5.5rem);
+    min-width: 0;
+  }
+  .intent-row.chain .intent-pass-pill {
+    margin-left: auto;
+  }
+  .intent-status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: #ccc;
+  }
+  .intent-row.pass .intent-status-dot {
+    background: #0a7;
+    box-shadow: 0 0 0 2px rgba(10, 119, 85, 0.18);
+  }
+  .intent-row-label {
+    flex: 0 0 auto;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    min-width: 3.2rem;
+  }
+  .intent-row code {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--text);
+    background: transparent;
+    padding: 0;
+  }
+  .intent-pass-pill {
+    margin-left: auto;
+    font-size: 8px;
+    color: #0a7;
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
+  }
+  .bubble.intent-audit-card {
+    font-size: 10px;
+    line-height: 1.4;
+    padding: 8px 10px;
+  }
+  .bubble.intent-audit-card.sys-compact {
+    font-size: 9px;
+    padding: 6px 9px;
+    color: var(--muted);
+  }
+  .intent-audit-hint {
+    margin: 0 0 6px;
+    font-size: 9px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+  .intent-row-details {
+    border-radius: 6px;
+  }
+  .intent-row-details summary.intent-row {
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+  }
+  .intent-row-details summary.intent-row::-webkit-details-marker { display: none; }
+  .intent-row-details summary.intent-row::marker { content: ''; }
+  .intent-chevron {
+    margin-left: auto;
+    font-size: 8px;
+    color: var(--muted);
+    transition: transform 0.15s ease;
+    flex-shrink: 0;
+  }
+  .intent-row-details[open] .intent-chevron { transform: rotate(180deg); }
+  .intent-row-panel {
+    margin: 4px 0 2px 12px;
+    padding: 6px 8px;
+    background: rgba(0, 0, 0, 0.04);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    max-height: 140px;
+    overflow: auto;
+  }
+  .intent-panel-pre {
+    margin: 0;
+    font-family: var(--mono);
+    font-size: 8px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: var(--text);
+  }
+  .intent-chain-combo {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 3px;
+    min-width: 0;
+    flex: 1;
+  }
+  .intent-combo-part,
+  .intent-combo-result {
+    font-family: var(--mono);
+    font-size: 8px;
+    color: var(--text);
+  }
+  .intent-combo-plus {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+    border: 1px solid var(--border-hi);
+    background: #fff;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1;
+    color: var(--muted);
+    flex-shrink: 0;
+    cursor: default;
+  }
+  .intent-combo-eq {
+    font-size: 9px;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+  .intent-merchant-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-bottom: 4px;
+    padding: 5px 7px;
+    background: rgba(0, 0, 0, 0.03);
+    border-radius: 6px;
+    border: 1px dashed var(--border);
+  }
+  .intent-meta-line {
+    display: flex;
+    gap: 6px;
+    font-size: 9px;
+    line-height: 1.35;
+    min-width: 0;
+  }
+  .intent-meta-k {
+    flex: 0 0 auto;
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    min-width: 4.2rem;
+  }
+  .vi-align-spacer {
+    flex-shrink: 0;
+    pointer-events: none;
+  }
+  .bwrap.intent-audit-pair .bubble.intent-audit-card {
+    min-height: 88px;
+  }
+
   /* ERC-8004 feedback flow */
   .flow-group-erc8004 {
     border-color: rgba(0, 0, 0, 0.22);
@@ -2156,21 +2351,6 @@
     letter-spacing: 0.03em;
     line-height: 1.2;
   }
-  .feedback-rank-snapshot {
-    font-size: 7px;
-    line-height: 1.3;
-    color: var(--text);
-    margin: 0;
-    padding: 3px 5px;
-    border-radius: 5px;
-    background: var(--card);
-    border: 1px solid var(--border);
-    text-align: center;
-  }
-  .feedback-rank-pending {
-    color: var(--muted);
-    font-style: italic;
-  }
   .feedback-check-rank-btn {
     display: block;
     width: 100%;
@@ -2412,6 +2592,7 @@
     <button class="btn primary" id="rate-btn" style="display:none" disabled>Rate my agent</button>
     <div class="rating-inline" id="rating-inline" style="display:none"></div>
     <button class="btn primary" id="check-rank-btn" style="display:none">Check agent rank</button>
+    <button class="btn primary" id="verify-intent-btn" style="display:none">Verify intent</button>
     <button class="btn" id="reset-btn" onclick="resetDemo()" style="display:none">Reset</button>
     <div class="pips">
       <div class="pip" id="pip0"></div>
@@ -2515,6 +2696,16 @@ function checkRankLabel() {
   return isMobileLayout() ? 'Check rank' : 'Check agent rank';
 }
 
+function verifyIntentLabel() {
+  return isMobileLayout() ? 'Verify intent' : 'Verify intent';
+}
+
+function shortHash(hash) {
+  if (!hash || typeof hash !== 'string') return '—';
+  if (hash.length <= 14) return hash;
+  return hash.slice(0, 8) + '…' + hash.slice(-4);
+}
+
 function checkRankWhyGuide() {
   if (isMobileLayout()) {
     return 'ERC-8004 stored your rating on-chain — seller reputation and rank went up, improving discoverability';
@@ -2527,28 +2718,6 @@ function profileRankViewGuide() {
     return 'Rank shows on-chain ERC-8004 reputation from your feedback · Reset to replay';
   }
   return 'Rank tab shows how your ERC-8004 feedback built on-chain reputation — higher rank means better discoverability · Reset to replay';
-}
-
-function buildFeedbackRankSnapshotHtml(result) {
-  const after = result?.rankingAfter || {};
-  const delta = result?.rankingDelta || {};
-  const pending = result?.indexerStatus === 'pending';
-  const parts = [];
-  if (after.healthScore != null) {
-    const d = delta.healthScore;
-    parts.push(`Health ${after.healthScore}${d && d !== '0' ? ` (${d})` : ''}`);
-  }
-  if (after.activity != null) {
-    const d = delta.activity;
-    parts.push(`Activity ${after.activity}${d && d !== '0' ? ` (${d})` : ''}`);
-  }
-  if (after.feedbackCount != null) {
-    const d = delta.feedbackCount;
-    parts.push(`Feedbacks ${after.feedbackCount}${d && d !== '0' ? ` (${d})` : ''}`);
-  }
-  if (!parts.length) return '';
-  const pendingNote = pending ? '<span class="feedback-rank-pending">syncing · </span>' : '';
-  return `<div class="feedback-rank-snapshot">${pendingNote}${escHtml(parts.join(' · '))}</div>`;
 }
 
 async function openAgentProfileTab(tabId = 'ranking', opts = {}) {
@@ -2589,6 +2758,7 @@ function showPostFeedbackActions(result) {
   bottom?.classList.add('bottom--post-feedback');
 
   const checkBtn = document.getElementById('check-rank-btn');
+  const verifyBtn = document.getElementById('verify-intent-btn');
   const resetBtn = document.getElementById('reset-btn');
   const profileBtn = document.querySelector('#agent-profile-wrap-seller .profile-btn');
 
@@ -2597,12 +2767,22 @@ function showPostFeedbackActions(result) {
     checkBtn.textContent = checkRankLabel();
     checkBtn.onclick = () => openAgentProfileTab('ranking');
   }
+  if (verifyBtn) {
+    const showVerify = !!_intentAudit?.chainHash;
+    verifyBtn.style.display = showVerify ? '' : 'none';
+    verifyBtn.textContent = verifyIntentLabel();
+    verifyBtn.disabled = !!_verifyIntentDone;
+    verifyBtn.onclick = () => startVerifyIntentWalkthrough();
+  }
   if (resetBtn) resetBtn.style.display = '';
   profileBtn?.classList.add('profile-btn--hint');
 
+  const guideTargets = [checkBtn, verifyBtn, profileBtn].filter(el => el && el.style.display !== 'none');
   setDemoGuide({
-    targets: [checkBtn, profileBtn].filter(Boolean),
-    next: checkRankWhyGuide(),
+    targets: guideTargets,
+    next: _intentAudit?.chainHash
+      ? 'Check rank, then verify auditable intent chain'
+      : checkRankWhyGuide(),
   });
 }
 
@@ -2629,9 +2809,14 @@ function guideForStart() {
   document.querySelector('.bottom')?.classList.remove('bottom--post-feedback');
   document.querySelector('#agent-profile-wrap-seller .profile-btn')?.classList.remove('profile-btn--hint');
   const checkBtn = document.getElementById('check-rank-btn');
+  const verifyBtn = document.getElementById('verify-intent-btn');
   if (checkBtn) {
     checkBtn.style.display = 'none';
     checkBtn.onclick = null;
+  }
+  if (verifyBtn) {
+    verifyBtn.style.display = 'none';
+    verifyBtn.onclick = null;
   }
   setDemoGuide({
     target: document.getElementById('next-btn'),
@@ -2760,6 +2945,21 @@ function measureFlowGroupMarginTop(bubbleWrap, flowKind) {
     return Math.max(8, Math.round(targetTop - arrows.getBoundingClientRect().top));
   }
 
+  if (flowKind === 'intent') {
+    const targetTop = flowAlignTargetTop(bubbleWrap);
+    const prevGroup = document.querySelector('.flow-group-erc8004')
+      || document.querySelector('.flow-group-stripe')
+      || acp
+      || null;
+    if (prevGroup) {
+      const prevBottom = prevGroup.getBoundingClientRect().bottom;
+      const flexGap = 8;
+      const pullUp = 18;
+      return Math.max(4, Math.round(targetTop - prevBottom - flexGap - pullUp));
+    }
+    return Math.max(8, Math.round(targetTop - arrows.getBoundingClientRect().top));
+  }
+
   if (flowKind === 'x402' || flowKind === 'stripe') {
     const targetTop = flowAlignTargetTop(bubbleWrap);
     const prevGroup = acp || null;
@@ -2791,8 +2991,8 @@ function applyFlowGroupMargin(flowKind, bubbleWrap) {
     group.style.transition = '';
     return;
   }
-  if (flowKind === 'erc8004' || flowKind === 'x402' || flowKind === 'stripe') {
-    const pullUp = flowKind === 'erc8004' ? 18 : 22;
+  if (flowKind === 'erc8004' || flowKind === 'x402' || flowKind === 'stripe' || flowKind === 'intent') {
+    const pullUp = (flowKind === 'erc8004' || flowKind === 'intent') ? 18 : 22;
     const desiredTop = flowAlignTargetTop(bubbleWrap) - pullUp;
     const delta = group.getBoundingClientRect().top - desiredTop;
     if (Math.abs(delta) > 1) {
@@ -3131,6 +3331,302 @@ function markErc8004PipelineComplete() {
     el.classList.remove('active');
     el.classList.add('done');
   });
+}
+
+function ensureIntentShell() {
+  const target = lastBubbleWrap('feed-buyer') || erc8004SharedAlignTarget();
+  const existing = document.querySelector('.flow-group-intent');
+  if (existing) {
+    _flowGroupBody = existing.querySelector('.flow-group-body');
+    _intentPipelineEl = existing.querySelector('#intent-pipeline');
+    return existing;
+  }
+  beginFlowGroup('intent', target);
+  const pipe = document.createElement('div');
+  pipe.className = 'proto-pipeline';
+  pipe.id = 'intent-pipeline';
+  _flowGroupBody.appendChild(pipe);
+  _intentPipelineEl = pipe;
+  return document.querySelector('.flow-group-intent');
+}
+
+function revealIntentStep(stepId) {
+  ensureIntentShell();
+  const step = INTENT_VERIFY_STEPS.find(s => s.id === stepId);
+  if (!step) return;
+  const pipe = _intentPipelineEl;
+  const order = INTENT_VERIFY_STEPS.map(s => s.id);
+  let row = pipe.querySelector(`[data-step-id="${stepId}"]`);
+  if (!row) {
+    if (pipe.querySelectorAll('.proto-step').length > 0) {
+      const conn = document.createElement('div');
+      conn.className = 'proto-connector';
+      pipe.appendChild(conn);
+    }
+    row = document.createElement('div');
+    row.className = 'proto-step';
+    row.dataset.stepId = stepId;
+    row.innerHTML = `<span class="proto-dot"></span><span>${escHtml(intentStepDisplayLabel(step))}<span class="proto-rule">${escHtml(step.rule)}</span></span>`;
+    pipe.appendChild(row);
+    revealEl(row, 'revealed');
+  }
+  const activeIdx = order.indexOf(stepId);
+  pipe.querySelectorAll('.proto-step').forEach(el => {
+    const idx = order.indexOf(el.dataset.stepId);
+    el.classList.remove('done', 'active');
+    if (idx < activeIdx) el.classList.add('done');
+    else if (idx === activeIdx) el.classList.add('active');
+  });
+  const target = lastBubbleWrap('feed-buyer') || lastBubbleWrap('feed-seller');
+  if (target) waitForBubbleLayout(target).then(() => alignFlowGroupToBubble('intent', target));
+}
+
+function intentStepDisplayLabel(step) {
+  if (!isSmallPhoneLayout()) return step.label;
+  return step.label;
+}
+
+function formatManifestPanel(manifest) {
+  if (!manifest) return 'Manifest unavailable — open intent row after verify.';
+  const c = manifest.constraints || {};
+  const lines = [];
+  if (manifest.prompt_summary || manifest.prompt) {
+    lines.push('prompt: ' + (manifest.prompt_summary || manifest.prompt));
+  }
+  if (c.budget_usd != null) lines.push('budget: ≤ $' + c.budget_usd);
+  if (c.category_allowed?.length) lines.push('category: ' + c.category_allowed.join(', '));
+  if (c.payment_rails_allowed?.length) lines.push('rails: ' + c.payment_rails_allowed.join(', '));
+  if (manifest.captured_at) lines.push('captured: ' + manifest.captured_at);
+  lines.push('');
+  lines.push('manifest (canonical):');
+  try {
+    lines.push(JSON.stringify(manifest, null, 2));
+  } catch (e) {
+    lines.push(String(manifest));
+  }
+  return lines.join('\n');
+}
+
+function formatPayPanel(audit, merchantAudit) {
+  const provider = audit.paymentProvider || merchantAudit?.paymentProvider || '—';
+  const pay = audit.payment || merchantAudit?.payment || {};
+  const lines = [
+    'provider: ' + provider,
+    'constraint: ' + (audit.constraintCheck || merchantAudit?.constraintCheck || 'PASS'),
+  ];
+  if (provider === 'x402' || pay.txHash) {
+    if (pay.txHash) lines.push('txHash: ' + pay.txHash);
+    if (pay.usdcAtomic) lines.push('usdcAtomic: ' + pay.usdcAtomic);
+    if (pay.payer) lines.push('payer: ' + pay.payer);
+  } else {
+    if (pay.amountCents != null) lines.push('amount: $' + (pay.amountCents / 100).toFixed(2));
+    if (pay.paymentIntentId) lines.push('paymentIntentId: ' + pay.paymentIntentId);
+  }
+  if (audit.paymentHash) lines.push('', 'payment hash: ' + audit.paymentHash);
+  return lines.join('\n');
+}
+
+function formatMerchantMeta(merchantAudit) {
+  const offer = merchantAudit?.offer;
+  const rows = [];
+  if (offer?.name) {
+    const price = offer.price != null ? ' · $' + offer.price : '';
+    rows.push({ k: 'offer', v: offer.name + price });
+  }
+  if (merchantAudit?.constraintCheck) rows.push({ k: 'constraints', v: merchantAudit.constraintCheck });
+  if (merchantAudit?.paymentProvider) rows.push({ k: 'rail', v: merchantAudit.paymentProvider });
+  rows.push({ k: 'shared', v: 'chain hash only — no full manifest' });
+  return rows;
+}
+
+function buildIntentRowDetails(key, hash, panelText) {
+  return `<details class="intent-row-details pass">
+    <summary class="intent-row">
+      <span class="intent-status-dot"></span>
+      <span class="intent-row-label">${escHtml(key)}</span>
+      <code>${escHtml(shortHash(hash))}</code>
+      <span class="intent-chevron" aria-hidden="true">▾</span>
+    </summary>
+    <div class="intent-row-panel">
+      <pre class="intent-panel-pre">${escHtml(panelText)}</pre>
+    </div>
+  </details>`;
+}
+
+function buildChainRow(audit, role) {
+  const ch = audit.chainHash;
+  if (role === 'seller') {
+    return `<div class="intent-row chain pass">
+      <span class="intent-status-dot"></span>
+      <span class="intent-row-label">chain</span>
+      <code>${escHtml(shortHash(ch))}</code>
+      <span class="intent-pass-pill">PASS</span>
+    </div>`;
+  }
+  const ih = audit.intentHash;
+  const ph = audit.paymentHash;
+  return `<div class="intent-row chain pass">
+    <span class="intent-status-dot"></span>
+    <span class="intent-row-label">chain</span>
+    <div class="intent-chain-combo">
+      <code class="intent-combo-part">${escHtml(shortHash(ih))}</code>
+      <span class="intent-combo-plus" title="Combined: sha256(intent_hash + payment_hash)">+</span>
+      <code class="intent-combo-part">${escHtml(shortHash(ph))}</code>
+      <span class="intent-combo-eq">=</span>
+      <code class="intent-combo-result">${escHtml(shortHash(ch))}</code>
+    </div>
+    <span class="intent-pass-pill">PASS</span>
+  </div>`;
+}
+
+function buildBuyerIntentAuditHtml(audit, merchantAudit) {
+  return `<div class="intent-audit-compact">
+    <p class="intent-audit-hint">During audit, use the chain hash as your reference.</p>
+    ${buildIntentRowDetails('intent', audit.intentHash, formatManifestPanel(audit.manifest))}
+    ${buildIntentRowDetails('pay', audit.paymentHash, formatPayPanel(audit, merchantAudit))}
+    ${buildChainRow(audit, 'buyer')}
+  </div>`;
+}
+
+function buildSellerIntentAuditHtml(audit, merchantAudit) {
+  const metaHtml = formatMerchantMeta(merchantAudit).map(m =>
+    `<div class="intent-meta-line"><span class="intent-meta-k">${escHtml(m.k)}</span><span>${escHtml(m.v)}</span></div>`
+  ).join('');
+  return `<div class="intent-audit-compact">
+    <p class="intent-audit-hint">Metadata shared with merchant.</p>
+    <div class="intent-merchant-meta">${metaHtml}</div>
+    ${buildChainRow(audit, 'seller')}
+  </div>`;
+}
+
+function addViAlignSpacer(feedId, heightPx) {
+  const spacer = document.createElement('div');
+  spacer.className = 'vi-align-spacer';
+  spacer.style.height = Math.max(0, Math.round(heightPx)) + 'px';
+  spacer.setAttribute('aria-hidden', 'true');
+  document.getElementById(feedId).appendChild(spacer);
+  return spacer;
+}
+
+function syncFeedsForViPair() {
+  const buyerFeed = document.getElementById('feed-buyer');
+  const sellerFeed = document.getElementById('feed-seller');
+  if (!buyerFeed || !sellerFeed) return;
+  const diff = buyerFeed.offsetHeight - sellerFeed.offsetHeight;
+  if (diff > 8) addViAlignSpacer('feed-seller', diff);
+  else if (diff < -8) addViAlignSpacer('feed-buyer', -diff);
+}
+
+function addIntentAuditCard(feedId, label, html, options = {}) {
+  const { scroll = true } = options;
+  const wrap = document.createElement('div');
+  wrap.className = 'bwrap recv ' + feedAgentClass(feedId);
+  const lb = document.createElement('div');
+  lb.className = 'blabel';
+  lb.textContent = label;
+  wrap.appendChild(lb);
+  const b = document.createElement('div');
+  b.className = 'bubble inc intent-audit-card';
+  b.innerHTML = html;
+  wrap.appendChild(b);
+  document.getElementById(feedId).appendChild(wrap);
+  revealEl(wrap);
+  if (scroll) scrollToLatest();
+  return wrap;
+}
+
+function addIntentAuditPair(audit, merchantAudit) {
+  syncFeedsForViPair();
+  const buyerWrap = addIntentAuditCard(
+    'feed-buyer', 'buyer · VI', buildBuyerIntentAuditHtml(audit, merchantAudit), { scroll: false }
+  );
+  const sellerWrap = addIntentAuditCard(
+    'feed-seller', 'seller · VI', buildSellerIntentAuditHtml(audit, merchantAudit), { scroll: false }
+  );
+  buyerWrap.classList.add('intent-audit-pair');
+  sellerWrap.classList.add('intent-audit-pair');
+  scrollToLatest();
+  requestAnimationFrame(() => softScrollToBubble(buyerWrap));
+  return { buyerWrap, sellerWrap };
+}
+
+function addIntentCompactSys(feedId, text) {
+  const wrap = document.createElement('div');
+  wrap.className = 'bwrap mid show ' + feedAgentClass(feedId);
+  const b = document.createElement('div');
+  b.className = 'bubble sys intent-audit-card sys-compact';
+  b.innerHTML = `<span class="intent-row pass"><span class="intent-status-dot"></span><span>${escHtml(text)}</span></span>`;
+  wrap.appendChild(b);
+  document.getElementById(feedId).appendChild(wrap);
+  revealEl(wrap);
+  scrollToLatest();
+  return wrap;
+}
+
+async function startVerifyIntentWalkthrough() {
+  if (_verifyIntentDone || !activeSession || !_intentAudit?.chainHash) return;
+  const verifyBtn = document.getElementById('verify-intent-btn');
+  if (verifyBtn) {
+    verifyBtn.disabled = true;
+    verifyBtn.textContent = isMobileLayout() ? 'Verifying…' : 'Verifying intent…';
+  }
+  clearDemoGuideHighlight();
+  setWorking('Verifying intent chain', 'Intent → Pay → Chain');
+
+  let audit = null;
+  let merchantAudit = null;
+  try {
+    const r = await fetch(SELLER + '/intent/audit/' + activeSession, { cache: 'no-store' });
+    audit = await r.json();
+    if (r.ok && audit?.buyer?.found) {
+      const lastPay = Array.isArray(audit.buyer.payments) && audit.buyer.payments.length
+        ? audit.buyer.payments[audit.buyer.payments.length - 1]
+        : null;
+      _intentAudit = {
+        ..._intentAudit,
+        intentHash: audit.buyer.intentHash || _intentAudit.intentHash,
+        paymentHash: audit.buyer.paymentHash || _intentAudit.paymentHash,
+        chainHash: audit.buyer.chainHash || _intentAudit.chainHash,
+        manifest: audit.buyer.manifest || _intentAudit.manifest,
+        paymentProvider: audit.buyer.paymentProvider || _intentAudit.paymentProvider,
+        payment: lastPay || _intentAudit.payment,
+        constraintCheck: lastPay?.constraintCheck || _intentAudit.constraintCheck,
+      };
+    }
+    if (r.ok && audit?.merchant?.found) merchantAudit = audit.merchant;
+  } catch (e) { /* use cached _intentAudit */ }
+
+  endFlowGroup();
+  ensureIntentShell();
+  revealIntentStep('capture');
+  await delay(400);
+  revealIntentStep('payment');
+  await delay(400);
+  revealIntentStep('chain');
+  await delay(350);
+
+  addIntentAuditPair(_intentAudit, merchantAudit);
+
+  const pipeDone = _intentPipelineEl;
+  if (pipeDone) {
+    pipeDone.querySelectorAll('.proto-step').forEach(el => {
+      el.classList.remove('active');
+      el.classList.add('done');
+    });
+  }
+
+  _verifyIntentDone = true;
+  if (verifyBtn) {
+    verifyBtn.textContent = verifyIntentLabel();
+    verifyBtn.disabled = true;
+  }
+  const resetBtn = document.getElementById('reset-btn');
+  setDemoGuide({
+    target: resetBtn,
+    next: 'Intent verified — reset to replay',
+  });
+  setStatus('VI chain verified · buyer keeps manifest, merchant gets chain hash.');
+  softScrollToBubble(lastBubbleWrap('feed-buyer'));
 }
 
 function updateErc8004VerifyLinks(result) {
@@ -3550,7 +4046,6 @@ function addBuyerFeedbackAck(result, score) {
       <div class="feedback-received-label">Submitted on-chain ✓</div>
       <div class="feedback-received-stars">${starStr}</div>
     </div>
-    ${buildFeedbackRankSnapshotHtml(result)}
     <button type="button" class="feedback-check-rank-btn">${escHtml(checkRankLabel())} →</button>
   `;
   appendFeedbackVerifyLinks(b, result, { buyerLabels: true });
@@ -4526,6 +5021,8 @@ document.addEventListener('DOMContentLoaded', () => {
     syncRateBtnLabel();
     const checkBtn = document.getElementById('check-rank-btn');
     if (checkBtn && checkBtn.style.display !== 'none') checkBtn.textContent = checkRankLabel();
+    const verifyBtn = document.getElementById('verify-intent-btn');
+    if (verifyBtn && verifyBtn.style.display !== 'none' && !verifyBtn.disabled) verifyBtn.textContent = verifyIntentLabel();
   });
 });
 
@@ -5105,7 +5602,18 @@ const FLOW_GROUP_META = {
   x402:   { badge: 'x402',   title: 'Crypto settlement · USDC' },
   stripe: { badge: 'Stripe', title: 'Fiat settlement · Stripe test' },
   erc8004: { badge: '8004',  title: 'Reputation registry' },
+  intent: { badge: 'VI', title: 'Verifiable intent' },
 };
+
+const INTENT_VERIFY_STEPS = [
+  { id: 'capture', label: 'Intent', rule: 'manifest hash' },
+  { id: 'payment', label: 'Pay', rule: 'receipt hash' },
+  { id: 'chain', label: 'Chain', rule: 'to merchant' },
+];
+
+let _intentAudit = null;
+let _verifyIntentDone = false;
+let _intentPipelineEl = null;
 
 const FEEDBACK_COMMENT_SAMPLES = [
   'Smooth checkout — USDC settled fast.',
@@ -5143,7 +5651,7 @@ function beginFlowGroup(kind, alignBubble) {
   body.className = 'flow-group-body';
   group.appendChild(head);
   group.appendChild(body);
-  const isAlignedGroup = kind === 'x402' || kind === 'stripe' || kind === 'erc8004';
+  const isAlignedGroup = kind === 'x402' || kind === 'stripe' || kind === 'erc8004' || kind === 'intent';
   if (isAlignedGroup && alignBubble) {
     group.style.visibility = 'hidden';
     group.style.marginTop = '0px';
@@ -5432,6 +5940,17 @@ async function showOffers(res, promptText) {
   const iLines = [`"${intentQuery}"`, `budget: ≤ $${budget} (catalog search)`];
   addBubble('feed-seller', 'mid', `intent resolved${claudeTag}`, iLines.join('\n'));
   await delay(700);
+
+  if (res.intentHash) {
+    _intentAudit = {
+      intentHash: res.intentHash,
+      capturedAt: res.intentCapturedAt,
+      promptSummary: intentQuery,
+      budget,
+    };
+    addIntentCompactSys('feed-buyer', `intent ${shortHash(res.intentHash)}`);
+    await delay(400);
+  }
 
   if (offers.length === 0) {
     addBubble('feed-seller', 'sent', 'seller  →  buyer   |   session/update',
@@ -5979,6 +6498,16 @@ amount: $${pendingOffer.price.toFixed(2)} USD`);
       const rcptS = stripeResult.receipt || {};
       const amtUsd = ((rcptS.amountCents || 0) / 100).toFixed(2);
 
+      if (rcptS.intentHash || rcptS.chainHash) {
+        _intentAudit = {
+          ...(_intentAudit || {}),
+          intentHash: rcptS.intentHash || _intentAudit?.intentHash,
+          paymentHash: rcptS.paymentHash,
+          chainHash: rcptS.chainHash,
+          constraintCheck: rcptS.constraintCheck,
+        };
+      }
+
       addBubble('feed-seller', 'mid', '', 'Stripe · charge succeeded ✓');
       await delay(400);
 
@@ -6036,6 +6565,10 @@ amount: $${pendingOffer.price.toFixed(2)} USD`);
 
       addFiatReceiptBubble('feed-buyer',  rcptS, pendingOffer, fiatReceiptPayload);
       addFiatReceiptBubble('feed-seller', rcptS, pendingOffer, fiatReceiptPayload);
+      if (_intentAudit?.chainHash) {
+        addIntentCompactSys('feed-buyer', `pay ${shortHash(_intentAudit.paymentHash)} · chain ${shortHash(_intentAudit.chainHash)}`);
+        addIntentCompactSys('feed-seller', `chain ${shortHash(_intentAudit.chainHash)}`);
+      }
       await delay(400);
 
       // Auto-open both wallet popovers on the Fiat tab so the user sees the balance update
@@ -6199,6 +6732,17 @@ amount: ${usdcDue} USDC`);
     await ensureReceiptGas(rcpt, payResult);
     payResult.receipt = rcpt;
 
+    if (rcpt.intentHash || rcpt.chainHash) {
+      _intentAudit = {
+        ...(_intentAudit || {}),
+        intentHash: rcpt.intentHash || _intentAudit?.intentHash,
+        paymentHash: rcpt.paymentHash,
+        chainHash: rcpt.chainHash,
+        constraintCheck: rcpt.constraintCheck,
+        paymentProvider: rcpt.paymentProvider || 'x402',
+      };
+    }
+
     const buyerSnap   = walletAfter.buyer?.full  || _walletCache.buyer;
     const sellerSnap  = walletAfter.seller?.full || _walletCache.seller;
     const buyerPayHint  = formatWalletPayHint(`Paid ${rcpt.usdcPaid || usdcDue} USDC`, rcpt.ethGas);
@@ -6210,6 +6754,11 @@ amount: ${usdcDue} USDC`);
 
     addChatWalletBubble('feed-buyer', 'buyer', buyerSnap, buyerPayHint, rcpt.txHash, rcpt.usdcPaid, receiptPayload, payResult);
     addChatWalletBubble('feed-seller', 'seller', sellerSnap, sellerPayHint, rcpt.txHash, rcpt.usdcPaid, receiptPayload, payResult);
+
+    if (_intentAudit?.chainHash) {
+      addIntentCompactSys('feed-buyer', `pay ${shortHash(_intentAudit.paymentHash)} · chain ${shortHash(_intentAudit.chainHash)}`);
+      addIntentCompactSys('feed-seller', `chain ${shortHash(_intentAudit.chainHash)}`);
+    }
 
     setWalletPayHint(buyerPayHint, sellerPayHint);
     await Promise.all(['buyer', 'seller'].map(r => fetchWallet(r, true)));
@@ -6238,7 +6787,7 @@ function resetDemo() {
   clearFeed('feed-seller');
   document.getElementById('arrows').innerHTML = '';
   endFlowGroup();
-  document.querySelectorAll('.flow-group-acp, .flow-group-x402, .flow-group-erc8004').forEach(el => {
+  document.querySelectorAll('.flow-group-acp, .flow-group-x402, .flow-group-erc8004, .flow-group-intent').forEach(el => {
     el.style.marginTop = '';
     el.style.visibility = '';
   });
@@ -6265,6 +6814,9 @@ function resetDemo() {
   promptInFlight = false; promptTurnAborted = false; activePromptController = null;
   _lastPaymentTrust = null;
   _lastPaymentContext = null;
+  _intentAudit = null;
+  _verifyIntentDone = false;
+  _intentPipelineEl = null;
   _feedbackSubmitted = false;
   _feedbackSubmitting = false;
   _profileRefreshTimers.forEach(t => clearTimeout(t));
@@ -6290,6 +6842,12 @@ function resetDemo() {
   if (checkBtn) {
     checkBtn.style.display = 'none';
     checkBtn.onclick = null;
+  }
+  const verifyBtn = document.getElementById('verify-intent-btn');
+  if (verifyBtn) {
+    verifyBtn.style.display = 'none';
+    verifyBtn.disabled = false;
+    verifyBtn.onclick = null;
   }
   const rateBtn = document.getElementById('rate-btn');
   if (rateBtn) {

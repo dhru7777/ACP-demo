@@ -131,6 +131,7 @@ async def execute_payment(
     catalog_usd: float,
     offer_id: str,
     offer_name: str = "",
+    metadata_extra: dict | None = None,
 ) -> dict:
     import asyncio
     import stripe as stripe_module
@@ -150,6 +151,8 @@ async def execute_payment(
             "automatic_payment_methods": {"enabled": True, "allow_redirects": "never"},
             "metadata": {"offerId": offer_id, "offerName": offer_name, "demo": "acp"},
         }
+        if metadata_extra:
+            params["metadata"].update({k: str(v) for k, v in metadata_extra.items() if v is not None})
         if wallet.customer_id:
             params["customer"] = wallet.customer_id
         if use_connect and seller_id:

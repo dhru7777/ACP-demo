@@ -1,12 +1,13 @@
 # ACP Demo — Agentic Commerce on Nike
 
-**Capturing Intent Over Attention in Agentic Payments** — a seven-day build that takes two AI agents from handshake to real money movement to on-chain identity.
+**Capturing Intent Over Attention in Agentic Payments** — an eight-day build that takes two AI agents from handshake to real money movement to on-chain identity to auditable buyer intent.
 
 | Layer | Protocol | Question it answers |
 |-------|----------|---------------------|
 | Negotiation | **ACP** (Agent Client Protocol) | Can these agents agree on an offer? |
 | Settlement | **x402** (USDC) + **Stripe** (fiat) | Did payment complete on the chosen rail? |
 | Trust | **ERC-8004** + [8004scan](https://testnet.8004scan.io) | Who is this agent, and can I verify it? |
+| Intent | **VI** (Verifiable Intent, auditable) | Was payment within what the buyer captured? |
 
 **Live demo:** [dheeraj-agentic-communication-demo.netlify.app](https://dheeraj-agentic-communication-demo.netlify.app)  
 **Live seller API:** [acp-demo-production.up.railway.app](https://acp-demo-production.up.railway.app)  
@@ -23,8 +24,9 @@ A Nike-themed **buyer ↔ seller** demo:
 3. **Catalog** — 100 Nike items; fuzzy search + optional Claude Haiku intent parsing.
 4. **Payment** — buyer picks **Crypto (USDC on Base Sepolia)** or **Fiat (Stripe test card ···4242)**.
 5. **Profile** — seller **◎** panel shows ERC-8004 identity, 8004scan rank, feedback, and verify links.
+6. **Verifiable Intent** — buyer manifest hashed at offer time; constraints enforced before pay; chain hash shared with merchant for audit.
 
-Open the [live demo](https://dheeraj-agentic-communication-demo.netlify.app) or `demo.html` locally for the three-column stage: **Buyer** | **Protocols (ACP · x402 · Stripe)** | **Seller**.
+Open the [live demo](https://dheeraj-agentic-communication-demo.netlify.app) or `demo.html` locally for the three-column stage: **Buyer** | **Protocols (ACP · x402 · Stripe · VI)** | **Seller**.
 
 The Netlify site is static UI only; all agent calls go to the **Railway seller API** (`acp-demo-production.up.railway.app`). ERC-8004 on 8004scan registers that Railway URL, not the Netlify frontend.
 
@@ -41,7 +43,7 @@ pip install -r requirements.txt
 cp local.env.example local.env
 # Fill keys: ANTHROPIC_API_KEY (optional), wallets, SCAN8004_API_KEY, Stripe (fiat)
 
-# Terminal 1 — seller (ACP + x402 + Stripe + ERC-8004)
+# Terminal 1 — seller (ACP + x402 + Stripe + ERC-8004 + VI)
 uvicorn seller_agent:app --host 0.0.0.0 --port 8002 --reload
 
 # Terminal 2 — demo UI
@@ -51,13 +53,15 @@ python3 -m http.server 8080
 
 **Profile locally:** 8004scan registers your Railway URL, not `localhost`. Set `ERC8004_SERVICE_URL=https://acp-demo-production.up.railway.app` or `ERC8004_AGENT_ID=6832` in `local.env`.
 
-**Smoke test:** Start → Handshake → Session → *"running shoes at $150"* → pick offer → Payment → Crypto or Fiat → seller **◎ Profile** → Verify tab → 8004scan link.
+**VI test page:** `http://localhost:8002/intent-demo.html` (served by seller).
+
+**Smoke test:** Start → Handshake → Session → *"running shoes at $150"* → pick offer → Payment → Crypto or Fiat → ERC-8004 feedback → **Verify intent** → seller **◎ Profile** → 8004scan link.
 
 Hard refresh after UI changes (`Cmd+Shift+R`). Footer shows build stamp (e.g. `build 2026-06-07g`).
 
 ---
 
-## Seven-day arc
+## Eight-day arc
 
 | Day | README | You shipped |
 |-----|--------|-------------|
@@ -68,8 +72,9 @@ Hard refresh after UI changes (`Cmd+Shift+R`). Footer shows build stamp (e.g. `b
 | **5** | [README_DAY5.md](./README_DAY5.md) | x402 USDC, live wallets, PDF receipts |
 | **6** | [README_DAY6.md](./README_DAY6.md) | Stripe fiat + buyer payment rail choice |
 | **7** | [README_DAY7.md](./README_DAY7.md) | ERC-8004 trust layer + ◎ profile UI |
+| **8** | [README_DAY8.md](./README_DAY8.md) | Verifiable Intent — hash chain, constraints, VI UI |
 
-**Latest chapter:** [README_DAY7.md](./README_DAY7.md) — ERC-8004 trust layer, `GET /agent/erc8004`, ◎ profile UI, 8004scan integration.
+**Latest chapter:** [README_DAY8.md](./README_DAY8.md) — auditable Verifiable Intent, `intent/` package, chain hash audit, Verify intent UI.
 
 ---
 
@@ -77,13 +82,19 @@ Hard refresh after UI changes (`Cmd+Shift+R`). Footer shows build stamp (e.g. `b
 
 ```
 acp-demo/
-├── demo.html              # Buyer/seller UI, wallets, ◎ profile
-├── seller_agent.py        # ACP + payments + GET /agent/erc8004
+├── demo.html              # Buyer/seller UI, wallets, ◎ profile, VI verify
+├── seller_agent.py        # ACP + payments + ERC-8004 + intent routes
 ├── buyer_agent.py         # Terminal buyer script
 ├── session_manager.py     # Session history + payment receipts
 ├── search.py              # Catalog search (100 Nike items)
 ├── payments/              # x402, Stripe, wallets, chain reads
 ├── trust/                 # ERC-8004 + 8004scan (Day 7)
+├── intent/                # Verifiable Intent (Day 8)
+│   ├── CONSTRAINTS.md     # Buyer policy vocabulary
+│   ├── intent-demo.html   # Standalone VI test page
+│   ├── manifest.py        # Hash chain helpers
+│   ├── service.py         # Capture, check, audit
+│   └── ...
 ├── local.env.example      # Env var reference
 └── README_DAY*.md         # One chapter per build day
 ```
@@ -110,8 +121,8 @@ ERC-8004 agent ID is **auto-discovered** from the seller's public URL when `ERC8
 
 ## Thesis
 
-Commerce between AI agents needs **intent** (what the buyer wants), **session** (a real conversation), **payment** (money that moves), and **trust** (verifiable identity). This repo implements that stack in public — one day at a time.
+Commerce between AI agents needs **intent** (what the buyer wants), **session** (a real conversation), **payment** (money that moves), **trust** (verifiable identity), and **audit** (proof payment matched captured constraints). This repo implements that stack in public — one day at a time.
 
 ---
 
-*One-liner: **Nike agentic commerce demo — ACP for negotiation, x402 and Stripe for payment, ERC-8004 for who the seller is.** Open ◎ and show Attention Agent on Base Sepolia.*
+*One-liner: **Nike agentic commerce demo — ACP for negotiation, x402 and Stripe for payment, ERC-8004 for who the seller is, VI for what the buyer authorized.***
