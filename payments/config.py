@@ -23,16 +23,34 @@ DEFAULT_EXPLORER = "https://sepolia.basescan.org"
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
-def _load_dotenv() -> None:
+def _load_dotenv_fallback(path: Path) -> None:
+    """Minimal parser when python-dotenv is not installed."""
     try:
-        from dotenv import load_dotenv
-    except ImportError:
+        for line in path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, val = line.split("=", 1)
+            key = key.strip()
+            val = val.strip().strip('"').strip("'")
+            if key and key not in os.environ:
+                os.environ[key] = val
+    except OSError:
         return
+
+
+def _load_dotenv() -> None:
     for name in ("local.env", ".env"):
         path = _REPO_ROOT / name
-        if path.is_file():
+        if not path.is_file():
+            continue
+        try:
+            from dotenv import load_dotenv
+
             load_dotenv(path)
-            break
+        except ImportError:
+            _load_dotenv_fallback(path)
+        break
 
 
 _load_dotenv()

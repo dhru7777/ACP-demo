@@ -1,4 +1,4 @@
-"""Backward-compatible shim — use `from acp import session_manager`."""
+"""ACP protocol primitives — session lifecycle for buyer/seller agents."""
 
 from acp.session_manager import SessionManager, session_manager
 

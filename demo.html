@@ -52,6 +52,9 @@
   .demo-scroll::-webkit-scrollbar { display: none; }
   .demo-footer {
     flex-shrink: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
     background: var(--bg);
     z-index: 30;
     box-shadow: 0 -1px 0 var(--border);
@@ -69,6 +72,121 @@
   .header-title { font-size: 11px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
   .header-sub   { font-size: 18px; font-weight: 300; color: var(--text); margin-top: 4px; letter-spacing: -0.01em; }
   .header-right { font-size: 10px; color: var(--dim); text-align: right; line-height: 2; }
+
+  /* Token cost meter */
+  .token-meter {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    min-width: 140px;
+    margin-left: 16px;
+    position: relative;
+  }
+  .token-meter-label {
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .token-meter-total {
+    font-size: 11px;
+    color: var(--text);
+    font-weight: 500;
+    cursor: default;
+  }
+  .token-meter-bar {
+    display: flex;
+    width: 120px;
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--card);
+    cursor: default;
+  }
+  .token-meter-seg {
+    height: 100%;
+    min-width: 2px;
+    transition: width 0.3s ease;
+  }
+  .token-meter-legend {
+    display: flex;
+    gap: 10px;
+    font-size: 8px;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+  .token-meter-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .token-legend-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .token-cost-tip {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 168px;
+    padding: 10px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border-hi);
+    border-radius: 6px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+    font-size: 9px;
+    line-height: 1.6;
+    color: var(--text);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-4px);
+    transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s;
+    pointer-events: none;
+    z-index: 200;
+  }
+  .token-meter:hover .token-cost-tip,
+  .token-meter:focus-within .token-cost-tip {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+  .token-cost-tip-title {
+    font-size: 8px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .token-cost-tip-row {
+    display: grid;
+    grid-template-columns: 8px 1fr auto auto;
+    gap: 6px 8px;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+  .token-cost-tip-row .token-legend-dot { width: 6px; height: 6px; }
+  .token-cost-tip-name { color: var(--text); }
+  .token-cost-tip-amt { color: var(--text); font-weight: 500; }
+  .token-cost-tip-pct { color: var(--muted); min-width: 28px; text-align: right; }
+  .token-cost-tip-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 6px 0;
+  }
+  .token-cost-tip-total {
+    display: flex;
+    justify-content: space-between;
+    font-weight: 500;
+  }
+  .token-cost-tip-meta {
+    margin-top: 6px;
+    font-size: 8px;
+    color: var(--muted);
+  }
 
   /* STAGE */
   .stage {
@@ -1279,22 +1397,40 @@
   .bubble.inc .caps-detail { border-top: 1px solid var(--border); color: #444; }
   .caps-detail.open { display: block; }
 
-  /* PROMPT INPUT */
+  /* PROMPT INPUT — full-width bar above bottom controls */
   .prompt-wrap {
     display: none;
-    padding: 8px 40px 0;
-    gap: 8px;
-    align-items: center;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 40px 8px;
+    gap: 6px;
+    align-items: stretch;
     flex-shrink: 0;
     background: var(--bg);
     border-top: 1px solid var(--border);
+    flex-direction: column;
   }
   .prompt-wrap.visible { display: flex; }
+  .prompt-compose-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+  }
+  .prompt-label {
+    font-size: 10px;
+    color: var(--muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+    min-width: 108px;
+    padding-top: 10px;
+  }
   .prompt-field {
     flex: 1;
     min-width: 0;
+    width: 100%;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 8px;
   }
   .prompt-input {
@@ -1304,14 +1440,18 @@
     font-family: var(--mono);
     font-size: 12px;
     padding: 8px 10px;
-    height: 36px;
+    min-height: 36px;
+    max-height: 96px;
     border: 1px solid var(--border-hi);
     border-radius: 8px;
     background: var(--surface);
     color: var(--text);
     outline: none;
     transition: border-color 0.2s;
+    resize: none;
+    line-height: 1.4;
   }
+  .prompt-input.single-line { height: 36px; max-height: 36px; }
   .prompt-cancel {
     flex-shrink: 0;
     width: 32px;
@@ -1341,11 +1481,6 @@
     border-color: rgba(0,0,0,0.3);
     background: #fafafa;
   }
-  .prompt-label {
-    font-size: 10px;
-    color: var(--muted);
-    white-space: nowrap;
-  }
   .countdown-pill {
     font-size: 9px;
     padding: 3px 9px;
@@ -1354,24 +1489,52 @@
     color: var(--muted);
     white-space: nowrap;
     animation: blink 1s infinite;
+    align-self: center;
   }
 
   /* ── MOBILE ── */
   @media (max-width: 680px) {
 
-    /* Header: stack title and phases */
+    /* Header: title + cost on row 1; phases full width on row 2 */
     .header {
-      flex-direction: column;
-      align-items: flex-start;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-rows: auto auto;
+      align-items: start;
       padding: 12px 14px;
-      gap: 10px;
+      gap: 8px 10px;
+    }
+    .header > div:first-child {
+      grid-column: 1;
+      grid-row: 1;
+      min-width: 0;
     }
     .header-title { font-size: 9px; }
     .header-sub   { font-size: 13px; }
     .header-sub .sub-full { display: none; }
 
+    .token-meter {
+      grid-column: 2;
+      grid-row: 1;
+      align-self: start;
+      margin-left: 0;
+      min-width: 0;
+      gap: 2px;
+    }
+    .token-meter-label { font-size: 8px; }
+    .token-meter-total { font-size: 10px; }
+    .token-meter-bar { width: 72px; height: 6px; }
+    .token-meter-legend { gap: 6px; font-size: 7px; }
+
     /* Phase dots — 5 phases need to fit narrow screens */
-    .phases { gap: 0; flex-wrap: nowrap; }
+    .phases {
+      grid-column: 1 / -1;
+      grid-row: 2;
+      width: 100%;
+      justify-content: space-between;
+      gap: 0;
+      flex-wrap: nowrap;
+    }
     .phase-connector { width: 6px; }
     .phase-label { font-size: 6.5px; letter-spacing: 0; }
     .phase-dot   { width: 7px; height: 7px; }
@@ -1382,7 +1545,9 @@
       column-gap: 6px;
       padding: 6px 4px;
       min-height: 0;
+      flex: 1 0 auto;
     }
+    .panel { min-height: 0; }
     .center {
       order: 0;
       padding-top: 8px;
@@ -1595,14 +1760,21 @@
     .demo-guide-cta { font-size: 9px; }
     .pip { width: 14px; }
 
-    /* Prompt bar — input + cancel side by side, no overlap */
+    /* Prompt bar — full width */
     .prompt-wrap {
+      padding: 8px 12px 6px;
+      gap: 6px;
+    }
+    .prompt-compose-row {
       flex-direction: column;
-      align-items: stretch;
-      padding: 6px 8px 0;
       gap: 4px;
     }
-    .prompt-label { font-size: 8px; width: 100%; }
+    .prompt-label {
+      font-size: 8px;
+      width: 100%;
+      min-width: 0;
+      padding-top: 0;
+    }
     .prompt-field { width: 100%; gap: 6px; }
     .prompt-input {
       font-size: 14px;
@@ -2403,12 +2575,13 @@
   @media (max-width: 390px) {
     .header {
       padding: 10px 12px;
-      gap: 8px;
+      gap: 6px 8px;
     }
     .header-title { font-size: 8px; letter-spacing: 0.06em; }
     .header-sub   { font-size: 12px; line-height: 1.35; }
 
-    .phases { width: 100%; justify-content: space-between; }
+    .token-meter-bar { width: 64px; height: 5px; }
+    .token-meter-legend { display: none; }
     .phase-label { display: none; }
     .phase-connector { width: 4px; margin-bottom: 0; }
 
@@ -2506,6 +2679,25 @@
       <div class="phase-label">05 &middot; Payment</div>
     </div>
   </div>
+  <div class="token-meter" id="token-meter" tabindex="0">
+    <div class="token-meter-label">Agent's cost</div>
+    <div class="token-meter-total" id="token-total">$0.000000</div>
+    <div class="token-meter-bar" id="token-bar"></div>
+    <div class="token-meter-legend" id="token-legend">
+      <span><i class="token-legend-dot" style="background:#e53935"></i>Buyer</span>
+      <span><i class="token-legend-dot" style="background:#2e9e6e"></i>Seller</span>
+    </div>
+    <div class="token-cost-tip" id="token-cost-tip" aria-hidden="true">
+      <div class="token-cost-tip-title">Cost</div>
+      <div id="token-cost-tip-rows"></div>
+      <div class="token-cost-tip-divider"></div>
+      <div class="token-cost-tip-total">
+        <span>Total</span>
+        <span id="token-tip-total">$0.000000</span>
+      </div>
+      <div class="token-cost-tip-meta" id="token-tip-meta"></div>
+    </div>
+  </div>
 </div>
 
 <div class="stage">
@@ -2574,14 +2766,14 @@
 <div class="demo-footer" id="demo-footer">
 
 <div class="prompt-wrap" id="prompt-wrap">
-  <span class="prompt-label" id="prompt-label">prompt</span>
-  <div class="prompt-field">
-    <input class="prompt-input" id="prompt-input"
-           type="text"
-           value=""
-           placeholder="e.g. comfortable running shoes..." />
-    <button type="button" id="prompt-cancel" class="prompt-cancel"
-            title="Cancel turn — edit prompt" onclick="cancelPromptTurn()">✕</button>
+  <div class="prompt-compose-row">
+    <span class="prompt-label" id="prompt-label">prompt</span>
+    <div class="prompt-field">
+      <textarea class="prompt-input" id="prompt-input" rows="2"
+             placeholder="Buyer agent message…"></textarea>
+      <button type="button" id="prompt-cancel" class="prompt-cancel"
+              title="Cancel turn — edit prompt" onclick="cancelPromptTurn()">✕</button>
+    </div>
   </div>
   <span class="countdown-pill" id="countdown-pill" style="display:none"></span>
 </div>
@@ -2618,7 +2810,128 @@
 const DEMO_PACE = 1.2;
 const BUBBLE_REVEAL_MS = 80;
 const delay = ms => new Promise(r => setTimeout(r, Math.round(ms * DEMO_PACE)));
-const DEMO_BUILD = '2026-06-08p';
+const DEMO_BUILD = '2026-07-12-mobile-header';
+
+let _accumulatedTokenUsage = null;
+let _autonomousBuyerLoop = false;
+let _buyerConversationLog = [];
+let _catalogSourceHint = '';
+
+const AGENT_COST_COLORS = {
+  buyer: '#e53935',
+  seller: '#2e9e6e',
+};
+
+function emptyAgentBucket() {
+  return { input: 0, output: 0, cost_usd: 0, calls: 0 };
+}
+
+function mergeAgentTokenSessions(prior, incoming) {
+  if (!incoming) return prior;
+  if (!prior) return { ...incoming };
+
+  const out = { ...incoming };
+  for (const agent of ['buyer', 'seller']) {
+    const pb = prior[agent] || emptyAgentBucket();
+    const ib = incoming[agent] || emptyAgentBucket();
+    out[agent] = (ib.cost_usd || 0) >= (pb.cost_usd || 0) ? ib : pb;
+  }
+  out.total_cost_usd = (out.buyer?.cost_usd || 0) + (out.seller?.cost_usd || 0);
+  out.total_tokens =
+    (out.buyer?.input || 0) + (out.buyer?.output || 0) +
+    (out.seller?.input || 0) + (out.seller?.output || 0);
+  return out;
+}
+
+function agentSplitFromSession(session) {
+  if (!session) return [];
+  const total = session.total_cost_usd || 0;
+  const segments = [];
+  for (const [key, label] of [['buyer', 'Buyer'], ['seller', 'Seller']]) {
+    const bucket = session[key] || emptyAgentBucket();
+    const cost = bucket.cost_usd || 0;
+    if (!cost) continue;
+    segments.push({
+      agent: key,
+      label,
+      color: AGENT_COST_COLORS[key],
+      cost_usd: cost,
+      pct: total > 0 ? (cost / total) * 100 : 0,
+      input: bucket.input || 0,
+      output: bucket.output || 0,
+    });
+  }
+  return segments;
+}
+
+function renderTokenCostTip(segs, total) {
+  const rowsEl = document.getElementById('token-cost-tip-rows');
+  const totalEl = document.getElementById('token-tip-total');
+  const metaEl = document.getElementById('token-tip-meta');
+  if (!rowsEl || !totalEl) return;
+
+  rowsEl.innerHTML = '';
+  if (!segs.length) {
+    rowsEl.innerHTML = '<div style="color:var(--muted)">No agent calls yet</div>';
+    totalEl.textContent = '$0.000000';
+    if (metaEl) metaEl.textContent = '';
+    return;
+  }
+
+  segs.forEach(seg => {
+    const row = document.createElement('div');
+    row.className = 'token-cost-tip-row';
+    row.innerHTML = `
+      <i class="token-legend-dot" style="background:${seg.color}"></i>
+      <span class="token-cost-tip-name">${seg.label}</span>
+      <span class="token-cost-tip-amt">$${seg.cost_usd.toFixed(6)}</span>
+      <span class="token-cost-tip-pct">${Math.round(seg.pct)}%</span>
+    `;
+    rowsEl.appendChild(row);
+  });
+  totalEl.textContent = `$${total.toFixed(6)}`;
+  if (metaEl) {
+    metaEl.textContent = _catalogSourceHint || '';
+  }
+}
+
+function renderTokenMeterFromSession(session, split) {
+  const totalEl = document.getElementById('token-total');
+  const barEl = document.getElementById('token-bar');
+  if (!totalEl) return;
+
+  const total = session?.total_cost_usd ?? 0;
+  totalEl.textContent = `$${total.toFixed(6)}`;
+
+  const segs = (split && split.length) ? split : agentSplitFromSession(session);
+  barEl.innerHTML = '';
+  if (!segs.length) {
+    barEl.innerHTML = '<div class="token-meter-seg" style="width:100%;background:#eee"></div>';
+  } else {
+    segs.forEach(seg => {
+      const d = document.createElement('div');
+      d.className = 'token-meter-seg';
+      d.style.width = `${Math.max(seg.pct, 4)}%`;
+      d.style.background = seg.color;
+      barEl.appendChild(d);
+    });
+  }
+  renderTokenCostTip(segs, total);
+}
+
+function updateTokenMeter(res) {
+  if (!res) return;
+  if (res.tokenUsage?.session) {
+    _accumulatedTokenUsage = mergeAgentTokenSessions(_accumulatedTokenUsage, res.tokenUsage.session);
+  }
+  const split = res.tokenSplit?.length ? res.tokenSplit : agentSplitFromSession(_accumulatedTokenUsage);
+  if (res.catalogSearched) {
+    _catalogSourceHint = `Search: ${res.catalogSource || 'database'}`;
+  } else if (res.stopReason === 'needs_clarification') {
+    _catalogSourceHint = 'Search: skipped (clarifying)';
+  }
+  renderTokenMeterFromSession(_accumulatedTokenUsage, split);
+}
 
 function feedAgentClass(feedId) {
   if (feedId === 'feed-buyer') return 'feed-buyer';
@@ -5415,12 +5728,108 @@ function sellerErrorMsg(e) {
 refreshSellerHealth();
 
 // ── BUYER AGENT PROFILE ──────────────────────────────────────────────────────
-// This is what the human configures ONCE before the agent runs.
-// After this, no human is in the loop — the agent acts on these preferences.
+// Configured once at demo start. The buyer LLM acts on this — no human in the loop.
 const BUYER_PROFILE = {
-  budget:        150,                               // only if no amount found in the prompt text
-  initialIntent: "I want comfortable running shoes" // add "at $250" in prompt to search ≤ $250
+  budget:        150,
+  initialIntent: "I want comfortable running shoes",
+  category:      "running",
+  style:         "cushioned",
+  size:          "10",
 };
+
+function buildUserGoal(profile) {
+  const p = profile || BUYER_PROFILE;
+  const parts = [p.initialIntent];
+  if (p.budget) parts.push(`budget up to $${p.budget}`);
+  if (p.category) parts.push(`${p.category} category`);
+  if (p.style) parts.push(`${p.style} style`);
+  if (p.size) parts.push(`size ${p.size}`);
+  return parts.join(', ');
+}
+
+const USER_GOAL = buildUserGoal(BUYER_PROFILE);
+
+function resetBuyerConversation() {
+  _buyerConversationLog = [];
+}
+
+function logBuyerTurn(role, text) {
+  if (!text) return;
+  _buyerConversationLog.push({ role, text: String(text).trim() });
+}
+
+/** Buyer agent evaluate — LLM only; no regex driving the conversation. */
+async function callBuyerEvaluate(userGoal, sellerResult, buyerRequirements, roundNum) {
+  const r = await fetch(SELLER + '/agent/buyer/evaluate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      user_goal: userGoal,
+      buyer_profile: BUYER_PROFILE,
+      conversation_history: _buyerConversationLog,
+      seller_result: sellerResult,
+      buyer_requirements: buyerRequirements,
+      round: roundNum,
+      token_usage: _accumulatedTokenUsage,
+    }),
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error?.message || `buyer agent unavailable (${r.status})`);
+  if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+  if (data.tokenUsage?.session) {
+    _accumulatedTokenUsage = mergeAgentTokenSessions(_accumulatedTokenUsage, data.tokenUsage.session);
+    renderTokenMeterFromSession(
+      _accumulatedTokenUsage,
+      data.tokenSplit?.length ? data.tokenSplit : agentSplitFromSession(_accumulatedTokenUsage),
+    );
+  }
+  return data.result || {};
+}
+
+async function buyerAgentDecide(userGoal, sellerResult, buyerReq, roundNum) {
+  setDot('dot-buyer', 'working');
+  setStatus('Buyer agent thinking…');
+  await delay(400);
+  const plan = await callBuyerEvaluate(userGoal, sellerResult, buyerReq, roundNum);
+  await delay(300);
+  return plan;
+}
+
+function mergeBuyerRequirements(base, patch) {
+  const out = { ...base };
+  if (!patch) return out;
+  for (const k of ['query', 'max_price', 'category', 'style', 'size']) {
+    const v = patch[k];
+    if (v != null && v !== '') out[k] = v;
+  }
+  return out;
+}
+
+function needsClarification(res) {
+  if (!res) return false;
+  return res.stopReason === 'needs_clarification'
+    || res.awaitingClarification
+    || res.awaitingBudget;
+}
+
+async function showAgentConstraintReview() {
+  /* Buyer agent constraint audit runs server-side; not shown in feed. */
+}
+
+async function showClarificationFromSeller(res, turnId) {
+  const missing = (res.missing_fields || []).join(', ') || 'budget';
+  addBubble('feed-seller', 'sent',
+    `seller  →  buyer   |   session/update`,
+`stopReason: needs_clarification
+missing: ${missing}
+
+"${res.agentMessage}"`);
+  await delay(900);
+  addArrow('left', 'clarification', `turn ${turnId} — seller → buyer`, lastBubbleWrap('feed-seller'));
+  await delay(1300);
+  addBubble('feed-buyer', 'recv', 'seller asks  |  buyer agent processing',
+res.agentMessage);
+}
 
 /** Match budget in buyer text (same patterns as seller extract_budget). */
 function extractBudgetFromText(text) {
@@ -5768,15 +6177,45 @@ async function cancelPromptTurn() {
 }
 
 // Show the prompt input box with a value, optional countdown label, optional agent-controlled style
+function setPromptValue(text) {
+  const input = document.getElementById('prompt-input');
+  input.value = text || '';
+  input.style.height = 'auto';
+  input.style.height = Math.min(input.scrollHeight, 96) + 'px';
+}
+
 function showPrompt(value, label = 'prompt', agentControlled = false) {
   promptTurnAborted = false;
   const wrap  = document.getElementById('prompt-wrap');
   const input = document.getElementById('prompt-input');
   const lbl   = document.getElementById('prompt-label');
-  input.value = value;
+  setPromptValue(value);
   lbl.textContent = label;
   input.className = 'prompt-input' + (agentControlled ? ' agent-controlled' : '');
+  input.readOnly = agentControlled;
   wrap.classList.add('visible');
+}
+
+/** Preview LLM reply in the prompt box, then auto-continue. */
+async function showBuyerAgentPreview(text, turnNum, opts = {}) {
+  const secs = opts.previewSecs ?? 2.5;
+  showPrompt(text, `buyer agent · turn ${turnNum}`, true);
+  await new Promise(resolve => {
+    const pill = document.getElementById('countdown-pill');
+    pill.style.display = '';
+    const deadline = Date.now() + secs * 1000;
+    function tick() {
+      const remaining = Math.ceil((deadline - Date.now()) / 1000);
+      if (remaining <= 0) {
+        clearCountdown();
+        resolve();
+      } else {
+        pill.textContent = `sending in ${remaining}s`;
+      }
+    }
+    tick();
+    autoFireTimer = setInterval(tick, 250);
+  });
 }
 
 function hidePrompt() {
@@ -5929,16 +6368,18 @@ function addOfferGrid(feedId, offers, agentIdx, budget) {
 // ── Show offers after a resolved session/prompt turn ─────────────────────────
 // Shared by: direct-budget path and post-clarification path.
 
-async function showOffers(res, promptText) {
+async function showOffers(res, promptText, evalPlan) {
   hidePrompt();
   const intent      = res.parsedIntent || {};
   const offers      = res.offers || (res.offer ? [res.offer] : []);
-  const claudeTag   = res.usedClaude ? ' · claude haiku' : ' · regex';
   const intentQuery = intent.query || promptText;
   const budget = resolveBudget(intent, promptText);
 
-  const iLines = [`"${intentQuery}"`, `budget: ≤ $${budget} (catalog search)`];
-  addBubble('feed-seller', 'mid', `intent resolved${claudeTag}`, iLines.join('\n'));
+  const iLines = [`"${intentQuery}"`, `budget: ≤ $${budget}`];
+  if (res.catalogSource === 'postgres' || res.catalogSearched) {
+    iLines.push('search: postgres database');
+  }
+  addBubble('feed-seller', 'mid', 'intent resolved', iLines.join('\n'));
   await delay(700);
 
   if (res.intentHash) {
@@ -5975,7 +6416,7 @@ offers.map((o, i) => {
   scrollToLatest();
   await delay(1300);
 
-  // Agent evaluates: best intent fit within budget (not cheapest price)
+  // Buyer agent satisfaction decided server-side — not shown in feed
   const pick = agentPickOffer(offers, budget, intentQuery);
 
   // Show all 3 cards in grid, agent's pick highlighted
@@ -6237,51 +6678,44 @@ stored — will be sent with all requests`);
     setDot('dot-buyer', 'on');
     setPip(2, 'done');
 
-    // Show the buyer agent's pre-configured intent in the prompt box
-    // Agent controls the value — human can edit before it fires
-    showPrompt(BUYER_PROFILE.initialIntent, 'buyer agent intent', true);
-    setDemoGuide({
-      targets: [document.getElementById('next-btn'), document.querySelector('.prompt-field')],
-      next: 'Auto-sends in 5s — tap prompt to edit first',
-    });
-    setBtn('Send Now', false);
+    addBubble('feed-buyer', 'mid', '', `goal locked — ${USER_GOAL}`);
+    await delay(500);
+    setStatus('Buyer agent negotiates autonomously');
+    setBtn('Running…', true);
 
     step++;
     busy = false;
-    startCountdown(5, () => { if (!busy) nextStep(); });
+    _autonomousBuyerLoop = true;
+    resetBuyerConversation();
+    setTimeout(() => { if (!busy && step === 3) nextStep(); }, 600);
     return;
   }
 
-  // ── STEP 3 — Multi-turn agentic conversation ──────────────────────────────
-  // The buyer agent sends its intent. If the seller needs clarification (e.g.
-  // budget missing), the buyer auto-responds from BUYER_PROFILE. The human
-  // can edit the prompt at any point to override the agent's response.
-  // No human click needed after the first auto-fire — it's fully agentic.
+  // ── STEP 3 — Autonomous buyer ↔ seller loop (LLM buyer, no human prompts) ─
   else if (step === 3) {
-    if (!activeSession) { busy = false; setBtn('Send Now'); return; }
+    if (!activeSession) { busy = false; setBtn('Retry'); return; }
 
     clearCountdown();
+    _autonomousBuyerLoop = true;
 
-    // ── Helper: send one session/prompt turn ─────────────────────────────────
     async function sendPromptTurn(text, turnId) {
       promptInFlight = true;
       promptTurnAborted = false;
       activePromptController = new AbortController();
-
-      showPrompt(text, `turn ${turnId} — sending…`, true);
+      logBuyerTurn('buyer', text);
 
       const promptBubble = addBubble('feed-buyer', 'sent', 'buyer  →  seller   |   session/prompt',
 `"${text}"`);
-      await delay(900);
+      await delay(700);
       if (promptTurnAborted) return null;
 
       addArrow('right', 'session/prompt', `turn ${turnId} — buyer → seller`, promptBubble);
-      await delay(1300);
+      await delay(900);
       if (promptTurnAborted) return null;
 
       addBubble('feed-seller', 'recv', 'seller received  |  session/prompt',
 `processing turn ${turnId}...`);
-      await delay(1000);
+      await delay(600);
       if (promptTurnAborted) return null;
 
       try {
@@ -6290,6 +6724,9 @@ stored — will be sent with all requests`);
           params: { sessionId: activeSession, prompt: [{ type: 'text', text }] }
         }, { signal: activePromptController.signal, timeoutMs: 120000, retries: 1 });
         if (promptTurnAborted) return null;
+        if (data?.result?.agentMessage) {
+          logBuyerTurn('seller', data.result.agentMessage);
+        }
         return data;
       } catch (e) {
         if (promptTurnAborted || e.name === 'AbortError') return null;
@@ -6300,113 +6737,131 @@ stored — will be sent with all requests`);
       }
     }
 
-    // ── Turn 1: send the agent's initial intent ───────────────────────────────
-    const turn1Text = document.getElementById('prompt-input').value.trim()
-                   || BUYER_PROFILE.initialIntent;
+    const MAX_CLARIFICATION_TURNS = 6;
+    const MAX_SEARCH_RETRIES = 3;
+    let turnNum = 1;
+    let promptText = BUYER_PROFILE.initialIntent;
+    let lastRes = null;
+    let buyerReq = {
+      query: BUYER_PROFILE.initialIntent,
+      max_price: BUYER_PROFILE.budget,
+      category: BUYER_PROFILE.category,
+      style: BUYER_PROFILE.style,
+      size: BUYER_PROFILE.size,
+    };
+    let searchRetries = 0;
 
     setPip(3, 'active');
     litStep(2);
-    setWorking('Buyer agent sending intent', 'Seller may ask for budget or return shoe offers');
+    setWorking('Autonomous buyer ↔ seller loop', 'Buyer LLM decides every reply — human not in loop');
     setDot('dot-buyer', 'working');
 
-    let result1;
-    try {
-      result1 = await sendPromptTurn(turn1Text, 1);
-    } catch (e) {
-      addErrBubble('feed-buyer', 'Connection lost: ' + sellerErrorMsg(e));
-      showPrompt(turn1Text, 'buyer agent intent', true);
-      busy = false; setBtn('Retry'); return;
-    }
-
-    if (promptTurnAborted || !result1) {
-      busy = false;
-      setDot('dot-buyer', 'on');
-      return;
-    }
-
-    if (result1.error) {
-      addErrBubble('feed-seller', 'Error: ' + result1.error.message);
-      showPrompt(turn1Text, 'buyer agent intent', true);
-      busy = false; setBtn('Retry'); return;
-    }
-
-    const res1 = result1.result;
-    litStep(3);
-
-    // ── Seller needs budget clarification ─────────────────────────────────────
-    if (res1.awaitingBudget) {
-      const claudeTag = res1.usedClaude ? '  ·  claude haiku' : '  ·  regex parser';
-      // Show seller's question
-      addBubble('feed-seller', 'sent',
-        `seller  →  buyer   |   session/update${claudeTag}`,
-`stopReason: needs_clarification
-
-"${res1.agentMessage}"`);
-      await delay(900);
-      addArrow('left', 'clarification', 'seller → buyer', lastBubbleWrap('feed-seller'));
-      await delay(1300);
-
-      addBubble('feed-buyer', 'recv', 'seller asks  |  buyer agent processing',
-res1.agentMessage);
-      await delay(700);
-
-      // Buyer agent formulates its budget response from BUYER_PROFILE
-      // Human can edit this in the prompt box before the countdown fires
-      const budgetInTurn1 = extractBudgetFromText(turn1Text);
-      const agentBudgetReply = budgetInTurn1 != null
-        ? `My budget is $${budgetInTurn1}`
-        : `My budget is $${BUYER_PROFILE.budget}`;
-      showPrompt(agentBudgetReply, 'buyer agent reply (auto)', true);
-      setDemoGuide({
-        targets: [document.getElementById('next-btn'), document.querySelector('.prompt-field')],
-        next: 'Auto-replies with budget in 5s',
-      });
-      setBtn('Send Reply Now', false);
-      setDot('dot-buyer', 'on');
-
-      // Wait for countdown (or human override via button / Enter key)
-      await new Promise(resolve => {
-        startCountdown(5, resolve);
-        document.getElementById('next-btn').disabled = false;
-        document.getElementById('next-btn').onclick = () => { clearCountdown(); resolve(); };
-      });
-
-      // Restore default button handler
-      document.getElementById('next-btn').onclick = nextStep;
-
-      // ── Turn 2: buyer sends budget ────────────────────────────────────────
-      const turn2Text = document.getElementById('prompt-input').value.trim()
-                     || agentBudgetReply;
-      setDot('dot-buyer', 'working');
-      setStatus('Buyer agent sending budget...');
-
-      let result2;
+    while (turnNum <= MAX_CLARIFICATION_TURNS + MAX_SEARCH_RETRIES + 2) {
+      let result;
       try {
-        result2 = await sendPromptTurn(turn2Text, 2);
+        await showBuyerAgentPreview(promptText, turnNum);
+        result = await sendPromptTurn(promptText, turnNum);
       } catch (e) {
-        addErrBubble('feed-buyer', 'Connection lost on turn 2: ' + sellerErrorMsg(e));
-        showPrompt(turn2Text, 'buyer agent reply (auto)', true);
-        busy = false; setBtn('Retry'); return;
+        addErrBubble('feed-buyer', 'Connection lost: ' + sellerErrorMsg(e));
+        busy = false; _autonomousBuyerLoop = false; setBtn('Retry'); return;
       }
 
-      if (promptTurnAborted || !result2) {
+      if (promptTurnAborted || !result) {
         busy = false;
+        _autonomousBuyerLoop = false;
         setDot('dot-buyer', 'on');
         return;
       }
 
-      if (result2.error) {
-        addErrBubble('feed-seller', 'Error: ' + result2.error.message);
-        busy = false; setBtn('Retry'); return;
+      if (result.error) {
+        addErrBubble('feed-seller', 'Error: ' + result.error.message);
+        busy = false; _autonomousBuyerLoop = false; setBtn('Retry'); return;
       }
 
-      // Use turn 2 response to resolve offers
-      await showOffers(result2.result, turn2Text);
+      lastRes = result.result;
+      updateTokenMeter(lastRes);
+      litStep(3);
 
-    } else {
-      // Budget was already in the first message — show offers directly
-      await showOffers(res1, turn1Text);
+      if (needsClarification(lastRes)) {
+        await showClarificationFromSeller(lastRes, turnNum);
+
+        let evalPlan;
+        try {
+          evalPlan = await buyerAgentDecide(USER_GOAL, lastRes, buyerReq, turnNum);
+        } catch (e) {
+          addErrBubble('feed-buyer', 'Buyer agent failed: ' + e.message);
+          busy = false; _autonomousBuyerLoop = false; setBtn('Retry'); return;
+        }
+        buyerReq = mergeBuyerRequirements(buyerReq, evalPlan.requirements_update);
+
+        const agentReply = (evalPlan.reply_to_seller || '').trim();
+        if (!agentReply || agentReply.startsWith('NEED_USER:')) {
+          addErrBubble('feed-buyer', evalPlan.reason || 'Buyer agent needs human input — not available in autonomous mode');
+          busy = false; _autonomousBuyerLoop = false; setBtn('Retry'); return;
+        }
+
+        promptText = agentReply;
+        turnNum++;
+        setDot('dot-buyer', 'working');
+        setStatus(`Buyer agent turn ${turnNum}…`);
+        continue;
+      }
+
+      if (lastRes.stopReason === 'end_turn') {
+        let evalPlan;
+        try {
+          evalPlan = await buyerAgentDecide(USER_GOAL, lastRes, buyerReq, turnNum);
+        } catch (e) {
+          addErrBubble('feed-buyer', 'Buyer agent failed: ' + e.message);
+          busy = false; _autonomousBuyerLoop = false; setBtn('Retry'); return;
+        }
+        buyerReq = mergeBuyerRequirements(buyerReq, evalPlan.requirements_update);
+
+        if (evalPlan.goal_satisfied) {
+          await showOffers(lastRes, promptText, evalPlan);
+          _autonomousBuyerLoop = false;
+          break;
+        }
+
+        if (!evalPlan.needs_more_search) {
+          addErrBubble('feed-buyer', evalPlan.reason || 'Buyer agent declined offers');
+          await showOffers(lastRes, promptText, evalPlan);
+          _autonomousBuyerLoop = false;
+          break;
+        }
+
+        searchRetries++;
+        if (searchRetries >= MAX_SEARCH_RETRIES) {
+          addErrBubble('feed-buyer', evalPlan.reason || 'Max search retries');
+          await showOffers(lastRes, promptText, evalPlan);
+          _autonomousBuyerLoop = false;
+          break;
+        }
+
+        const refine = (evalPlan.reply_to_seller || '').trim();
+        if (!refine || refine.startsWith('NEED_USER:')) {
+          addErrBubble('feed-buyer', evalPlan.reason || 'Buyer agent cannot refine search');
+          await showOffers(lastRes, promptText, evalPlan);
+          _autonomousBuyerLoop = false;
+          break;
+        }
+
+        promptText = refine;
+        turnNum++;
+        setDot('dot-buyer', 'working');
+        setStatus(`Buyer agent re-search (${searchRetries})…`);
+        continue;
+      }
+
+      addErrBubble('feed-buyer', `Unexpected stopReason: ${lastRes.stopReason || 'unknown'}`);
+      break;
     }
+
+    if (turnNum > MAX_CLARIFICATION_TURNS + MAX_SEARCH_RETRIES + 2) {
+      addErrBubble('feed-buyer', 'Max turns reached.');
+    }
+
+    _autonomousBuyerLoop = false;
     document.getElementById('next-btn').disabled = false;
     busy = false;
     return;
