@@ -43,6 +43,8 @@
   .demo-scroll {
     flex: 1 1 auto;
     min-height: 0;
+    width: 100%;
+    max-width: 100%;
     overflow-x: hidden;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
@@ -60,14 +62,22 @@
     box-shadow: 0 -1px 0 var(--border);
   }
 
-  /* HEADER */
+  /* HEADER — brand + cost on row 1; phases full width on row 2 */
   .header {
     border-bottom: 1px solid var(--border);
     padding: 24px 40px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    align-items: start;
+    gap: 16px 24px;
     flex-shrink: 0;
+    width: 100%;
+  }
+  .header > div:first-child {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
   }
   .header-title { font-size: 11px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
   .header-sub   { font-size: 18px; font-weight: 300; color: var(--text); margin-top: 4px; letter-spacing: -0.01em; }
@@ -80,7 +90,10 @@
     align-items: flex-end;
     gap: 4px;
     min-width: 140px;
-    margin-left: 16px;
+    margin-left: 0;
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
     position: relative;
   }
   .token-meter-label {
@@ -196,6 +209,8 @@
     padding: 28px 40px;
     flex: 1 0 auto;
     min-height: 320px;
+    width: 100%;
+    max-width: 100%;
     overflow: visible;
     align-items: start;
   }
@@ -1339,6 +1354,11 @@
     display: flex;
     align-items: center;
     gap: 0;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100%;
+    justify-self: stretch;
+    justify-content: center;
   }
   .phase-step {
     display: flex;
@@ -1495,29 +1515,16 @@
   /* ── MOBILE ── */
   @media (max-width: 680px) {
 
-    /* Header: title + cost on row 1; phases full width on row 2 */
+    /* Header — tighten spacing; phases span full width */
     .header {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      grid-template-rows: auto auto;
-      align-items: start;
       padding: 12px 14px;
       gap: 8px 10px;
-    }
-    .header > div:first-child {
-      grid-column: 1;
-      grid-row: 1;
-      min-width: 0;
     }
     .header-title { font-size: 9px; }
     .header-sub   { font-size: 13px; }
     .header-sub .sub-full { display: none; }
 
     .token-meter {
-      grid-column: 2;
-      grid-row: 1;
-      align-self: start;
-      margin-left: 0;
       min-width: 0;
       gap: 2px;
     }
@@ -1528,12 +1535,7 @@
 
     /* Phase dots — 5 phases need to fit narrow screens */
     .phases {
-      grid-column: 1 / -1;
-      grid-row: 2;
-      width: 100%;
       justify-content: space-between;
-      gap: 0;
-      flex-wrap: nowrap;
     }
     .phase-connector { width: 6px; }
     .phase-label { font-size: 6.5px; letter-spacing: 0; }
@@ -1543,7 +1545,7 @@
     .stage {
       grid-template-columns: minmax(0, 1fr) 58px minmax(0, 1fr);
       column-gap: 6px;
-      padding: 6px 4px;
+      padding: 6px 14px;
       min-height: 0;
       flex: 1 0 auto;
     }
@@ -2810,7 +2812,7 @@
 const DEMO_PACE = 1.2;
 const BUBBLE_REVEAL_MS = 80;
 const delay = ms => new Promise(r => setTimeout(r, Math.round(ms * DEMO_PACE)));
-const DEMO_BUILD = '2026-07-12-mobile-header';
+const DEMO_BUILD = '2026-07-12-header-align';
 
 let _accumulatedTokenUsage = null;
 let _autonomousBuyerLoop = false;
