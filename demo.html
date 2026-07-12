@@ -5772,6 +5772,7 @@ async function callBuyerEvaluate(userGoal, sellerResult, buyerRequirements, roun
       seller_result: sellerResult,
       buyer_requirements: buyerRequirements,
       round: roundNum,
+      sessionId: activeSession || null,
       token_usage: _accumulatedTokenUsage,
     }),
   });

@@ -7,6 +7,7 @@ from __future__ import annotations
 from acp import session_manager
 from agents.seller.intent import parse_buyer_message
 from agents.shared.requirements import empty_requirements, requirements_for_intent
+from catalog.agent_cost import save_session_cost
 from catalog.db import get_database_url, search_products
 from intent import service as intent_service
 from agents.shared.token_usage import format_terminal_line, record_turn, split_for_ui
@@ -60,6 +61,10 @@ def _accumulate_session_usage(session_id: str, turn_usage: dict | None) -> dict 
     ctx = session.get("context") or {}
     ctx["token_usage_session"] = merged["session"]
     session_manager.update_context(session_id, ctx)
+    try:
+        save_session_cost(session_id, merged, buyer_id=session.get("buyerId"))
+    except Exception as e:
+        print(f"  [AgentCost] persist failed: {e}")
     return merged
 
 

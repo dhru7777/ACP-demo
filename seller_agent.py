@@ -171,6 +171,23 @@ async def list_products(query: str, max_price: float, top_k: int = 3):
         return JSONResponse({"error": str(e), "source": get_database_url() and "postgres" or "unconfigured"}, status_code=503)
 
 
+@app.get("/session/{session_id}/agent-cost")
+async def session_agent_cost(session_id: str):
+    """Return persisted LLM cost structure for a session (Postgres)."""
+    try:
+        from catalog.agent_cost import get_session_cost
+
+        row = get_session_cost(session_id)
+        if row is None:
+            return JSONResponse(
+                {"found": False, "sessionId": session_id, "message": "No cost record for this session"},
+                status_code=404,
+            )
+        return JSONResponse({"found": True, **row})
+    except Exception as e:
+        return JSONResponse({"found": False, "sessionId": session_id, "error": str(e)}, status_code=503)
+
+
 @app.get("/products/{product_id}")
 async def product_detail(product_id: str):
     try:
@@ -203,6 +220,18 @@ async def buyer_evaluate(request: Request):
         usage = plan.pop("_token_usage", {})
         policy = plan.pop("_policy", None)
         session = usage.get("session", {})
+        session_id = body.get("sessionId") or body.get("session_id")
+        if session_id and usage:
+            try:
+                from catalog.agent_cost import save_session_cost
+                from acp import session_manager as _sm
+
+                buyer_id = None
+                if _sm.exists(session_id):
+                    buyer_id = (_sm.get(session_id) or {}).get("buyerId")
+                save_session_cost(session_id, usage, buyer_id=buyer_id)
+            except Exception as e:
+                print(f"  [AgentCost] buyer evaluate persist failed: {e}")
         return JSONResponse({
             "result": plan,
             "tokenUsage": {"session": session, "turn": usage.get("turn")},
@@ -568,6 +597,11 @@ async def handle_jsonrpc(request: Request):
 # Run
 # --------------------------------------------------------------------------
 if __name__ == "__main__":
+    try:
+        from catalog.agent_cost import ensure_schema
+        ensure_schema()
+    except Exception as e:
+        print(f"  [AgentCost] schema ensure skipped: {e}")
     summary = catalog_search.summary()
     print("Nike Seller Agent v2.0.0 starting on http://localhost:8002")
     print(f"  Catalog: {summary['total_items']} items across {len(summary['categories'])} categories")
