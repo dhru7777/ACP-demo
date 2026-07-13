@@ -73,8 +73,9 @@ Hard refresh after UI changes (`Cmd+Shift+R`). Footer shows build stamp (e.g. `b
 | **6** | [README_DAY6.md](./README_DAY6.md) | Stripe fiat + buyer payment rail choice |
 | **7** | [README_DAY7.md](./README_DAY7.md) | ERC-8004 trust layer + ◎ profile UI |
 | **8** | [README_DAY8.md](./README_DAY8.md) | Verifiable Intent — hash chain, constraints, VI UI |
+| **9** | [README_DAY9.md](./README_DAY9.md) | Two-agent skill map, Postgres catalog, LLM cost tracking |
 
-**Latest chapter:** [README_DAY8.md](./README_DAY8.md) — auditable Verifiable Intent, `intent/` package, chain hash audit, Verify intent UI.
+**Latest chapter:** [README_DAY9.md](./README_DAY9.md) — Agent 1 ↔ Agent 2 over skills, Railway Postgres catalog, autonomous buyer loop, `agent_session_costs`.
 
 ---
 

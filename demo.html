@@ -2652,7 +2652,7 @@
 
 <div class="header">
   <div>
-    <div class="header-title">Dheeraj Maske &middot; Thesis Demo &middot; 2026 &middot; <span id="demo-build">build …</span></div>
+    <div class="header-title">Dheeraj Maske &middot; Thesis Demo &middot; 2026 &middot; <span id="demo-version">v2.0.0</span></div>
     <div class="header-sub">Simulating agentic payment with ACP, ERC-8004 and x402</div>
   </div>
   <div class="phases">
@@ -2812,7 +2812,7 @@
 const DEMO_PACE = 1.2;
 const BUBBLE_REVEAL_MS = 80;
 const delay = ms => new Promise(r => setTimeout(r, Math.round(ms * DEMO_PACE)));
-const DEMO_BUILD = '2026-07-12-header-align';
+const DEMO_VERSION = '2.0.0';
 
 let _accumulatedTokenUsage = null;
 let _autonomousBuyerLoop = false;
@@ -5864,7 +5864,7 @@ function resolveBudget(parsedIntent, promptText) {
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
-document.getElementById('demo-build').textContent = 'build ' + DEMO_BUILD;
+document.getElementById('demo-version').textContent = 'v' + DEMO_VERSION;
 
 let step = 0, busy = false, sellerCaps = null, activeSession = null, pendingOffer = null, chosenPaymentMethod = null;
 let _paymentInProgress = false;
@@ -6617,7 +6617,7 @@ protocolVersion: ${result.result.protocolVersion} agreed`);
     setDot('dot-buyer', 'on');
     setPip(1, 'done');
     prefetchAgentProfile();
-    setStatus(`Handshake done — ${itemCount} items in catalog (build ${DEMO_BUILD}).`);
+    setStatus(`Handshake done — ${itemCount} items in catalog.`);
     setBtn('Next: Create Session', { next: 'Buyer agent sends shopping intent' });
   }
 
