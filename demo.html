@@ -3168,6 +3168,9 @@ function compactArrowText(label, sublabel) {
     'commerce/pay': 'pay',
     'payment required': 'due',
     'payment proof': 'proof',
+    held: 'held',
+    released: 'out',
+    refunded: 'back',
     settled: 'done',
     pay: 'pay',
   };
@@ -5489,15 +5492,16 @@ function addPaymentPicker(feedId) {
 
     const lbl = document.createElement('div');
     lbl.className = 'pay-pick-label';
-    lbl.textContent = 'choose payment method — tap a card or agent picks Crypto';
+    lbl.textContent = 'payment method';
     wrap.appendChild(lbl);
 
     const grid = document.createElement('div');
     grid.className = 'pay-pick-grid';
 
+    // Escrow is underlying (not a third card). Crypto = USDC via escrow; Fiat = Stripe.
     const methods = [
-      { id: 'crypto', icon: '&#x1FA99;', name: 'Crypto',  sub: 'USDC · Base Sepolia',       agentPick: true },
-      { id: 'fiat',   icon: '&#x1F4B3;', name: 'Fiat',    sub: 'Visa ···4242 · Stripe test', agentPick: false },
+      { id: 'crypto', icon: '&#x1FA99;', name: 'Crypto',  sub: 'x402 · Base Sepolia',       agentPick: true },
+      { id: 'fiat',   icon: '&#x1F4B3;', name: 'Fiat',    sub: 'Visa ···4242 · Stripe', agentPick: false },
     ];
 
     let done = false, remaining = 4;
@@ -5538,7 +5542,7 @@ function addPaymentPicker(feedId) {
     scrollToLatest();
   setDemoGuide({
     selector: '.pay-pick-card',
-    next: 'Tap Fiat or Crypto — agent picks Crypto in 4s',
+    next: 'Tap Crypto or Fiat — agent picks Crypto in 4s',
   });
 
     const pill       = document.getElementById('countdown-pill');
@@ -5569,6 +5573,151 @@ function addPaymentPicker(feedId) {
       }
     }, 1000);
   });
+}
+
+// ── Delivery confirm (escrow release / refund) ───────────────────────────────
+function addEscrowConfirmPicker(feedId, { allowNo = true } = {}) {
+  return new Promise(resolve => {
+    const feed = document.getElementById(feedId);
+    feed.querySelectorAll('.escrow-confirm-wrap').forEach(el => el.remove());
+    const wrap = document.createElement('div');
+    wrap.className = 'pay-pick-wrap escrow-confirm-wrap ' + feedAgentClass(feedId);
+
+    const lbl = document.createElement('div');
+    lbl.className = 'pay-pick-label';
+    lbl.textContent = 'received?';
+    wrap.appendChild(lbl);
+
+    const grid = document.createElement('div');
+    grid.className = 'pay-pick-grid';
+
+    const choices = [
+      { id: 'yes', name: 'Yes', disabled: false },
+      { id: 'no',  name: 'No',  disabled: !allowNo },
+    ];
+
+    let done = false;
+    choices.forEach(m => {
+      const card = document.createElement('div');
+      card.className = 'pay-pick-card' + (m.disabled ? ' faded' : '');
+      card.dataset.method = m.id;
+      card.innerHTML = `<span class="pay-pick-name">${m.name}</span>`;
+      if (m.disabled) {
+        card.style.pointerEvents = 'none';
+        card.title = 'Disabled for now';
+      } else {
+        card.addEventListener('click', () => {
+          if (done) return;
+          done = true;
+          clearDemoGuideHighlight();
+          grid.querySelectorAll('.pay-pick-card').forEach(c => c.classList.add('faded'));
+          card.classList.remove('faded');
+          card.classList.add('human-pick');
+          resolve(m.id);
+        });
+      }
+      grid.appendChild(card);
+    });
+
+    wrap.appendChild(grid);
+    feed.appendChild(wrap);
+    revealEl(wrap);
+    scrollToLatest();
+    setDemoGuide({
+      selector: '.escrow-confirm-wrap .pay-pick-card:not(.faded)',
+      next: allowNo ? 'Tap Yes to release or No to refund' : 'Tap Yes',
+    });
+  });
+}
+
+/** Minimal on-chat escrow receipt (hold / release / refund). */
+function addEscrowReceiptBubble(feedId, {
+  title,
+  status,
+  amountUsdc,
+  escrow,
+  receiver,
+  refundTo,
+  txHash,
+  receiptPayload,
+  payResult,
+}) {
+  const isSeller = feedId === 'feed-seller';
+  const side = isSeller ? 'sent' : 'recv';
+  const feed = document.getElementById(feedId);
+  const wrap = document.createElement('div');
+  wrap.className = 'bwrap ' + side + ' chat-wallet-bwrap ' + feedAgentClass(feedId);
+  wrap.dataset.paymentReceipt = '1';
+
+  const lb = document.createElement('div');
+  lb.className = 'blabel';
+  lb.textContent = title || 'receipt';
+  wrap.appendChild(lb);
+
+  const b = document.createElement('div');
+  b.className = 'bubble inc chat-wallet-bubble';
+  const lines = [
+    `status: ${status}`,
+    amountUsdc != null ? `amount: ${amountUsdc} USDC` : null,
+    escrow ? `escrow: ${shortAddr(escrow)}` : null,
+    receiver ? `receiver: ${shortAddr(receiver)}` : null,
+    refundTo ? `refund: ${shortAddr(refundTo)}` : null,
+    txHash ? `tx: ${shortAddr(txHash)}` : null,
+  ].filter(Boolean);
+  const pre = document.createElement('div');
+  pre.style.whiteSpace = 'pre-wrap';
+  pre.textContent = lines.join('\n');
+  b.appendChild(pre);
+
+  if (escrow) {
+    const a = document.createElement('a');
+    a.href = (typeof explorerAddressUrl === 'function')
+      ? explorerAddressUrl(escrow)
+      : (`${(typeof EXPLORER !== 'undefined' && EXPLORER) || 'https://sepolia.basescan.org'}/address/${escrow}`);
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.className = 'tx-verify-link';
+    a.style.display = 'inline-block';
+    a.style.marginTop = '6px';
+    a.textContent = 'escrow contract';
+    b.appendChild(a);
+  }
+  if (txHash) {
+    const a = document.createElement('a');
+    a.href = (typeof explorerTxUrl === 'function')
+      ? explorerTxUrl({ txHash })
+      : (`https://sepolia.basescan.org/tx/${txHash}`);
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.className = 'tx-verify-link';
+    a.style.display = 'inline-block';
+    a.style.marginTop = '4px';
+    a.style.marginLeft = escrow ? '10px' : '0';
+    a.textContent = 'tx';
+    b.appendChild(a);
+  }
+
+  if (receiptPayload) {
+    const card = document.createElement('div');
+    card.className = 'wallet-pop chat-wallet-card';
+    card.style.marginTop = '8px';
+    card.style.boxShadow = 'none';
+    card.style.border = 'none';
+    card.style.padding = '0';
+    card.style.background = 'transparent';
+    appendWalletDownloadBtn(card, receiptPayload, payResult, isMobileLayout());
+    b.appendChild(card);
+  }
+
+  wrap.appendChild(b);
+  feed.appendChild(wrap);
+  revealEl(wrap);
+  softScrollToBubble(wrap);
+  return wrap;
+}
+
+function explorerAddressUrl(addr) {
+  return `https://sepolia.basescan.org/address/${addr}`;
 }
 
 // ── Fiat wallet pay-hint state (mirrors _walletPayHint for crypto) ────────────
@@ -5868,6 +6017,20 @@ document.getElementById('demo-version').textContent = 'v' + DEMO_VERSION;
 
 let step = 0, busy = false, sellerCaps = null, activeSession = null, pendingOffer = null, chosenPaymentMethod = null;
 let _paymentInProgress = false;
+// Expose for local UI automation / Playwright (does not change demo behavior)
+window.__ACP_DEMO__ = {
+  get step() { return step; },
+  set step(v) { step = v; },
+  get busy() { return busy; },
+  set busy(v) { busy = v; },
+  get activeSession() { return activeSession; },
+  get pendingOffer() { return pendingOffer; },
+  set pendingOffer(v) { pendingOffer = v; },
+  get chosenPaymentMethod() { return chosenPaymentMethod; },
+  set chosenPaymentMethod(v) { chosenPaymentMethod = v; },
+  get paymentInProgress() { return _paymentInProgress; },
+  set paymentInProgress(v) { _paymentInProgress = !!v; },
+};
 let autoFireTimer = null;
 let promptInFlight = false;
 let promptTurnAborted = false;
@@ -6011,7 +6174,7 @@ function addOfferCard(feedId, offer) {
 
 const FLOW_GROUP_META = {
   acp:    { badge: 'ACP',    title: 'Agent Client Protocol' },
-  x402:   { badge: 'x402',   title: 'Crypto settlement · USDC' },
+  x402:   { badge: 'x402',   title: 'Crypto escrow · hold → release' },
   stripe: { badge: 'Stripe', title: 'Fiat settlement · Stripe test' },
   erc8004: { badge: '8004',  title: 'Reputation registry' },
   intent: { badge: 'VI', title: 'Verifiable intent' },
@@ -6886,14 +7049,14 @@ stored — will be sent with all requests`);
     }
     setPip(4, 'active');
     litStep(4);
-    setWorking('Opening payment picker', 'Choose Fiat (Stripe) or Crypto (x402 USDC)');
-    addBubble('feed-buyer', 'mid', '', 'selecting payment method…');
-    addBubble('feed-seller', 'mid', '', 'awaiting payment method…');
+    setWorking('Opening payment picker', 'Crypto (x402) or Fiat');
+    addBubble('feed-buyer', 'mid', '', 'selecting payment method');
+    addBubble('feed-seller', 'mid', '', 'awaiting payment method');
     await delay(500);
     const payMethod = await addPaymentPicker('feed-buyer');
     chosenPaymentMethod = payMethod;
-    const methodLabel = payMethod === 'fiat' ? 'Fiat · Stripe test' : 'Crypto · USDC';
-    addBubble('feed-seller', 'mid', '', `method confirmed: ${methodLabel}`);
+    const methodLabel = payMethod === 'fiat' ? 'Fiat' : 'Crypto';
+    addBubble('feed-seller', 'mid', '', methodLabel);
     await delay(300);
 
     // ══════════════════════════════════════════════════════════════════════
@@ -6966,23 +7129,19 @@ amount: $${pendingOffer.price.toFixed(2)} USD`);
         };
       }
 
-      addBubble('feed-seller', 'mid', '', 'Stripe · charge succeeded ✓');
+      addBubble('feed-seller', 'mid', '', 'Stripe charge complete');
       await delay(400);
 
-      addRichBubble('feed-seller', 'sent', 'seller  →  buyer   |   paid · fulfillment (Stripe)', (b) => {
+      addRichBubble('feed-seller', 'sent', 'paid · Stripe', (b) => {
         const pre = document.createElement('div');
         pre.style.whiteSpace = 'pre-wrap';
         pre.textContent = [
-          'status: paid',
-          `amount: $${amtUsd} ${(rcptS.currency || 'usd').toUpperCase()}`,
-          `provider: Stripe test mode`,
-          `card: ${rcptS.card?.brand || 'visa'} ···${rcptS.card?.last4 || '4242'}`,
-          `paymentIntentId: ${rcptS.paymentIntentId || '—'}`,
+          `$${amtUsd} ${(rcptS.currency || 'usd').toUpperCase()}`,
+          `Visa ···${rcptS.card?.last4 || '4242'}`,
         ].join('\n');
         b.appendChild(pre);
       });
       await delay(250);
-      addArrow('left', 'settled', 'seller → buyer', lastBubbleWrap('feed-seller'));
 
       // Set fiat pay hint (mirrors setWalletPayHint for crypto)
       const sellerNote = rcptS.connectEnabled
@@ -6991,8 +7150,8 @@ amount: $${pendingOffer.price.toFixed(2)} USD`);
           ? ' · seller account'
           : ' (platform only)';
       setFiatWalletPayHint(
-        `✓ Charged $${amtUsd} USD · Visa ···${rcptS.card?.last4 || '4242'}`,
-        `✓ Received +$${amtUsd} USD${sellerNote}`
+        `Charged $${amtUsd} USD · Visa ···${rcptS.card?.last4 || '4242'}`,
+        `Received +$${amtUsd} USD${sellerNote}`
       );
       if (rcptS.connectError) {
         addBubble('feed-seller', 'mid', '',
@@ -7050,8 +7209,14 @@ amount: $${pendingOffer.price.toFixed(2)} USD`);
         method: 'fiat',
       };
       prepareErc8004Walkthrough();
-      setStatus(`Payment complete — $${amtUsd} USD via Stripe. Awaiting seller feedback request…`);
-      await delay(600);
+      const ynFiat = await addEscrowConfirmPicker('feed-buyer', { allowNo: false });
+      if (ynFiat !== 'yes') {
+        busy = false;
+        document.getElementById('next-btn').style.display = 'none';
+        return;
+      }
+      setStatus(`Payment complete — $${amtUsd} USD via Stripe.`);
+      await delay(400);
       await sendSellerRatingRequest();
       await delay(400);
       showRateSellerButton();
@@ -7061,175 +7226,315 @@ amount: $${pendingOffer.price.toFixed(2)} USD`);
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    // ── CRYPTO PATH — x402 USDC on Base Sepolia ───────────────────────────
+    // ── CRYPTO PATH — x402-shaped flow, bilateral escrow under the hood ───
+    // Catalog USD / 10000 = on-chain USDC (demo micropay rate)
+    // Flow: quote → required → deposit(hold) → Yes release / No refund
     // ══════════════════════════════════════════════════════════════════════
-    setStatus('x402 payment — opening agent wallets…');
-    openPaymentWallets();
-    const walletBefore = await snapshotWalletBalances(true).catch(() => ({}));
+    if (payMethod === 'crypto') {
+      setStatus('Crypto — quote → escrow hold…');
+      openPaymentWallets();
+      const walletBefore = await snapshotWalletBalances(true).catch(() => ({}));
 
-    const payQuoteBubble = addBubble('feed-buyer', 'sent', 'buyer  →  seller   |   commerce/pay (quote)',
+      const catalogUsd = pendingOffer.price.toFixed(2);
+      const approxUsdc = (pendingOffer.price / 10000).toFixed(6);
+      const payQuoteBubble = addBubble('feed-buyer', 'sent', 'buyer  →  seller   |   commerce/pay (quote)',
 `sessionId: ${activeSession}
 offer: ${pendingOffer.name}
-method: crypto · USDC
-catalog: $${pendingOffer.price.toFixed(2)} ${pendingOffer.currency}`);
-    await waitForBubbleLayout(payQuoteBubble);
-    beginFlowGroup('x402', payQuoteBubble);
-    await delay(300);
-    addArrow('right', 'commerce/pay', 'buyer → seller', payQuoteBubble);
-    await delay(500);
+method: crypto · USDC · escrow
+catalog: $${catalogUsd} USD`);
+      await waitForBubbleLayout(payQuoteBubble);
+      beginFlowGroup('x402', payQuoteBubble);
+      await delay(300);
+      addArrow('right', 'commerce/pay', 'buyer → seller', payQuoteBubble);
+      await delay(400);
 
-    let quote, payResult;
-    try {
-      const q = await sellerFetch({
-        jsonrpc: '2.0', id: Date.now(), method: 'commerce/pay',
-        params: { sessionId: activeSession, offerId: pendingOffer.id, offer: pendingOffer }
-      });
-      if (q.error) throw new Error(q.error.message);
-      quote = q.result;
-    } catch (e) {
-      addErrBubble('feed-buyer', 'Quote failed: ' + sellerErrorMsg(e));
-      busy = false; _paymentInProgress = false; setBtn('Retry Payment'); return;
-    }
+      let quote, payResult;
+      try {
+        const q = await sellerFetch({
+          jsonrpc: '2.0', id: Date.now(), method: 'commerce/pay',
+          params: {
+            sessionId: activeSession,
+            offerId: pendingOffer.id,
+            offer: pendingOffer,
+            payment_method: 'escrow',
+          }
+        });
+        if (q.error) throw new Error(q.error.message);
+        quote = q.result;
+      } catch (e) {
+        addErrBubble('feed-buyer', 'Quote failed: ' + sellerErrorMsg(e));
+        busy = false; _paymentInProgress = false; setBtn('Retry Payment'); return;
+      }
 
-    const fx = quote.fx || {};
-    const usdcDue = fx.usdc || '—';
-    const balOk = quote.balanceCheck?.sufficient !== false;
+      const fx = quote.fx || {};
+      const usdcDue = fx.usdc || approxUsdc;
+      const balOk = quote.balanceCheck?.sufficient !== false;
+      const buyerAddr = quote.escrow?.buyer || quote.balanceCheck?.buyer || '';
+      const sellerAddr = quote.escrow?.seller || '';
 
-    const payReqBubble = addBubble('feed-seller', 'sent', 'seller  →  buyer   |   payment required (x402)',
+      const payReqBubble = addBubble('feed-seller', 'sent', 'seller  →  buyer   |   payment required (escrow)',
 `scheme: exact · Base Sepolia
-payTo: seller wallet
+payTo: escrow (hold)
 due: ${usdcDue} USDC
-catalog: $${fx.catalogUsd || pendingOffer.price} (${fx.demoRate || 'demo rate'})
-balance ok: ${balOk ? 'yes' : 'NO — insufficient USDC'}`);
-    await delay(250);
-    addArrow('left', 'payment required', 'seller → buyer', payReqBubble);
+catalog: $${catalogUsd} (1 USDC = $10,000 catalog (demo))
+receiver: ${sellerAddr ? shortAddr(sellerAddr) : 'seller'}
+balance ok: ${balOk ? 'yes' : 'no'}`);
+      await delay(250);
+      addArrow('left', 'payment required', 'seller → buyer', payReqBubble);
+      await delay(400);
 
-    setWalletPayHint(
-      `Due: ${usdcDue} USDC ($${fx.catalogUsd} demo)\n${balOk ? 'Ready to pay' : 'Insufficient USDC'}`,
-      `Expect: +${usdcDue} USDC`
-    );
+      if (!balOk) {
+        addErrBubble('feed-buyer', 'Insufficient USDC');
+        busy = false; _paymentInProgress = false; setBtn('Retry Payment'); return;
+      }
 
-    if (!balOk) {
-      addErrBubble('feed-buyer', 'Buyer USDC balance too low for this offer.');
-      busy = false; _paymentInProgress = false; setBtn('Retry Payment'); return;
-    }
+      setStatus('Depositing USDC into escrow…');
+      const proofBubble = addBubble('feed-buyer', 'sent', 'buyer  →  seller   |   payment proof',
+`method: escrow deposit · USDC
+amount: ${usdcDue} USDC
+payer: ${buyerAddr ? shortAddr(buyerAddr) : 'buyer'}`);
+      await delay(200);
+      addArrow('right', 'payment proof', 'buyer → seller', proofBubble);
 
-    setStatus('Signing & settling USDC via x402 facilitator…');
-    const proofBubble = addBubble('feed-buyer', 'sent', 'buyer  →  seller   |   payment proof',
-`method: x402 exact · USDC
-amount: ${usdcDue} USDC`);
-    await delay(250);
-    addArrow('right', 'payment proof', 'buyer → seller', proofBubble);
+      try {
+        const r = await fetch(SELLER + '/demo/escrow/execute', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: activeSession,
+            offerId: pendingOffer.id,
+            offer: pendingOffer,
+            requireIntent: false,
+          }),
+        });
+        payResult = await r.json();
+        if (!r.ok) throw new Error(payResult.error || payResult.message || `HTTP ${r.status}`);
+      } catch (e) {
+        addErrBubble('feed-buyer', 'Deposit failed: ' + (e.message || e));
+        busy = false; _paymentInProgress = false; setBtn('Retry Payment'); return;
+      }
 
-    try {
-      const r = await fetch(SELLER + '/demo/x402/execute', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId: activeSession,
-          offerId: pendingOffer.id,
-          offer: pendingOffer,
-        }),
+      if (payResult.status !== 'escrow_funded') {
+        addErrBubble('feed-seller', payResult.error || 'Funding failed');
+        busy = false; _paymentInProgress = false; setBtn('Retry Payment'); return;
+      }
+
+      const rcptHold = payResult.receipt || {};
+      const escrowAddr = rcptHold.escrow || payResult.deal?.escrow || '';
+      const held = rcptHold.usdcHeld || usdcDue;
+      const receiver = rcptHold.payTo || sellerAddr || payResult.deal?.seller || '';
+      const payer = rcptHold.payer || buyerAddr || payResult.deal?.buyer || '';
+
+      const heldBubble = addBubble('feed-seller', 'sent', 'seller  →  buyer   |   held (escrow)',
+`status: held
+usdc: ${held}
+escrow: ${shortAddr(escrowAddr)}
+receiver (pending): ${shortAddr(receiver)}
+tx: ${shortAddr(rcptHold.txHash || '')}`);
+      await delay(200);
+      addArrow('left', 'held', 'seller → buyer', heldBubble);
+
+      const holdPayload = buildReceiptPayload(pendingOffer, payResult, walletBefore, null);
+      addEscrowReceiptBubble('feed-buyer', {
+        title: 'receipt · held',
+        status: 'held in escrow',
+        amountUsdc: held,
+        escrow: escrowAddr,
+        receiver,
+        txHash: rcptHold.txHash,
+        receiptPayload: holdPayload,
+        payResult,
       });
-      payResult = await r.json();
-      if (!r.ok) throw new Error(payResult.error || payResult.message || `HTTP ${r.status}`);
-    } catch (e) {
-      addErrBubble('feed-buyer', 'Payment failed: ' + (e.message || e));
-      busy = false; _paymentInProgress = false; setBtn('Retry Payment'); return;
-    }
+      addEscrowReceiptBubble('feed-seller', {
+        title: 'receipt · held',
+        status: 'held in escrow',
+        amountUsdc: held,
+        escrow: escrowAddr,
+        receiver,
+        txHash: rcptHold.txHash,
+        receiptPayload: holdPayload,
+        payResult,
+      });
 
-    if (payResult.status !== 'paid') {
-      addErrBubble('feed-seller', payResult.error || 'Settlement failed');
-      busy = false; _paymentInProgress = false; setBtn('Retry Payment'); return;
-    }
+      setWalletPayHint(
+        `Held −${held} USDC · escrow ${shortAddr(escrowAddr)}`,
+        `Pending release → ${shortAddr(receiver)}`
+      );
+      await pollWalletsUntilChange(walletBefore, 45000).catch(() => {});
+      _walletCache.buyer = null;
+      _walletCache.seller = null;
+      await Promise.all(['buyer', 'seller'].map(r => fetchWallet(r)));
 
-    addBubble('feed-seller', 'mid', '', 'facilitator · verify ✓\nfacilitator · settle ✓');
-    await delay(600);
+      const yn = await addEscrowConfirmPicker('feed-buyer', { allowNo: true });
 
-    let rcpt = payResult.receipt || {};
-    await ensureReceiptGas(rcpt, payResult);
-    const txHash = resolveTxHash(rcpt, payResult);
-    if (txHash) {
-      rcpt.txHash = txHash;
-      rcpt.explorer = explorerTxUrl(rcpt);
-    }
-    payResult.receipt = rcpt;
+      // ── No → refund to buyer ────────────────────────────────────────────
+      if (yn === 'no') {
+        setStatus('Refunding from escrow…');
+        let cancel;
+        try {
+          const r = await fetch(SELLER + '/demo/escrow/cancel', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sessionId: activeSession,
+              offerId: pendingOffer.id,
+              escrow: escrowAddr,
+            }),
+          });
+          cancel = await r.json();
+          if (!r.ok) throw new Error(cancel.error || cancel.message || `HTTP ${r.status}`);
+        } catch (e) {
+          addErrBubble('feed-buyer', 'Refund failed: ' + (e.message || e));
+          busy = false; _paymentInProgress = false; setBtn('Retry Payment'); return;
+        }
 
-    addRichBubble('feed-seller', 'sent', 'seller  →  buyer   |   paid · fulfillment', (b) => {
-      const pre = document.createElement('div');
-      pre.style.whiteSpace = 'pre-wrap';
-      pre.textContent = [
-        'status: paid',
-        `usdc: ${rcpt.usdcPaid || usdcDue}`,
-        facilitatorGasLine(rcpt.ethGas),
-        txHash ? `tx: ${shortAddr(txHash)}` : 'tx: —',
-      ].join('\n');
-      b.appendChild(pre);
-      appendVerifyLink(b, rcpt);
-    });
-    await delay(250);
-    addArrow('left', 'settled', 'seller → buyer', lastBubbleWrap('feed-seller'));
+        const rcptR = cancel.receipt || {};
+        const returned = rcptR.usdcReturned || held;
+        const refundBubble = addBubble('feed-seller', 'sent', 'seller  →  buyer   |   refunded',
+`status: refunded
+usdc: ${returned}
+escrow: ${shortAddr(escrowAddr)}
+refund to: ${shortAddr(rcptR.buyer || payer)}
+tx: ${shortAddr(rcptR.txHash || '')}`);
+        await delay(200);
+        addArrow('left', 'refunded', 'seller → buyer', refundBubble);
 
-    setStatus('Refreshing wallets from chain…');
-    setWalletPayHint('Settling… polling chain', 'Awaiting credit…');
-    await pollWalletsUntilChange(walletBefore);
-    _walletCache.buyer = null;
-    _walletCache.seller = null;
-    await Promise.all(['buyer', 'seller'].map(r => fetchWallet(r)));
+        const refundPayload = buildReceiptPayload(pendingOffer, cancel, walletBefore, null);
+        addEscrowReceiptBubble('feed-buyer', {
+          title: 'receipt · refunded',
+          status: 'refunded to buyer',
+          amountUsdc: returned,
+          escrow: escrowAddr,
+          refundTo: rcptR.buyer || payer,
+          txHash: rcptR.txHash,
+          receiptPayload: refundPayload,
+          payResult: cancel,
+        });
+        addBubble('feed-seller', 'mid', '', `cancelled · ${returned} USDC returned`);
 
-    let walletAfter = {};
-    try {
-      walletAfter = await snapshotWalletBalances(true);
-    } catch (e) {
-      walletAfter = {
-        buyer: { full: _walletCache.buyer },
-        seller: { full: _walletCache.seller },
+        setWalletPayHint(
+          `Refunded +${returned} USDC`,
+          `No funds received`
+        );
+        _walletCache.buyer = null;
+        _walletCache.seller = null;
+        await Promise.all(['buyer', 'seller'].map(r => fetchWallet(r)));
+
+        setPip(4, 'done');
+        setStatus(`Refunded ${returned} USDC to buyer`);
+        endFlowGroup();
+        document.getElementById('next-btn').style.display = 'none';
+        document.getElementById('reset-btn').style.display = '';
+        busy = false;
+        _paymentInProgress = false;
+        return;
+      }
+
+      // ── Yes → release to receiver (seller) ──────────────────────────────
+      setStatus('Releasing escrow to seller…');
+      let conf;
+      try {
+        const r = await fetch(SELLER + '/demo/escrow/confirm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: activeSession,
+            offerId: pendingOffer.id,
+            escrow: escrowAddr,
+          }),
+        });
+        conf = await r.json();
+        if (!r.ok) throw new Error(conf.error || conf.message || `HTTP ${r.status}`);
+      } catch (e) {
+        addErrBubble('feed-buyer', 'Release failed: ' + (e.message || e));
+        busy = false; _paymentInProgress = false; setBtn('Retry Payment'); return;
+      }
+
+      const rcpt = conf.receipt || {};
+      const released = rcpt.usdcReleased || held;
+      const toSeller = rcpt.seller || receiver;
+      const releasedBubble = addBubble('feed-seller', 'sent', 'seller  →  buyer   |   released',
+`status: released
+usdc: ${released}
+escrow: ${shortAddr(escrowAddr)}
+receiver: ${shortAddr(toSeller)}
+tx: ${shortAddr(rcpt.txHash || '')}`);
+      await delay(200);
+      addArrow('left', 'released', 'seller → buyer', releasedBubble);
+
+      await pollWalletsUntilChange(walletBefore).catch(() => {});
+      _walletCache.buyer = null;
+      _walletCache.seller = null;
+      await Promise.all(['buyer', 'seller'].map(r => fetchWallet(r)));
+      const walletAfter = {
+        buyer: _walletCache.buyer,
+        seller: _walletCache.seller,
       };
-    }
 
-    await ensureReceiptGas(rcpt, payResult);
-    payResult.receipt = rcpt;
+      const releasePayload = buildReceiptPayload(
+        pendingOffer,
+        { ...conf, receipt: { ...rcptHold, ...rcpt, usdcPaid: released, payTo: toSeller, escrow: escrowAddr } },
+        walletBefore,
+        walletAfter,
+      );
 
-    if (rcpt.intentHash || rcpt.chainHash) {
-      _intentAudit = {
-        ...(_intentAudit || {}),
-        intentHash: rcpt.intentHash || _intentAudit?.intentHash,
-        paymentHash: rcpt.paymentHash,
-        chainHash: rcpt.chainHash,
-        constraintCheck: rcpt.constraintCheck,
-        paymentProvider: rcpt.paymentProvider || 'x402',
+      addEscrowReceiptBubble('feed-buyer', {
+        title: 'receipt · released',
+        status: 'released to receiver',
+        amountUsdc: released,
+        escrow: escrowAddr,
+        receiver: toSeller,
+        txHash: rcpt.txHash,
+        receiptPayload: releasePayload,
+        payResult: conf,
+      });
+      addEscrowReceiptBubble('feed-seller', {
+        title: 'receipt · received',
+        status: 'received from escrow',
+        amountUsdc: released,
+        escrow: escrowAddr,
+        receiver: toSeller,
+        txHash: rcpt.txHash,
+        receiptPayload: releasePayload,
+        payResult: conf,
+      });
+
+      setWalletPayHint(
+        `Paid −${released} USDC · via escrow`,
+        `Received +${released} USDC · ${shortAddr(toSeller)}`
+      );
+      addChatWalletBubble(
+        'feed-buyer', 'buyer', _walletCache.buyer, _walletPayHint.buyer,
+        rcpt.txHash, released, releasePayload, conf,
+      );
+      addChatWalletBubble(
+        'feed-seller', 'seller', _walletCache.seller, _walletPayHint.seller,
+        rcpt.txHash, released, releasePayload, conf,
+      );
+
+      _lastPaymentContext = {
+        rcpt: { ...rcptHold, ...rcpt, offerId: pendingOffer.id, payTo: toSeller },
+        payResult: conf,
+        offer: pendingOffer,
+        method: 'crypto',
       };
+      setStatus(`Released ${released} USDC → ${shortAddr(toSeller)}`);
+
+      setPip(4, 'done');
+      prepareErc8004Walkthrough();
+      await delay(400);
+      await sendSellerRatingRequest();
+      await delay(400);
+      showRateSellerButton();
+      document.getElementById('next-btn').style.display = 'none';
+      busy = false;
+      _paymentInProgress = false;
+      return;
     }
 
-    const buyerSnap   = walletAfter.buyer?.full  || _walletCache.buyer;
-    const sellerSnap  = walletAfter.seller?.full || _walletCache.seller;
-    const buyerPayHint  = formatWalletPayHint(`Paid ${rcpt.usdcPaid || usdcDue} USDC`, rcpt.ethGas);
-    const sellerPayHint = formatWalletPayHint(`Received +${rcpt.usdcPaid || usdcDue} USDC`, rcpt.ethGas);
-
-    const receiptPayload = buildReceiptPayload(pendingOffer, payResult, walletBefore, walletAfter);
-    _lastPaymentContext = { rcpt, payResult, offer: pendingOffer, method: 'crypto' };
-    _feedbackSubmitted = false;
-
-    addChatWalletBubble('feed-buyer', 'buyer', buyerSnap, buyerPayHint, rcpt.txHash, rcpt.usdcPaid, receiptPayload, payResult);
-    addChatWalletBubble('feed-seller', 'seller', sellerSnap, sellerPayHint, rcpt.txHash, rcpt.usdcPaid, receiptPayload, payResult);
-
-    if (_intentAudit?.chainHash) {
-      addIntentCompactSys('feed-buyer', `pay ${shortHash(_intentAudit.paymentHash)} · chain ${shortHash(_intentAudit.chainHash)}`);
-      addIntentCompactSys('feed-seller', `chain ${shortHash(_intentAudit.chainHash)}`);
-    }
-
-    setWalletPayHint(buyerPayHint, sellerPayHint);
-    await Promise.all(['buyer', 'seller'].map(r => fetchWallet(r, true)));
-
-    setPip(4, 'done');
-    prepareErc8004Walkthrough();
-    setStatus('Receipts on buyer & seller — awaiting seller feedback request…');
-    await delay(600);
-    await sendSellerRatingRequest();
-    await delay(400);
-    showRateSellerButton();
-    document.getElementById('next-btn').style.display = 'none';
-    busy = false;
+    // unknown method
+    addErrBubble('feed-buyer', 'Unknown payment method');
+    busy = false; _paymentInProgress = false; setBtn('Retry Payment');
     return;
   }
 

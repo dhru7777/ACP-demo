@@ -3,3 +3,9 @@ __pycache__/
 venv/
 local.env
 .env
+
+# Foundry (contracts/)
+contracts/cache/
+contracts/out/
+contracts/broadcast/
+contracts/.env

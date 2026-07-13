@@ -61,7 +61,7 @@ from payments.wallet_api import (
 
 def _stripe_connect_enabled() -> bool:
     return get_stripe_seller_account_id() is not None
-from payments import x402_service
+from payments import escrow_service, x402_service
 from payments.chain import fetch_tx_fee_eth
 from payments.receipt_pdf import build_receipt_pdf
 from trust.identity_api import build_agent_identity_response, identity_status
@@ -438,6 +438,113 @@ async def demo_x402_execute(request: Request):
         return JSONResponse(result)
     except Exception as e:
         return JSONResponse({"status": "error", "error": str(e)}, status_code=500)
+
+
+@app.post("/demo/escrow/execute")
+async def demo_escrow_execute(request: Request):
+    """Demo UI: deploy BilateralEscrow + approve + deposit (funds held until confirm)."""
+    body = await request.json()
+    session_id = body.get("sessionId")
+    offer = body.get("offer") or {}
+    offer_id = body.get("offerId") or offer.get("id")
+    if not offer_id:
+        return JSONResponse({"error": "offerId required"}, status_code=400)
+    product = catalog_search.get(offer_id)
+    if product is None:
+        return JSONResponse({"error": f"Unknown offer: {offer_id}"}, status_code=404)
+    catalog_usd = float(offer.get("price") or product["price"])
+    offer_name = offer.get("name") or product.get("name", "")
+
+    check_result = None
+    if session_id:
+        try:
+            check_result = check_offer_for_session(
+                session_id,
+                offer_id=offer_id,
+                offer_name=offer_name,
+                catalog_usd=catalog_usd,
+                product=product,
+                offer=offer,
+                payment_rail="escrow",
+                require_intent=body.get("requireIntent", False),
+            )
+        except ValueError as e:
+            return JSONResponse({"status": "error", "error": str(e)}, status_code=400)
+        if check_result and not check_result.get("pass"):
+            return JSONResponse({
+                "status": "error",
+                "error": "Constraint check failed",
+                "constraintCheck": check_result,
+            }, status_code=403)
+
+    try:
+        result = await escrow_service.execute_deposit(
+            catalog_usd, offer_id, offer_name, session_id=session_id
+        )
+        if session_id and session_manager.exists(session_id):
+            session_manager.add_history(session_id, "buyer", "commerce/pay.escrow_deposit", body)
+            session_manager.add_history(session_id, "seller", "commerce/pay.escrow_funded", result)
+            sess = session_manager.get(session_id)
+            if sess is not None:
+                held = sess.setdefault("context", {}).setdefault("escrowOffers", {})
+                held[offer_id] = result
+        return JSONResponse(result)
+    except Exception as e:
+        return JSONResponse({"status": "error", "error": str(e)}, status_code=500)
+
+
+@app.post("/demo/escrow/confirm")
+async def demo_escrow_confirm(request: Request):
+    """Buyer Yes — release escrowed USDC to seller."""
+    body = await request.json()
+    session_id = body.get("sessionId")
+    offer_id = body.get("offerId")
+    escrow = body.get("escrow")
+    try:
+        result = await escrow_service.execute_confirm(
+            session_id=session_id, offer_id=offer_id, escrow=escrow
+        )
+        if session_id and session_manager.exists(session_id):
+            session_manager.add_history(session_id, "buyer", "commerce/pay.escrow_confirm", body)
+            session_manager.add_history(session_id, "seller", "commerce/pay.escrow_released", result)
+            sess = session_manager.get(session_id)
+            if sess is not None:
+                paid = sess.setdefault("context", {}).setdefault("paidOffers", {})
+                oid = offer_id or (result.get("receipt") or {}).get("offerId")
+                if oid:
+                    paid[oid] = result
+        return JSONResponse(result)
+    except Exception as e:
+        return JSONResponse({"status": "error", "error": str(e)}, status_code=500)
+
+
+@app.post("/demo/escrow/cancel")
+async def demo_escrow_cancel(request: Request):
+    """Buyer No — cancel Funded escrow and refund USDC immediately."""
+    body = await request.json()
+    session_id = body.get("sessionId")
+    offer_id = body.get("offerId")
+    escrow = body.get("escrow")
+    try:
+        result = await escrow_service.execute_cancel(
+            session_id=session_id, offer_id=offer_id, escrow=escrow
+        )
+        if session_id and session_manager.exists(session_id):
+            session_manager.add_history(session_id, "buyer", "commerce/pay.escrow_cancel", body)
+            session_manager.add_history(session_id, "seller", "commerce/pay.escrow_cancelled", result)
+        return JSONResponse(result)
+    except Exception as e:
+        return JSONResponse({"status": "error", "error": str(e)}, status_code=500)
+
+
+@app.get("/demo/escrow/pending")
+async def demo_escrow_pending(sessionId: str | None = None, offerId: str | None = None):
+    deal = escrow_service.get_pending(session_id=sessionId, offer_id=offerId)
+    if not deal:
+        return JSONResponse({"status": "none"})
+    held = escrow_service.escrow_usdc_balance(deal["escrow"])
+    state = escrow_service.escrow_state(deal["escrow"])
+    return JSONResponse({**deal, "heldAtomic": held, "state": state, "status": "pending"})
 
 
 @app.get("/demo/stripe/verify-connect")

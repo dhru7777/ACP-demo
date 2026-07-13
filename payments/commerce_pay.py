@@ -1,10 +1,10 @@
 """
-ACP commerce/pay — routes to x402 (crypto) or Stripe (fiat) based on payment_method param.
+ACP commerce/pay — routes to x402, escrow, or Stripe based on payment_method.
 """
 
 from __future__ import annotations
 
-from payments import stripe_service, x402_service
+from payments import escrow_service, stripe_service, x402_service
 from payments.chain import fetch_eth_balance, fetch_usdc_balance
 from payments.wallets import get_buyer_address
 
@@ -12,7 +12,7 @@ from payments.wallets import get_buyer_address
 async def handle_commerce_pay(params: dict, catalog_lookup) -> dict:
     """
     params: sessionId, offerId, offer? (optional inline offer),
-            payment_method? ("crypto" | "fiat", default "crypto"),
+            payment_method? ("crypto" | "escrow" | "fiat", default "crypto"),
             payment? (x402 PaymentPayload dict — crypto path only)
     catalog_lookup(offer_id) -> product dict with price, name, id
     """
@@ -24,6 +24,7 @@ async def handle_commerce_pay(params: dict, catalog_lookup) -> dict:
     )
     payment_method = (params.get("payment_method") or "crypto").lower()
     payment = params.get("payment")
+    session_id = params.get("sessionId")
 
     if not offer_id:
         return _err("offerId or offer.item required")
@@ -46,6 +47,38 @@ async def handle_commerce_pay(params: dict, catalog_lookup) -> dict:
 
         try:
             quote = await stripe_service.build_quote(catalog_usd, offer_id, offer_name)
+            return {"result": quote}
+        except Exception as e:
+            return _err(str(e))
+
+    # ── Escrow path (hold USDC until buyer confirms) ───────────────────────────
+    if payment_method in ("escrow", "crypto_escrow"):
+        if params.get("execute") or params.get("demoExecute") or params.get("deposit"):
+            try:
+                receipt = await escrow_service.execute_deposit(
+                    catalog_usd, offer_id, offer_name, session_id=session_id
+                )
+                return {"result": receipt}
+            except Exception as e:
+                return _err(str(e))
+        if params.get("confirm"):
+            try:
+                receipt = await escrow_service.execute_confirm(
+                    session_id=session_id, offer_id=offer_id, escrow=params.get("escrow")
+                )
+                return {"result": receipt}
+            except Exception as e:
+                return _err(str(e))
+        if params.get("cancel"):
+            try:
+                receipt = await escrow_service.execute_cancel(
+                    session_id=session_id, offer_id=offer_id, escrow=params.get("escrow")
+                )
+                return {"result": receipt}
+            except Exception as e:
+                return _err(str(e))
+        try:
+            quote = await escrow_service.build_quote(catalog_usd, offer_id, offer_name)
             return {"result": quote}
         except Exception as e:
             return _err(str(e))

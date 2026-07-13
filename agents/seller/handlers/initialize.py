@@ -44,6 +44,7 @@ def handle_initialize(id_, params: dict, connected_clients: dict, stripe_connect
                     "stripe":        True,
                     "stripeConnect": bool(stripe_connect_enabled()),
                     "x402":          True,
+                    "escrow":        True,
                 },
                 "mcpCapabilities": {
                     "http": False,

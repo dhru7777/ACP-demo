@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 DEFAULT_POLICY = {
-    "payment_rails_allowed": ["stripe_fiat", "x402"],
+    "payment_rails_allowed": ["stripe_fiat", "x402", "escrow"],
     "categories_allowed": ["running"],
     "merchants_allowed": ["nike.com"],
     "currency": "USD",
@@ -42,6 +42,6 @@ def public_constraints_doc() -> dict:
         "rules": [
             "offer.price <= budget.max",
             "offer.category in categories.allowed",
-            "payment_rail must be stripe_fiat or x402 at checkout",
+            "payment_rail must be stripe_fiat, x402, or escrow at checkout",
         ],
     }
