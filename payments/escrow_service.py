@@ -31,13 +31,20 @@ from payments.wallets import get_buyer_address, get_seller_address, load_buyer_w
 
 _CHAIN_ID = 84532
 _REPO_ROOT = Path(__file__).resolve().parent.parent
-_ARTIFACT = (
-    _REPO_ROOT
-    / "contracts"
-    / "out"
-    / "BilateralEscrow.sol"
-    / "BilateralEscrow.json"
+# Prefer committed slim artifact (Railway / Nixpacks have no forge).
+# Fall back to forge `out/` for local Foundry workflows.
+_ARTIFACT_CANDIDATES = (
+    _REPO_ROOT / "contracts" / "artifacts" / "BilateralEscrow.json",
+    _REPO_ROOT / "contracts" / "out" / "BilateralEscrow.sol" / "BilateralEscrow.json",
 )
+
+
+def _artifact_path() -> Path | None:
+    for path in _ARTIFACT_CANDIDATES:
+        if path.is_file():
+            return path
+    return None
+
 
 # sessionId / offerId -> pending escrow deal
 _PENDING: dict[str, dict[str, Any]] = {}
@@ -73,11 +80,14 @@ def _rpc(method: str, params: list) -> Any:
 
 
 def _load_creation_bytecode() -> bytes:
-    if not _ARTIFACT.is_file():
+    path = _artifact_path()
+    if path is None:
         raise RuntimeError(
-            f"Missing {_ARTIFACT}. Run: cd contracts && forge build"
+            "Missing BilateralEscrow artifact. Expected "
+            "contracts/artifacts/BilateralEscrow.json "
+            "(or run: cd contracts && forge build)"
         )
-    raw = json.loads(_ARTIFACT.read_text())["bytecode"]["object"]
+    raw = json.loads(path.read_text())["bytecode"]["object"]
     if raw.startswith("0x"):
         raw = raw[2:]
     return bytes.fromhex(raw)

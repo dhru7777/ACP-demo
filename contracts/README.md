@@ -7,9 +7,19 @@ No dispute module.
 
 ## Prerequisites
 
-1. [Foundry](https://book.getfoundry.sh/getting-started/installation) (`forge`, `cast`)
+1. [Foundry](https://book.getfoundry.sh/getting-started/installation) (`forge`, `cast`) — local compile/test only
 2. Buyer + deployer wallets funded with **Base Sepolia ETH** (gas)
 3. Buyer funded with **test USDC** from [Circle faucet](https://faucet.circle.com/) (network: Base Sepolia)
+
+Runtime deploy (seller agent / Railway) loads bytecode from
+`contracts/artifacts/BilateralEscrow.json` (committed). After changing
+`src/BilateralEscrow.sol`, refresh it:
+
+```bash
+cd contracts && forge build
+cp out/BilateralEscrow.sol/BilateralEscrow.json /tmp/be.json
+# or: python from repo root to rewrite contracts/artifacts/BilateralEscrow.json
+```
 
 Defaults baked into deploy script:
 
