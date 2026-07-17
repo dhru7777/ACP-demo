@@ -30,6 +30,14 @@ async def handle_commerce_pay(params: dict, catalog_lookup) -> dict:
         return _err("offerId or offer.item required")
 
     product = catalog_lookup(offer_id)
+    if product is None and offer_inline.get("price") is not None and offer_inline.get("name"):
+        # Demo UI always sends a full inline offer — allow pay even if catalog miss.
+        product = {
+            "id": offer_id,
+            "name": offer_inline["name"],
+            "price": float(offer_inline["price"]),
+            "currency": offer_inline.get("currency") or "USD",
+        }
     if product is None:
         return _err(f"Unknown offer: {offer_id}")
 

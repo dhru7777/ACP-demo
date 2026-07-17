@@ -71,6 +71,30 @@ from intent.payment_guard import check_offer_for_session, finalize_paid_receipt
 
 app = FastAPI(title="Nike Seller Agent", version="2.0.0")
 
+
+def _resolve_product(offer_id: str, offer: dict | None = None) -> dict | None:
+    """Catalog lookup with inline-offer fallback for demo UI payments."""
+    offer = offer or {}
+    product = catalog_search.get(offer_id)
+    if product is not None:
+        return {**product, "id": offer_id}
+    price = offer.get("price")
+    name = offer.get("name")
+    if price is None or not name:
+        return None
+    try:
+        catalog_usd = float(price)
+    except (TypeError, ValueError):
+        return None
+    return {
+        "id": offer_id,
+        "name": str(name),
+        "price": catalog_usd,
+        "currency": offer.get("currency") or "USD",
+        "category": offer.get("category"),
+        "description": offer.get("description") or "",
+    }
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -390,7 +414,7 @@ async def demo_x402_execute(request: Request):
     offer_id = body.get("offerId") or offer.get("id")
     if not offer_id:
         return JSONResponse({"error": "offerId required"}, status_code=400)
-    product = catalog_search.get(offer_id)
+    product = _resolve_product(offer_id, offer)
     if product is None:
         return JSONResponse({"error": f"Unknown offer: {offer_id}"}, status_code=404)
     catalog_usd = float(offer.get("price") or product["price"])
@@ -440,6 +464,48 @@ async def demo_x402_execute(request: Request):
         return JSONResponse({"status": "error", "error": str(e)}, status_code=500)
 
 
+@app.get("/demo/payments/health")
+async def demo_payments_health():
+    """Report which payment rails are importable / routable (for smoke tests)."""
+    stripe_ok = False
+    stripe_err = None
+    try:
+        import stripe as _stripe  # noqa: F401
+        stripe_ok = True
+    except Exception as e:
+        stripe_err = str(e)
+
+    escrow_ok = True
+    escrow_err = None
+    try:
+        _ = escrow_service.build_quote
+    except Exception as e:
+        escrow_ok = False
+        escrow_err = str(e)
+
+    return JSONResponse({
+        "status": "ok",
+        "rails": {
+            "x402": {"route": "/demo/x402/execute", "ready": True},
+            "escrow": {
+                "routes": [
+                    "/demo/escrow/execute",
+                    "/demo/escrow/confirm",
+                    "/demo/escrow/cancel",
+                    "/demo/escrow/pending",
+                ],
+                "ready": escrow_ok,
+                "error": escrow_err,
+            },
+            "stripe": {
+                "route": "/demo/stripe/execute",
+                "module": stripe_ok,
+                "error": stripe_err,
+            },
+        },
+    })
+
+
 @app.post("/demo/escrow/execute")
 async def demo_escrow_execute(request: Request):
     """Demo UI: deploy BilateralEscrow + approve + deposit (funds held until confirm)."""
@@ -449,7 +515,7 @@ async def demo_escrow_execute(request: Request):
     offer_id = body.get("offerId") or offer.get("id")
     if not offer_id:
         return JSONResponse({"error": "offerId required"}, status_code=400)
-    product = catalog_search.get(offer_id)
+    product = _resolve_product(offer_id, offer)
     if product is None:
         return JSONResponse({"error": f"Unknown offer: {offer_id}"}, status_code=404)
     catalog_usd = float(offer.get("price") or product["price"])
@@ -606,7 +672,13 @@ async def intent_check(request: Request):
 @app.post("/demo/stripe/execute")
 async def demo_stripe_execute(request: Request):
     """Demo UI: charge test card via Stripe in one call."""
-    from payments import stripe_service
+    try:
+        from payments import stripe_service
+    except ImportError as e:
+        return JSONResponse(
+            {"status": "error", "error": f"Stripe SDK missing: {e}. Add stripe to requirements."},
+            status_code=500,
+        )
 
     body = await request.json()
     session_id = body.get("sessionId")
@@ -614,7 +686,7 @@ async def demo_stripe_execute(request: Request):
     offer_id = body.get("offerId") or offer.get("id")
     if not offer_id:
         return JSONResponse({"error": "offerId required"}, status_code=400)
-    product = catalog_search.get(offer_id)
+    product = _resolve_product(offer_id, offer)
     if product is None:
         return JSONResponse({"error": f"Unknown offer: {offer_id}"}, status_code=404)
     catalog_usd = float(offer.get("price") or product["price"])

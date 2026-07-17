@@ -7105,7 +7105,7 @@ amount: $${pendingOffer.price.toFixed(2)} USD`);
           }),
         });
         stripeResult = await r.json();
-        if (!r.ok) throw new Error(stripeResult.error || stripeResult.message || `HTTP ${r.status}`);
+        if (!r.ok) throw new Error(stripeResult.error || stripeResult.message || stripeResult.detail || `HTTP ${r.status}`);
       } catch (e) {
         addErrBubble('feed-buyer', 'Stripe payment failed: ' + (e.message || e));
         busy = false; _paymentInProgress = false; setBtn('Retry Payment'); return;
@@ -7308,7 +7308,7 @@ payer: ${buyerAddr ? shortAddr(buyerAddr) : 'buyer'}`);
           }),
         });
         payResult = await r.json();
-        if (!r.ok) throw new Error(payResult.error || payResult.message || `HTTP ${r.status}`);
+        if (!r.ok) throw new Error(payResult.error || payResult.message || payResult.detail || `HTTP ${r.status}`);
       } catch (e) {
         addErrBubble('feed-buyer', 'Deposit failed: ' + (e.message || e));
         busy = false; _paymentInProgress = false; setBtn('Retry Payment'); return;
@@ -7382,7 +7382,7 @@ tx: ${shortAddr(rcptHold.txHash || '')}`);
             }),
           });
           cancel = await r.json();
-          if (!r.ok) throw new Error(cancel.error || cancel.message || `HTTP ${r.status}`);
+          if (!r.ok) throw new Error(cancel.error || cancel.message || cancel.detail || `HTTP ${r.status}`);
         } catch (e) {
           addErrBubble('feed-buyer', 'Refund failed: ' + (e.message || e));
           busy = false; _paymentInProgress = false; setBtn('Retry Payment'); return;
@@ -7444,7 +7444,7 @@ tx: ${shortAddr(rcptR.txHash || '')}`);
           }),
         });
         conf = await r.json();
-        if (!r.ok) throw new Error(conf.error || conf.message || `HTTP ${r.status}`);
+        if (!r.ok) throw new Error(conf.error || conf.message || conf.detail || `HTTP ${r.status}`);
       } catch (e) {
         addErrBubble('feed-buyer', 'Release failed: ' + (e.message || e));
         busy = false; _paymentInProgress = false; setBtn('Retry Payment'); return;
