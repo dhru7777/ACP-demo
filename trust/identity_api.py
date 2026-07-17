@@ -33,6 +33,7 @@ from trust.scan8004 import (
     agent_matches_service_url,
     discover_agent_by_service_url,
     fetch_agent,
+    fetch_agent_with_diagnostics,
     search_agents,
 )
 
@@ -312,13 +313,27 @@ def build_agent_identity_response(service_url: str | None = None) -> dict[str, A
     agent_registry = agent_registry_string(chain_id, registry)
 
     errors: list[str] = []
-    scan = prefetched or fetch_agent(chain_id, agent_id)
-    if not scan:
-        errors.append("8004scan profile not found for this agent")
+    warnings: list[str] = []
+    scan = prefetched
+    scan_diag: dict | None = None
+    if scan is None:
+        scan, scan_diag = fetch_agent_with_diagnostics(chain_id, agent_id)
 
     on_chain = read_identity_on_chain(chain_id, agent_id, registry)
     if on_chain.get("errors"):
         errors.extend(on_chain["errors"])
+
+    if not scan:
+        msg = "8004scan profile not found for this agent"
+        if scan_diag and scan_diag.get("attempts"):
+            last = scan_diag["attempts"][-1]
+            detail = last.get("error") or f"HTTP {last.get('status')}"
+            msg = f"{msg} ({detail})"
+        # On-chain identity can still power the profile UI — treat indexer miss as warning.
+        if on_chain.get("minted"):
+            warnings.append(msg)
+        else:
+            errors.append(msg)
 
     registration: dict = {}
     agent_uri = on_chain.get("agentURI")
@@ -432,5 +447,7 @@ def build_agent_identity_response(service_url: str | None = None) -> dict[str, A
         "checks": checks,
         "verify": verify,
         "errors": errors,
+        "warnings": warnings,
+        "scanFetch": scan_diag,
         "fetchedAt": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
     }

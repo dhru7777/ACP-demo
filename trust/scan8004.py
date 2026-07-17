@@ -12,7 +12,7 @@ from urllib.parse import urlparse
 
 import requests
 
-from trust.config import get_scan8004_api_base, get_scan8004_api_key
+from trust.config import get_chain_id, get_scan8004_api_base, get_scan8004_api_key
 
 
 def _headers() -> dict[str, str]:
@@ -94,17 +94,67 @@ def agent_matches_service_url(scan: dict | None, service_url: str | None) -> boo
     return False
 
 
+def _candidate_api_bases(chain_id: int) -> list[str]:
+    """Ordered bases to try — configured first, then known public/testnet mirrors."""
+    primary = get_scan8004_api_base(chain_id).rstrip("/")
+    bases = [primary]
+    # Testnet agents (Base Sepolia) often need the testnet host even if env points elsewhere.
+    if chain_id in (84532, 11155111, 97, 80002, 10143):
+        for b in (
+            "https://testnet.8004scan.io/api/v1",
+            "https://testnet.8004scan.io/api/v1/public",
+            "https://8004scan.io/api/v1/public",
+        ):
+            if b not in bases:
+                bases.append(b)
+    else:
+        for b in (
+            "https://8004scan.io/api/v1/public",
+            "https://8004scan.io/api/v1",
+        ):
+            if b not in bases:
+                bases.append(b)
+    return bases
+
+
 def fetch_agent(chain_id: int, agent_id: int) -> dict | None:
-    """GET /agents/{chainId}/{tokenId}"""
-    url = f"{get_scan8004_api_base(chain_id)}/agents/{chain_id}/{agent_id}"
-    try:
-        r = requests.get(url, headers=_headers(), timeout=15)
-        if r.status_code == 404:
-            return None
-        r.raise_for_status()
-        return _parse_agent_body(r.json())
-    except Exception:
-        return None
+    """GET /agents/{chainId}/{tokenId} with fallback bases."""
+    agent, _diag = fetch_agent_with_diagnostics(chain_id, agent_id)
+    return agent
+
+
+def fetch_agent_with_diagnostics(
+    chain_id: int, agent_id: int
+) -> tuple[dict | None, dict]:
+    """
+    Same as fetch_agent, but also returns attempt diagnostics for /agent/erc8004.
+    """
+    attempts: list[dict] = []
+    headers = _headers()
+    for base in _candidate_api_bases(chain_id):
+        url = f"{base}/agents/{chain_id}/{agent_id}"
+        try:
+            r = requests.get(url, headers=headers, timeout=15)
+            attempt = {"url": url, "status": r.status_code}
+            if r.status_code == 404:
+                attempts.append({**attempt, "ok": False, "error": "not_found"})
+                continue
+            if r.status_code >= 400:
+                attempts.append({**attempt, "ok": False, "error": (r.text or "")[:180]})
+                continue
+            try:
+                body = r.json()
+            except Exception as e:
+                attempts.append({**attempt, "ok": False, "error": f"json: {e}"})
+                continue
+            parsed = _parse_agent_body(body)
+            if parsed:
+                attempts.append({**attempt, "ok": True})
+                return parsed, {"ok": True, "attempts": attempts, "source": url}
+            attempts.append({**attempt, "ok": False, "error": "unrecognized_body"})
+        except Exception as e:
+            attempts.append({"url": url, "ok": False, "error": str(e)})
+    return None, {"ok": False, "attempts": attempts}
 
 
 def search_agents(
@@ -114,16 +164,20 @@ def search_agents(
     limit: int = 20,
 ) -> list[dict]:
     """GET /agents?search=..."""
-    base = get_scan8004_api_base(chain_id)
+    cid = chain_id if chain_id is not None else get_chain_id()
     params: dict[str, str | int] = {"search": query, "limit": limit}
     if chain_id is not None:
         params["chain_id"] = chain_id
-    try:
-        r = requests.get(f"{base}/agents", params=params, headers=_headers(), timeout=15)
-        r.raise_for_status()
-        return _parse_list_body(r.json())
-    except Exception:
-        return []
+    for base in _candidate_api_bases(cid):
+        try:
+            r = requests.get(f"{base}/agents", params=params, headers=_headers(), timeout=15)
+            r.raise_for_status()
+            rows = _parse_list_body(r.json())
+            if rows:
+                return rows
+        except Exception:
+            continue
+    return []
 
 
 def list_agents(
@@ -133,16 +187,20 @@ def list_agents(
     offset: int = 0,
 ) -> list[dict]:
     """GET /agents — paginated index (summary rows, may omit service endpoints)."""
-    base = get_scan8004_api_base(chain_id)
+    cid = chain_id if chain_id is not None else get_chain_id()
     params: dict[str, str | int] = {"limit": limit, "offset": offset}
     if chain_id is not None:
         params["chain_id"] = chain_id
-    try:
-        r = requests.get(f"{base}/agents", params=params, headers=_headers(), timeout=15)
-        r.raise_for_status()
-        return _parse_list_body(r.json())
-    except Exception:
-        return []
+    for base in _candidate_api_bases(cid):
+        try:
+            r = requests.get(f"{base}/agents", params=params, headers=_headers(), timeout=15)
+            r.raise_for_status()
+            rows = _parse_list_body(r.json())
+            if rows:
+                return rows
+        except Exception:
+            continue
+    return []
 
 
 def discover_agent_by_service_url(

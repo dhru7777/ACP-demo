@@ -5140,6 +5140,9 @@ function buildProfileTabPop(pop, data) {
   const errBlock = (data.errors && data.errors.length)
     ? `<div class="wallet-err" style="margin-top:6px">${data.errors.join('; ')}</div>`
     : '';
+  const warnBlock = (data.warnings && data.warnings.length)
+    ? `<div class="wallet-muted" style="margin-top:6px">${data.warnings.join('; ')}</div>`
+    : '';
 
   pop.innerHTML = `
     <div class="wallet-pop-head-row">
@@ -5147,7 +5150,8 @@ function buildProfileTabPop(pop, data) {
     </div>
     <div class="wallet-tab-bar profile-tab-bar">${tabBar}</div>
     ${panels}
-    ${errBlock}`;
+    ${errBlock}
+    ${warnBlock}`;
 
   pop.querySelectorAll('a[data-wallet-open]').forEach(a => {
     a.addEventListener('click', onWalletExplorerClick);
