@@ -73,11 +73,34 @@ def _is_testnet_chain(chain_id: int) -> bool:
 def get_scan8004_api_base(chain_id: int | None = None) -> str:
     explicit = env("SCAN8004_API_BASE")
     if explicit and explicit.strip():
-        return explicit.strip().rstrip("/")
+        return _normalize_scan8004_api_base(explicit.strip())
     cid = chain_id if chain_id is not None else get_chain_id()
     if _is_testnet_chain(cid):
         return DEFAULT_SCAN8004_API_TESTNET
     return DEFAULT_SCAN8004_API
+
+
+def _normalize_scan8004_api_base(raw: str) -> str:
+    """
+    Accept common Railway misconfigs:
+      https://testnet.8004scan.io          → …/api/v1
+      https://testnet.8004scan.io/         → …/api/v1
+      https://testnet.8004scan.io/api      → …/api/v1
+      https://8004scan.io                  → …/api/v1/public
+    """
+    base = raw.strip().rstrip("/")
+    lower = base.lower()
+    # Already a full API root
+    if lower.endswith("/api/v1") or lower.endswith("/api/v1/public"):
+        return base
+    if lower.endswith("/api"):
+        return base + "/v1"
+    # Web host only (HTML shell) — append API path
+    if "8004scan.io" in lower and "/api/" not in lower:
+        if "testnet." in lower:
+            return base + "/api/v1"
+        return base + "/api/v1/public"
+    return base
 
 
 def get_scan8004_web_base(chain_id: int | None = None) -> str:

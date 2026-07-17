@@ -143,6 +143,15 @@ def fetch_agent_with_diagnostics(
                 attempts.append({**attempt, "ok": False, "error": (r.text or "")[:180]})
                 continue
             try:
+                # HTML shells (wrong API_BASE = web host) parse as JSON failure
+                ctype = (r.headers.get("content-type") or "").lower()
+                if "text/html" in ctype or (r.text or "").lstrip().startswith("<!"):
+                    attempts.append({
+                        **attempt,
+                        "ok": False,
+                        "error": "html_response_not_api — check SCAN8004_API_BASE (need …/api/v1)",
+                    })
+                    continue
                 body = r.json()
             except Exception as e:
                 attempts.append({**attempt, "ok": False, "error": f"json: {e}"})

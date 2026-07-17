@@ -17,7 +17,9 @@ from trust.config import (
     explorer_nft_url,
     get_agent_id,
     get_chain_id,
+    get_scan8004_api_base,
     get_scan8004_api_key,
+    get_scan8004_web_base,
     get_service_url,
     identity_registry_for_chain,
     scan8004_agent_url,
@@ -88,6 +90,8 @@ def identity_status() -> dict:
         "chainSource": "env" if env("ERC8004_CHAIN_ID") else "x402",
         "agentRegistry": agent_registry_string(chain_id) if agent_id else None,
         "scan8004ApiKey": bool(get_scan8004_api_key()),
+        "scan8004ApiBase": get_scan8004_api_base(chain_id),
+        "scan8004WebBase": get_scan8004_web_base(chain_id),
         "serviceUrl": get_service_url(),
     }
 
