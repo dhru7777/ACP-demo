@@ -95,26 +95,37 @@ def agent_matches_service_url(scan: dict | None, service_url: str | None) -> boo
 
 
 def _candidate_api_bases(chain_id: int) -> list[str]:
-    """Ordered bases to try — configured first, then known public/testnet mirrors."""
+    """Ordered bases to try — public first (avoids keyed daily rate limits), then configured."""
     primary = get_scan8004_api_base(chain_id).rstrip("/")
-    bases = [primary]
-    # Testnet agents (Base Sepolia) often need the testnet host even if env points elsewhere.
+    bases: list[str] = []
+
+    def _add(b: str) -> None:
+        b = b.rstrip("/")
+        if b and b not in bases:
+            bases.append(b)
+
+    # Prefer unauthenticated public mirrors first — keyed /api/v1 burns daily quota (429).
     if chain_id in (84532, 11155111, 97, 80002, 10143):
-        for b in (
-            "https://testnet.8004scan.io/api/v1",
-            "https://testnet.8004scan.io/api/v1/public",
-            "https://8004scan.io/api/v1/public",
-        ):
-            if b not in bases:
-                bases.append(b)
+        _add("https://testnet.8004scan.io/api/v1/public")
+        _add("https://8004scan.io/api/v1/public")
+        _add(primary)
+        _add("https://testnet.8004scan.io/api/v1")
     else:
-        for b in (
-            "https://8004scan.io/api/v1/public",
-            "https://8004scan.io/api/v1",
-        ):
-            if b not in bases:
-                bases.append(b)
+        _add("https://8004scan.io/api/v1/public")
+        _add(primary)
+        _add("https://8004scan.io/api/v1")
     return bases
+
+
+def _headers_for_url(url: str) -> dict[str, str]:
+    """Only attach API key for non-public hosts/paths — public routes don't need it."""
+    headers = {"Accept": "application/json"}
+    if "/public" in url:
+        return headers
+    key = get_scan8004_api_key()
+    if key:
+        headers["X-API-Key"] = key
+    return headers
 
 
 def fetch_agent(chain_id: int, agent_id: int) -> dict | None:
@@ -130,9 +141,9 @@ def fetch_agent_with_diagnostics(
     Same as fetch_agent, but also returns attempt diagnostics for /agent/erc8004.
     """
     attempts: list[dict] = []
-    headers = _headers()
     for base in _candidate_api_bases(chain_id):
         url = f"{base}/agents/{chain_id}/{agent_id}"
+        headers = _headers_for_url(url)
         try:
             r = requests.get(url, headers=headers, timeout=15)
             attempt = {"url": url, "status": r.status_code}
@@ -179,7 +190,12 @@ def search_agents(
         params["chain_id"] = chain_id
     for base in _candidate_api_bases(cid):
         try:
-            r = requests.get(f"{base}/agents", params=params, headers=_headers(), timeout=15)
+            r = requests.get(
+                f"{base}/agents",
+                params=params,
+                headers=_headers_for_url(f"{base}/agents"),
+                timeout=15,
+            )
             r.raise_for_status()
             rows = _parse_list_body(r.json())
             if rows:
@@ -202,7 +218,12 @@ def list_agents(
         params["chain_id"] = chain_id
     for base in _candidate_api_bases(cid):
         try:
-            r = requests.get(f"{base}/agents", params=params, headers=_headers(), timeout=15)
+            r = requests.get(
+                f"{base}/agents",
+                params=params,
+                headers=_headers_for_url(f"{base}/agents"),
+                timeout=15,
+            )
             r.raise_for_status()
             rows = _parse_list_body(r.json())
             if rows:
