@@ -7,12 +7,15 @@ def run_checks(*, manifest: dict, offer: dict, product: dict, payment_rail: str 
     constraints = manifest.get("constraints") or {}
     budget_max = int(constraints.get("budget_max_cents") or 0)
     price_cents = int(round(float(offer.get("price", product.get("price", 0))) * 100))
-    category = offer.get("category") or product.get("category", "")
+    category = str(offer.get("category") or product.get("category") or "").strip()
     allowed_categories = constraints.get("categories_allowed") or []
     allowed_rails = constraints.get("payment_rails_allowed") or []
     if not allowed_rails:
         legacy = constraints.get("payment_rail")
-        allowed_rails = [legacy] if legacy else ["stripe_fiat", "x402"]
+        allowed_rails = [legacy] if legacy else ["stripe_fiat", "x402", "escrow"]
+
+    allowed_cats_norm = {str(c).strip().lower() for c in allowed_categories if c}
+    category_ok = (not allowed_cats_norm) or (category.lower() in allowed_cats_norm)
 
     checks = [
         {
@@ -22,7 +25,7 @@ def run_checks(*, manifest: dict, offer: dict, product: dict, payment_rail: str 
         },
         {
             "rule": "categories.allowed",
-            "pass": category in allowed_categories,
+            "pass": category_ok,
             "detail": f"category '{category}' in {allowed_categories}",
         },
         {

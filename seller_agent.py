@@ -61,6 +61,8 @@ from payments.wallet_api import (
 
 def _stripe_connect_enabled() -> bool:
     return get_stripe_seller_account_id() is not None
+
+
 from payments import escrow_service, x402_service
 from payments.chain import fetch_tx_fee_eth
 from payments.receipt_pdf import build_receipt_pdf
@@ -68,6 +70,27 @@ from trust.identity_api import build_agent_identity_response, identity_status
 from intent import api as intent_api
 from intent import service as intent_service
 from intent.payment_guard import check_offer_for_session, finalize_paid_receipt
+
+
+def _constraint_fail_message(check_result: dict | None) -> str:
+    if not check_result:
+        return "Constraint check failed"
+    failed = [
+        f"{c.get('rule')}: {c.get('detail')}"
+        for c in (check_result.get("checks") or [])
+        if not c.get("pass")
+    ]
+    if failed:
+        return "Constraint check failed — " + "; ".join(failed)
+    return "Constraint check failed"
+
+
+def _should_block_on_constraints(body: dict, *, default_require: bool) -> bool:
+    """Demo UI sends requireIntent:false for escrow — do not hard-block when false."""
+    if "requireIntent" in body:
+        return bool(body.get("requireIntent"))
+    return default_require
+
 
 app = FastAPI(title="Nike Seller Agent", version="2.0.0")
 
@@ -435,10 +458,14 @@ async def demo_x402_execute(request: Request):
             )
         except ValueError as e:
             return JSONResponse({"status": "error", "error": str(e)}, status_code=400)
-        if check_result and not check_result.get("pass"):
+        if (
+            check_result
+            and not check_result.get("pass")
+            and _should_block_on_constraints(body, default_require=True)
+        ):
             return JSONResponse({
                 "status": "error",
-                "error": "Constraint check failed",
+                "error": _constraint_fail_message(check_result),
                 "constraintCheck": check_result,
             }, status_code=403)
 
@@ -536,10 +563,14 @@ async def demo_escrow_execute(request: Request):
             )
         except ValueError as e:
             return JSONResponse({"status": "error", "error": str(e)}, status_code=400)
-        if check_result and not check_result.get("pass"):
+        if (
+            check_result
+            and not check_result.get("pass")
+            and _should_block_on_constraints(body, default_require=False)
+        ):
             return JSONResponse({
                 "status": "error",
-                "error": "Constraint check failed",
+                "error": _constraint_fail_message(check_result),
                 "constraintCheck": check_result,
             }, status_code=403)
 
@@ -707,10 +738,14 @@ async def demo_stripe_execute(request: Request):
             )
         except ValueError as e:
             return JSONResponse({"status": "error", "error": str(e)}, status_code=400)
-        if check_result and not check_result.get("pass"):
+        if (
+            check_result
+            and not check_result.get("pass")
+            and _should_block_on_constraints(body, default_require=True)
+        ):
             return JSONResponse({
                 "status": "error",
-                "error": "Constraint check failed",
+                "error": _constraint_fail_message(check_result),
                 "constraintCheck": check_result,
             }, status_code=403)
 
